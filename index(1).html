@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="NEXUS Glass v3.1 — self-learning, regime-aware M1 signal engine with pre-close timing and circuit breaker.">
+<title>NEXUS Glass v3.1 — Self-Learning Signal Engine</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2300c6ff'/><stop offset='1' stop-color='%23b57fff'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%230b1220'/><text x='50' y='70' font-size='58' text-anchor='middle' fill='url(%23g)' font-family='Arial' font-weight='900'>N</text></svg>">
+<style>
+  :root{
+    --glass:linear-gradient(160deg, rgba(255,255,255,.09), rgba(255,255,255,.03));
+    --glass-brd:rgba(255,255,255,.13);
+    --txt:#e8f0fa; --sub:#93a7c4; --acc:#00c6ff; --win:#00e5a0; --loss:#ff5c7a; --warn:#ffd54f;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,Roboto,Arial,sans-serif; }
+  body { color:var(--txt); min-height:100vh; padding:16px; background:#05070f; overflow-x:hidden; }
+  .orb { position:fixed; border-radius:50%; filter:blur(90px); opacity:.5; z-index:0; pointer-events:none; }
+  .o1 { width:420px;height:420px; background:#0b3a6e; top:-140px; left:-120px; }
+  .o2 { width:380px;height:380px; background:#3a1663; top:30%; right:-140px; }
+  .o3 { width:340px;height:340px; background:#063f38; bottom:-120px; left:20%; }
+  .wrap { max-width:480px; margin:0 auto; position:relative; z-index:1; }
+  .glass { background:var(--glass); border:1px solid var(--glass-brd); border-radius:20px;
+           backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+           padding:16px; margin-bottom:14px; box-shadow:0 8px 32px rgba(0,0,0,.35); }
+  .header { display:flex; align-items:center; gap:12px; }
+  .logo { width:48px; height:48px; border-radius:14px; flex-shrink:0;
+          background:linear-gradient(135deg,#00c6ff,#7f2bd0);
+          display:flex; align-items:center; justify-content:center; font-weight:900; font-size:19px;
+          box-shadow:0 0 24px rgba(0,150,255,.45); border:1px solid rgba(255,255,255,.25); }
+  .header h1 { font-size:21px; letter-spacing:4px;
+               background:linear-gradient(90deg,#7fd8ff,#c9a7ff);
+               -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .header p { font-size:11px; color:var(--sub); }
+  .t { font-size:11px; color:var(--sub); letter-spacing:1.5px; text-transform:uppercase; display:block; margin-bottom:8px; }
+  select, input { background:rgba(5,10,20,.55); color:var(--txt); border:1px solid rgba(255,255,255,.15);
+                  border-radius:10px; padding:10px; font-size:13px; width:100%; margin-bottom:8px; outline:none; }
+  select:focus, input:focus { border-color:var(--acc); }
+  .status { font-size:12px; padding:9px 12px; border-radius:10px; margin-bottom:10px; text-align:center; }
+  .ok { background:rgba(0,229,160,.13); color:var(--win); border:1px solid rgba(0,229,160,.3); }
+  .err { background:rgba(255,92,122,.12); color:var(--loss); border:1px solid rgba(255,92,122,.3); }
+  .wait { background:rgba(120,160,220,.09); color:#a9c0dd; border:1px solid rgba(120,160,220,.2); }
+  .toggle { display:flex; align-items:center; justify-content:space-between; background:rgba(5,10,20,.4);
+            border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 12px; margin-bottom:10px; font-size:13px; }
+  .switch { position:relative; width:46px; height:26px; flex-shrink:0; }
+  .switch input { display:none; }
+  .slider { position:absolute; inset:0; background:rgba(255,255,255,.15); border-radius:26px; cursor:pointer; transition:.2s; }
+  .slider:before { content:''; position:absolute; width:20px; height:20px; border-radius:50%; background:#fff;
+                   top:3px; left:3px; transition:.2s; }
+  .switch input:checked + .slider { background:var(--win); }
+  .switch input:checked + .slider:before { transform:translateX(20px); }
+  button { border:none; border-radius:12px; padding:13px; font-size:15px; font-weight:700; cursor:pointer;
+           color:#fff; transition:.15s; }
+  button:active { transform:scale(.97); } button:disabled { opacity:.45; cursor:default; }
+  .b-gen { background:linear-gradient(90deg,#0072ff,#00c6ff); flex:1; box-shadow:0 4px 18px rgba(0,140,255,.35); }
+  .b-ghost { background:rgba(255,255,255,.1); font-size:12px; padding:9px; border:1px solid rgba(255,255,255,.15); }
+  .price { font-size:24px; font-weight:800; text-align:center; padding:4px; }
+  .up { color:var(--win); } .dn { color:var(--loss); }
+  .mini { font-size:11px; color:var(--sub); text-align:center; }
+  a { color:var(--acc); }
+  .feed4 { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+  .f4 { background:rgba(5,10,20,.45); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:8px 11px; font-size:11px; color:var(--sub); }
+  .f4 b { display:block; font-size:12px; margin-top:3px; color:var(--txt); word-break:break-all; }
+  .regime { display:flex; gap:8px; margin-top:8px; }
+  .rg { flex:1; background:rgba(5,10,20,.45); border:1px solid rgba(255,255,255,.08); border-radius:12px;
+        padding:8px; text-align:center; font-size:10px; color:var(--sub); }
+  .rg b { display:block; font-size:15px; color:var(--txt); }
+  .rg.on { border-color:var(--win); box-shadow:0 0 12px rgba(0,229,160,.25); }
+  .countdown { text-align:center; font-size:13px; margin-top:10px; padding:9px; border-radius:12px;
+               background:rgba(5,10,20,.45); border:1px solid rgba(255,255,255,.1); }
+  .countdown b { font-size:18px; font-family:monospace; }
+  .cd-ok b { color:var(--acc); } .cd-hot b { color:var(--warn); animation:blink 1s infinite; }
+  @keyframes blink { 50% { opacity:.4; } }
+  .batch { border-color:rgba(0,198,255,.25); }
+  .batch-head { text-align:center; margin-bottom:10px; }
+  .batch-head .nm { font-weight:800; font-size:15px; letter-spacing:1px; }
+  .sig-row { font-family:'Consolas','Courier New',monospace; font-size:14px; padding:4px 6px;
+             display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,.07); gap:8px; }
+  .sig-row .mark { font-weight:800; flex-shrink:0; }
+  .sig-open { color:var(--warn); }
+  .gradeA { color:var(--win); font-weight:800; }
+  .batch-summary { text-align:center; font-family:monospace; font-size:13px; margin-top:10px; color:var(--sub); }
+  .stats { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; text-align:center; }
+  .stat { background:rgba(5,10,20,.45); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:9px 3px; }
+  .stat b { display:block; font-size:18px; } .stat span { font-size:9px; color:var(--sub); }
+  .rate { color:var(--win); }
+  .brain { margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+  .brow { background:rgba(5,10,20,.45); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:8px 11px; font-size:12px; }
+  .brow .top { display:flex; justify-content:space-between; align-items:center; }
+  .fam { font-size:9px; padding:2px 7px; border-radius:6px; letter-spacing:1px; font-weight:700; }
+  .fTREND{background:rgba(0,150,255,.2);color:#7fd8ff;} .fMEAN{background:rgba(0,229,160,.18);color:var(--win);}
+  .fBREAK{background:rgba(255,180,0,.18);color:var(--warn);} .fMOM{background:rgba(181,127,255,.2);color:#c9a7ff;}
+  .wbar { height:5px; background:rgba(255,255,255,.08); border-radius:4px; overflow:hidden; margin-top:6px; }
+  .wbar i { display:block; height:100%; background:linear-gradient(90deg,var(--acc),var(--win)); }
+  .history { max-height:150px; overflow-y:auto; font-size:13px; }
+  .history div { display:flex; justify-content:space-between; padding:6px 8px; border-bottom:1px solid rgba(255,255,255,.06); }
+  .w { color:var(--win); } .l { color:var(--loss); }
+  .clock { text-align:center; color:#5c6f86; font-size:11px; margin-top:8px; }
+  .disclaimer { font-size:11px; color:#54637a; text-align:center; margin-top:12px; line-height:1.5; }
+  .chk { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .chk label { font-size:12px; background:rgba(5,10,20,.45); border:1px solid rgba(255,255,255,.12);
+               border-radius:10px; padding:6px 10px; cursor:pointer; }
+  .chk input { width:auto; margin:0 4px 0 0; }
+  .ver { text-align:center; font-size:10px; color:#3d4d63; margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+<div class="wrap">
+  <div class="glass header">
+    <div class="logo">N</div>
+    <div><h1>NEXUS</h1><p>Glass v3.1 · self-learning · pre-close signals · circuit breaker</p></div>
+  </div>
+
+  <div class="glass">
+    <span class="t">🔑 Twelve Data Key</span>
+    <input type="text" id="key" placeholder="Paste your Twelve Data API key" autocomplete="off">
+    <div class="mini">Free key at <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener">twelvedata.com</a> · stored only in your browser</div>
+  </div>
+
+  <div class="glass">
+    <span class="t">📡 Data Feeds — 4 APIs</span>
+    <div class="feed4">
+      <div class="f4">time_series · candles<b id="f_ts">—</b></div>
+      <div class="f4">quote · OHLC+Δ%<b id="f_q">—</b></div>
+      <div class="f4">price · spot tick<b id="f_p">—</b></div>
+      <div class="f4">exchange_rate · cross<b id="f_er">—</b></div>
+    </div>
+    <div class="mini" id="agree" style="margin-top:8px">cross-check: —</div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="b-ghost" style="flex:1" onclick="verifyFeeds()">🔍 VERIFY FEEDS</button>
+    </div>
+  </div>
+
+  <div class="glass">
+    <span class="t">🧭 Market Regime Detector</span>
+    <div class="regime">
+      <div class="rg" id="rgAdx"><b>—</b>ADX(14)</div>
+      <div class="rg" id="rgAtr"><b>—</b>ATR pct</div>
+      <div class="rg on" id="rgFam"><b>—</b>family bias</div>
+    </div>
+    <div class="mini" style="margin-top:8px">ADX&gt;25 → trend (75% threshold) · ADX&lt;20 → range (70%) · 20-25 mixed (80%) · doji candles blocked 👿</div>
+  </div>
+
+  <div class="glass">
+    <span class="t">🎯 Watchlist & Controls</span>
+    <div class="chk" id="watch"></div>
+    <div style="display:flex;gap:10px;margin-top:10px">
+      <select id="tzoff" style="margin:0;flex:1">
+        <option value="6" selected>UTC +6:00</option><option value="5.5">UTC +5:30</option>
+        <option value="3">UTC +3:00</option><option value="0">UTC +0:00</option>
+        <option value="-5">UTC −5:00</option>
+      </select>
+      <button class="b-gen" id="btnRun" onclick="runScan(true)">⚡ SCAN</button>
+    </div>
+    <div class="toggle" style="margin-top:10px">
+      <span>🤖 AUTO-MODE <span class="mini">(3 pairs/candle, rotates)</span></span>
+      <label class="switch"><input type="checkbox" id="auto"><span class="slider"></span></label>
+    </div>
+    <div class="countdown cd-ok" id="cd"><span>⏳ candle closes in</span> <b id="cdS">—</b> · signal predicts the <b>next</b> candle</div>
+    <div class="status wait" id="status">NEXUS idle — scan a few seconds before candle close for best entry timing</div>
+    <div class="price" id="price">—</div>
+    <div class="mini" id="pxinfo">—</div>
+    <div class="mini" id="credits" style="margin-top:6px">API credits this session: 0</div>
+  </div>
+
+  <div class="glass batch" id="batchCard" style="display:none">
+    <div class="batch-head">
+      <div class="nm">📊 NEXUS PREMIUM SIGNAL 🔔</div>
+      <div class="mini">🗓 <span id="bDate">—</span> · 🌍 <span id="bTz">UTC+6</span> · ⏳ M1 · enter at <b>next candle open</b> · 🤖 1 STEP MTG 📊</div>
+    </div>
+    <div id="batchRows"></div>
+    <div class="batch-summary" id="batchSummary">✅ = Win (0)  |  ❌ = Loss (0)</div>
+  </div>
+
+  <div class="glass">
+    <span class="t">🔥 Session Result</span>
+    <div class="stats">
+      <div class="stat"><b class="rate" id="wins">0</b><span>WINS ✅</span></div>
+      <div class="stat"><b style="color:var(--loss)" id="losses">0</b><span>LOSSES ❌</span></div>
+      <div class="stat"><b id="total">0</b><span>TOTAL</span></div>
+      <div class="stat"><b class="rate" id="rate">—</b><span>WIN RATE</span></div>
+      <div class="stat"><b id="streak" style="color:var(--warn)">0</b><span>LOSS STREAK 🔥</span></div>
+    </div>
+    <div class="mini" id="breaker" style="margin-top:8px;display:none">🚨 CIRCUIT BREAKER — 3 straight losses. Take a break. <a href="#" onclick="resetStreak();return false">reset</a></div>
+  </div>
+
+  <div class="glass">
+    <span class="t">🧠 Self-Learning Brain</span>
+    <div class="brain" id="brain"></div>
+    <div class="mini" style="margin-top:8px">weight = 35% backtest + 65% live memory × regime boost · persists across sessions</div>
+  </div>
+
+  <div class="glass">
+    <span class="t">📜 History <button onclick="clearStats()" style="padding:4px 10px;font-size:11px;float:right" class="b-ghost">reset</button></span>
+    <div class="history" id="hist" style="margin-top:6px"><div style="color:var(--sub)">No results yet.</div></div>
+  </div>
+
+  <div class="clock" id="clock"></div>
+  <p class="disclaimer">⚠️ NEXUS learns and adapts but can never guarantee wins — no system can.<br>Binary options trading carries a very high risk of losing money. Trade responsibly.</p>
+  <div class="ver">NEXUS Glass v3.1 · production</div>
+</div>
+
+<script>
+'use strict';
+const $=id=>document.getElementById(id), pad=n=>String(n).padStart(2,'0');
+const PAIRS=['EUR/USD','GBP/USD','USD/JPY','AUD/USD','USD/CAD','EUR/JPY','GBP/JPY','EUR/GBP','AUD/JPY','CAD/JPY'];
+const PAIRCODE=p=>p.replace('/','');
+let busy=false, lastMinute=-1, rrIdx=0, credits=0, uid=0;
+let cache={}, openSigs=[];
+
+const FAM={
+  'EMA 9/21 cross':'TREND','MACD 5-35-5':'TREND',
+  'RSI-4 + BB confirm':'MEAN','Stochastic 5-3-3':'MEAN','BB bounce':'MEAN',
+  'Keltner 2-close + RSI':'BREAK','Donchian 20':'BREAK','Momentum 3-candle':'MOM'};
+const FAMLABEL={TREND:'TREND',MEAN:'MEAN-REV',BREAK:'BREAKOUT',MOM:'MOMENTUM'};
+
+/* ---------- persisted stats + memory + streak ---------- */
+let W=+(localStorage.getItem('nx_W')||0), L=+(localStorage.getItem('nx_L')||0);
+let streak=+(localStorage.getItem('nx_streak')||0);
+let mem; try{ mem=JSON.parse(localStorage.getItem('nx_mem'))||{}; }catch(e){ mem={}; }
+for(const s in FAM) if(!mem[s]) mem[s]={w:0,l:0};
+function saveMem(){ localStorage.setItem('nx_mem',JSON.stringify(mem)); }
+function liveWR(s){ const m=mem[s]; return (m.w+2)/(m.w+m.l+4); }
+function saveStats(){ localStorage.setItem('nx_W',W); localStorage.setItem('nx_L',L); localStorage.setItem('nx_streak',streak); }
+function renderStats(){
+  const tot=W+L;
+  $('wins').textContent=W; $('losses').textContent=L; $('total').textContent=tot;
+  $('rate').textContent=tot?Math.round(W/tot*100)+'%':'—';
+  $('streak').textContent=streak;
+  $('batchSummary').textContent='✅ = Win ('+W+')  |  ❌ = Loss ('+L+')';
+  $('breaker').style.display = streak>=3 ? 'block' : 'none';
+}
+function resetStreak(){ streak=0; saveStats(); renderStats(); setStatus('ok','Circuit breaker reset — resume with discipline'); }
+function clearStats(){ W=0;L=0;streak=0;saveStats();renderStats();
+  $('hist').innerHTML='<div style="color:var(--sub)">No results yet.</div>'; }
+
+/* ---------- brain panel ---------- */
+function renderBrain(weights){
+  const rows=Object.keys(FAM).map(s=>{
+    const m=mem[s];
+    return {s,fam:FAM[s],wr:liveWR(s),n:m.w+m.l,wgt:weights?weights[s]:null};
+  }).sort((a,b)=>(b.wgt||0)-(a.wgt||0));
+  $('brain').innerHTML=rows.map(r=>
+    `<div class="brow"><div class="top">
+       <span><span class="fam f${r.fam}">${FAMLABEL[r.fam]}</span> ${r.s}</span>
+       <span>${r.n} trades · ${(r.wr*100).toFixed(0)}% live · <b>${r.wgt?r.wgt.toFixed(2):'—'}</b></span>
+     </div>
+     <div class="wbar"><i style="width:${r.wgt?Math.min(r.wgt*100,100):0}%"></i></div></div>`).join('');
+}
+
+/* ---------- watchlist ---------- */
+let savedWatch; try{ savedWatch=JSON.parse(localStorage.getItem('nx_watch')); }catch(e){}
+if(!Array.isArray(savedWatch)) savedWatch=PAIRS.slice();
+$('watch').innerHTML=PAIRS.map(p=>
+  `<label><input type="checkbox" value="${p}" ${savedWatch.includes(p)?'checked':''}>${PAIRCODE(p)}</label>`).join('');
+function watch(){ const w=[...document.querySelectorAll('#watch input:checked')].map(i=>i.value);
+  localStorage.setItem('nx_watch',JSON.stringify(w)); return w; }
+document.querySelectorAll('#watch input').forEach(i=>i.addEventListener('change',()=>watch()));
+$('key').value=localStorage.getItem('td_key')||'';
+$('key').addEventListener('change',e=>localStorage.setItem('td_key',e.target.value.trim()));
+
+/* ---------- clock + countdown + auto ---------- */
+const tzLabel=()=>{const v=parseFloat($('tzoff').value);return 'UTC'+(v>=0?'+':'−')+Math.abs(v);};
+function tzNow(){ return new Date(Date.now()+parseFloat($('tzoff').value)*3600e3); }
+setInterval(()=>{ const d=tzNow(), now=new Date();
+  $('clock').textContent='NEXUS time ('+tzLabel()+'): '+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+':'+pad(d.getUTCSeconds());
+  $('bTz').textContent=tzLabel();
+  const secLeft=60-now.getUTCSeconds();
+  $('cdS').textContent=secLeft+'s';
+  $('cd').className='countdown '+(secLeft<=10?'cd-hot':'cd-ok');
+  $('cd').firstElementChild.textContent = secLeft<=10 ? '⚡⚡ GET READY — enter at next open in' : '⏳ candle closes in';
+  if($('auto').checked && d.getUTCMinutes()!==lastMinute && !busy){
+    lastMinute=d.getUTCMinutes(); runScan(false);
+  }
+},1000);
+
+/* ---------- candle time parser ---------- */
+function parseCandleUTC(t){
+  const s=String(t).trim();
+  if(/Z$/.test(s)||/[+-]\d{2}:?\d{2}$/.test(s)) return new Date(s);
+  return new Date(s.replace(' ','T')+'Z');
+}
+
+/* ---------- 4 Twelve Data APIs ---------- */
+const KEY=()=>$('key').value.trim();
+const BASE='https://api.twelvedata.com/';
+async function jget(url){ credits++; $('credits').textContent='API credits this session: '+credits;
+  const r=await fetch(url); const j=await r.json();
+  if(j.status==='error') throw new Error(j.message); return j; }
+async function apiTimeSeries(pair){
+  const ck=cache[pair];
+  if(ck && Date.now()-ck.t<50000) return ck;
+  const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=1min&outputsize=120&apikey=${KEY()}`);
+  if(!Array.isArray(j.values)||!j.values.length) throw new Error('unexpected time_series shape');
+  const data=j.values.map(v=>({t:v.datetime,o:+v.open,h:+v.high,l:+v.low,c:+v.close})).reverse();
+  if(data.length<40) throw new Error('too few candles');
+  const out={t:Date.now(),data}; cache[pair]=out; return out;
+}
+async function apiQuote(pair){ const j=await jget(`${BASE}quote?symbol=${encodeURIComponent(pair)}&apikey=${KEY()}`);
+  return {price:+j.close, chg:(+j.percent_change||0)}; }
+async function apiPrice(pair){ const j=await jget(`${BASE}price?symbol=${encodeURIComponent(pair)}&apikey=${KEY()}`);
+  return +j.price; }
+async function apiRate(from,to){ const j=await jget(`${BASE}exchange_rate?symbol=${from}/${to}&apikey=${KEY()}`);
+  return +j.exchange_rate; }
+
+async function verifyFeeds(){
+  if(!KEY()){ setStatus('err','Add your API key first'); return; }
+  setStatus('wait','Verifying all 4 feeds...');
+  const p0=(watch()[0]||'EUR/USD');
+  const [ts,q,pr,er]=await Promise.allSettled([apiTimeSeries(p0),apiQuote(p0),apiPrice(p0),apiRate(...p0.split('/'))]);
+  feed4Render(p0,q,pr,er);
+  const ok=[ts,q,pr,er].filter(x=>x.status==='fulfilled').length;
+  setStatus(ok===4?'ok':'err', ok===4?'✅ All 4 feeds live — data flowing correctly ('+p0+')'
+    :'⚠️ '+ok+'/4 feeds OK — '+[ts,q,pr,er].map((x,i)=>['time_series','quote','price','exchange_rate'][i]+(x.status==='fulfilled'?'✅':':'+String(x.reason&&x.reason.message||x.reason).slice(0,30))).join(' · '));
+}
+
+/* ---------- indicators ---------- */
+function ema(v,p){const k=2/(p+1);let e=v[0];const o=[e];for(let i=1;i<v.length;i++){e=v[i]*k+e*(1-k);o.push(e);}return o;}
+function sma(v,p){return v.map((_,i)=>{if(i<p-1)return v[i];const s=v.slice(i-p+1,i+1);return s.reduce((a,b)=>a+b,0)/p;});}
+function macdHist(cl,f,s,sg){const ef=ema(cl,f),es=ema(cl,s);
+  const line=cl.map((_,i)=>ef[i]-es[i]);const g=ema(line,sg);return line.map((v,i)=>v-g[i]);}
+function rsiArr(cl,p){const o=new Array(cl.length).fill(50);let g=0,l=0;
+  for(let i=1;i<cl.length;i++){const d=cl[i]-cl[i-1];
+    if(i<=p){d>=0?g+=d:l-=d;if(i===p){g/=p;l/=p;o[i]=l===0?100:100-100/(1+g/l);}}
+    else{g=(g*(p-1)+Math.max(d,0))/p;l=(l*(p-1)+Math.max(-d,0))/p;o[i]=l===0?100:100-100/(1+g/l);}}
+  for(let i=1;i<p;i++)o[i]=o[p];return o;}
+function bbArr(cl,p,m){const n=cl.length,mid=new Array(n).fill(cl[0]),up=[...mid],lo=[...mid];
+  for(let i=p;i<n;i++){const s=cl.slice(i-p,i);const md=s.reduce((a,b)=>a+b,0)/p;
+    const sd=Math.sqrt(s.reduce((a,b)=>a+(b-md)**2,0)/p);mid[i]=md;up[i]=md+m*sd;lo[i]=md-m*sd;}
+  return{mid,up,lo};}
+function keltner(hi,lo,cl,p,mult){const e=ema(cl,p);
+  const tr=cl.map((_,i)=>i?Math.max(hi[i]-lo[i],Math.abs(hi[i]-cl[i-1]),Math.abs(lo[i]-cl[i-1])):hi[i]-lo[i]);
+  const ae=ema(tr,10);
+  return{up:cl.map((_,i)=>e[i]+mult*ae[i]),lo:cl.map((_,i)=>e[i]-mult*ae[i]),atr:ae};}
+function stoch(hi,lo,cl,kp,dp){const k=cl.map((_,i)=>{if(i<kp-1)return 50;
+    const hh=Math.max(...hi.slice(i-kp+1,i+1)),ll=Math.min(...lo.slice(i-kp+1,i+1));
+    return hh===ll?50:100*(cl[i]-ll)/(hh-ll);});
+  return sma(k,dp);}
+function adxArr(hi,lo,cl,p){const n=cl.length;
+  const pdm=new Array(n).fill(0),ndm=new Array(n).fill(0),tr=new Array(n).fill(0);
+  for(let i=1;i<n;i++){const up=hi[i]-hi[i-1],dn=lo[i-1]-lo[i];
+    pdm[i]=up>dn&&up>0?up:0; ndm[i]=dn>up&&dn>0?dn:0;
+    tr[i]=Math.max(hi[i]-lo[i],Math.abs(hi[i]-cl[i-1]),Math.abs(lo[i]-cl[i-1]));}
+  const sm=v=>{const o=new Array(n).fill(0);let s=0;
+    for(let i=1;i<n;i++){if(i<=p){s+=v[i];o[i]=i===p?s:0;}else o[i]=o[i-1]-o[i-1]/p+v[i];}
+    if(p<n)o.fill(o[p],1,p); return o;};
+  const str=sm(tr),sp=sm(pdm),sn=sm(ndm);
+  const dx=new Array(n).fill(0); let adx=0; const out=new Array(n).fill(20);
+  for(let i=1;i<n;i++){const pdi=str[i]?100*sp[i]/str[i]:0,ndi=str[i]?100*sn[i]/str[i]:0;
+    dx[i]=(pdi+ndi)?100*Math.abs(pdi-ndi)/(pdi+ndi):0;
+    if(i===2*p){adx=dx.slice(p+1,2*p+1).reduce((a,b)=>a+b,0)/p;out[i]=adx;}
+    else if(i>2*p){adx=(adx*(p-1)+dx[i])/p;out[i]=adx;}}
+  for(let i=1;i<=Math.min(2*p,n-1);i++) out[i]=out[Math.min(2*p,n-1)];
+  return out;}
+
+/* ---------- strategies ---------- */
+function makeCtx(o,h,l,c){
+  return{o,h,l,c,e9:ema(c,9),e21:ema(c,21),e50:ema(c,50),mh:macdHist(c,5,35,5),rs:rsiArr(c,4),
+    bb:bbArr(c,20,2),kc:keltner(h,l,c,20,1.5),st:stoch(h,l,c,5,3),adx:adxArr(h,l,c,14)};
+}
+const STRATS={
+ 'EMA 9/21 cross':(i,x)=>x.e9[i]>x.e21[i]&&x.c[i]>x.e50[i]?'CALL':x.e9[i]<x.e21[i]&&x.c[i]<x.e50[i]?'PUT':null,
+ 'MACD 5-35-5':(i,x)=>x.mh[i]>0&&x.mh[i]>x.mh[i-1]?'CALL':x.mh[i]<0&&x.mh[i]<x.mh[i-1]?'PUT':null,
+ 'RSI-4 + BB confirm':(i,x)=>x.rs[i]<20&&x.c[i]<=x.bb.lo[i]*1.0003?'CALL':x.rs[i]>80&&x.c[i]>=x.bb.up[i]*0.9997?'PUT':null,
+ 'Stochastic 5-3-3':(i,x)=>x.st[i-1]<20&&x.st[i]>=20?'CALL':x.st[i-1]>80&&x.st[i]<=80?'PUT':null,
+ 'BB bounce':(i,x)=>x.c[i]<=x.bb.lo[i]+(x.bb.mid[i]-x.bb.lo[i])*0.3?'CALL':x.c[i]>=x.bb.up[i]-(x.bb.up[i]-x.bb.mid[i])*0.3?'PUT':null,
+ 'Keltner 2-close + RSI':(i,x)=>x.c[i]>x.kc.up[i]&&x.c[i-1]>x.kc.up[i-1]&&x.rs[i]>50?'CALL'
+   :x.c[i]<x.kc.lo[i]&&x.c[i-1]<x.kc.lo[i-1]&&x.rs[i]<50?'PUT':null,
+ 'Donchian 20':(i,x)=>{if(i<21)return null;
+   const hh=Math.max(...x.h.slice(i-20,i)),ll=Math.min(...x.l.slice(i-20,i));
+   return x.c[i]>hh?'CALL':x.c[i]<ll?'PUT':null;},
+ 'Momentum 3-candle':(i,x)=>x.c[i]>x.c[i-1]&&x.c[i-1]>x.c[i-2]?'CALL':x.c[i]<x.c[i-1]&&x.c[i-1]<x.c[i-2]?'PUT':null,
+};
+
+/* ---------- regime + STRONG dynamic threshold ---------- */
+function detectRegime(x){
+  const i=x.c.length-1, adx=x.adx[i];
+  const atr=x.kc.atr[i], hist=x.kc.atr.slice(20);
+  const pct=hist.filter(v=>v<=atr).length/hist.length;
+  const range=adx<20, trend=adx>25;
+  const boost= trend?{TREND:1.35,BREAK:1.25,MOM:1.1,MEAN:0.55}
+    : range?{MEAN:1.4,TREND:0.7,BREAK:0.7,MOM:0.9}
+    :{TREND:1.1,BREAK:1.1,MOM:1,MEAN:1};
+  const thr= trend?0.75 : range?0.70 : 0.80;
+  const label= trend?'➡️ TREND': range?'↔️ RANGE':'〰️ MIXED';
+  return{adx,atrPct:pct,range,trend,boost,thr,label};
+}
+function train(x){const n=x.c.length,stats={};
+  for(const s in STRATS){let w=0,tr=0;
+    for(let i=60;i<n-2;i++){const sig=STRATS[s](i,x);if(!sig)continue;tr++;
+      if((sig==='CALL'?x.c[i+1]>x.c[i]:x.c[i+1]<x.c[i]))w++;}
+    stats[s]={trades:tr,wr:tr?w/tr:0};}
+  return stats;}
+function finalWeights(stats,boost){const w={};
+  for(const s in STRATS) w[s]=Math.max((0.35*stats[s].wr+0.65*liveWR(s))*boost[FAM[s]],0.03);
+  return w;}
+
+/* ---------- main scan ---------- */
+async function runScan(manual){
+  if(busy) return;
+  const key=KEY();
+  if(!key){ setStatus('err','Add your Twelve Data API key first'); return; }
+  if(!/^[\w-]{10,}$/.test(key)){ setStatus('err','That key looks too short — paste the full API key'); return; }
+  if(streak>=3 && manual!==null){ /* circuit breaker blocks signal generation, allows feed check */ }
+  busy=true; $('btnRun').disabled=true;
+  const wl=watch();
+  if(!wl.length){ setStatus('err','Select at least one pair in the watchlist'); busy=false;$('btnRun').disabled=false;return; }
+  let targets=wl;
+  if(!manual){ targets=[]; for(let k=0;k<Math.min(3,wl.length);k++){ targets.push(wl[rrIdx%wl.length]); rrIdx++; } }
+  const breakerOn = streak>=3;
+  setStatus('wait','NEXUS scanning '+targets.map(PAIRCODE).join(', ')+(breakerOn?' · 🚨 BREAKER ON (analysis only)':'')+' ...');
+
+  try{
+    const p0=targets[0];
+    const [ts,q,pr,er]=await Promise.allSettled([apiTimeSeries(p0),apiQuote(p0),apiPrice(p0),apiRate(...p0.split('/'))]);
+    if(ts.status==='rejected') throw ts.reason;
+    const lead=ts.value;
+    feed4Render(p0,q,pr,er);
+    settleAll();
+
+    let newSignals=0, brainWeights=null;
+    for(const pair of targets){
+      let cd=lead;
+      if(pair!==p0){
+        try{ cd=await apiTimeSeries(pair); }
+        catch(e){ addRow(pair,'—:—','FAIL',null); continue; }
+      }
+      const d=cd.data, o=d.map(v=>v.o),h=d.map(v=>v.h),l=d.map(v=>v.l),c=d.map(v=>v.c);
+      const x=makeCtx(o,h,l,c);
+      const i=c.length-1;
+      const regime=detectRegime(x);
+      const stats=train(x);
+      const weights=finalWeights(stats,regime.boost);
+      if(pair===p0){ brainWeights=weights; renderRegime(regime); renderBrain(weights); }
+
+      /* DOJI FILTER 👿 — body < 25% of range = indecision, no signal */
+      const body=Math.abs(c[i]-o[i]), range=h[i]-l[i];
+      const doji=range>0 && body/range<0.25;
+      if(doji && pair===p0) setStatus('wait','👿 DOJI candle detected on '+pair+' — indecision, signal blocked. Wait for next candle.');
+
+      let callW=0,putW=0,callN=0,putN=0; const votes={};
+      for(const s in STRATS){const v=STRATS[s](i,x);votes[s]=v;
+        if(v==='CALL'){callW+=weights[s];callN++;}else if(v==='PUT'){putW+=weights[s];putN++;}}
+      const tot=callW+putW, conf=tot?Math.max(callW,putW)/tot:0;
+      const dir=callW>putW?'CALL':'PUT';
+      const agreeN=dir==='CALL'?callN:putN;
+      /* STRONG threshold: regime-based conf + ≥4 of 8 strategies agree */
+      const pass = conf>=regime.thr && agreeN>=4 && !doji && !breakerOn;
+      if(pass){
+        const dd=tzNow(); dd.setUTCMinutes(dd.getUTCMinutes()+1);
+        const time=pad(dd.getUTCHours())+':'+pad(dd.getUTCMinutes());
+        const grade=conf>=0.85?'A+':conf>=0.75?'A':'B';
+        const id=++uid;
+        openSigs.push({id,pair,time,dir,votes,conf});
+        addRow(pair,time,dir,id,grade);
+        newSignals++;
+        if(navigator.vibrate) navigator.vibrate([80,40,80]);
+      }
+    }
+    if(!brainWeights) renderBrain(null);
+    const last=lead.data[lead.data.length-1].c;
+    const pe=$('price'); pe.textContent=last.toFixed(5);
+    pe.className='price '+(last>=lead.data[lead.data.length-2].c?'up':'dn');
+    if(breakerOn) setStatus('err','🚨 Circuit breaker active — 3 straight losses. Analysis running, signals suppressed. Reset when calm.');
+    else setStatus(newSignals?'ok':'wait', newSignals
+      ? '🔥 '+newSignals+' signal(s) — enter at NEXT candle open ('+tzLabel()+')'
+      : 'No signal — below regime threshold. Learning continues.');
+  }catch(e){
+    const msg=String(e.message||e);
+    setStatus('err', /limit|maximum|credits/i.test(msg)
+      ? '⛔ Twelve Data quota: '+msg+' — wait for reset or upgrade plan'
+      : 'Error: '+msg.slice(0,90));
+  }
+  busy=false; $('btnRun').disabled=false;
+}
+
+function renderRegime(r){
+  $('rgAdx').innerHTML='<b>'+r.adx.toFixed(0)+'</b>ADX(14)';
+  $('rgAtr').innerHTML='<b>'+Math.round(r.atrPct*100)+'%</b>ATR pct';
+  $('rgFam').innerHTML='<b style="font-size:11px">'+r.label+' · thr '+(r.thr*100)+'%</b>family bias';
+  $('rgFam').className='rg on';
+}
+
+function feed4Render(pair,q,p,er){
+  $('f_ts').textContent='✅ 120 candles';
+  const fmt=(x,obj)=>x.status==='fulfilled'
+    ? (obj?'price '+x.value.price.toFixed(5)+' · '+x.value.chg.toFixed(2)+'%':(+x.value).toFixed(5))
+    : '❌ '+String(x.reason&&x.reason.message||x.reason).slice(0,24);
+  $('f_q').textContent=fmt(q,true);
+  $('f_p').textContent=fmt(p,false);
+  $('f_er').textContent=fmt(er,false);
+  const vals=[q,p,er].filter(x=>x.status==='fulfilled')
+    .map(x=>x.value.price!==undefined?x.value.price:+x.value).filter(v=>isFinite(v)&&v>0);
+  if(vals.length>=2){
+    const spread=(Math.max(...vals)-Math.min(...vals))/vals[0]*100;
+    $('agree').textContent='price agreement ('+vals.length+' feeds): '+spread.toFixed(4)+'% '
+      +(spread<0.02?'✅ feeds agree':'⚠️ divergence — be careful');
+  } else $('agree').textContent='cross-check: partial (some feeds unavailable / plan-limited)';
+  $('pxinfo').textContent=pair+(q.status==='fulfilled'?' · day change '+q.value.chg.toFixed(2)+'%':'');
+}
+
+function addRow(pair,time,dir,id,grade){
+  $('batchCard').style.display='block';
+  const d=tzNow();
+  $('bDate').textContent=pad(d.getUTCDate())+'-'+pad(d.getUTCMonth()+1)+'-'+d.getUTCFullYear();
+  const row=document.createElement('div');
+  row.className='sig-row';
+  const markHtml=id===null?'<span class="mark sig-open">⚠️</span>'
+    :`<span class="mark sig-open" id="mk-${id}">⏳</span>`;
+  const gradeHtml=grade?`<span class="gradeA">·${grade}</span>`:'';
+  row.innerHTML=`<span>M1;${PAIRCODE(pair)}•${time};${dir}${gradeHtml}</span>${markHtml}`;
+  $('batchRows').appendChild(row);
+}
+
+/* ---------- auto-settle + learn + streak ---------- */
+function settleAll(){
+  const nowUTC=Date.now();
+  openSigs.forEach(sig=>{
+    const ck=cache[sig.pair]; if(!ck) return;
+    const t=ck.data.find(cv=>{
+      const d2=new Date(parseCandleUTC(cv.t).getTime()+parseFloat($('tzoff').value)*3600e3);
+      return pad(d2.getUTCHours())+':'+pad(d2.getUTCMinutes())===sig.time;
+    });
+    if(!t) return;
+    const cMin=parseCandleUTC(t.t).getTime();
+    if(Math.floor(cMin/60000)>=Math.floor(nowUTC/60000)) return;
+    const win=sig.dir==='CALL'? t.c>t.o : t.c<t.o;
+    for(const s in sig.votes){
+      if(sig.votes[s]===sig.dir) mem[s].w++;
+      else if(sig.votes[s]) mem[s].l++;
+    }
+    saveMem();
+    const el=$('mk-'+sig.id);
+    if(el){ el.textContent=win?'✅':'❌'; el.className='mark '+(win?'w':'l'); }
+    win?W++:L++;
+    streak = win?0:streak+1;
+    saveStats(); renderStats();
+    const tot=W+L, hh=$('hist');
+    if(tot===1) hh.innerHTML='';
+    hh.insertAdjacentHTML('afterbegin',
+      `<div><span>${sig.time} · ${sig.pair} · ${sig.dir}</span><b class="${win?'w':'l'}">${win?'WIN ✅':'LOSS ❌'}</b></div>`);
+    sig.settled=true;
+    if(streak>=3 && navigator.vibrate) navigator.vibrate([200,100,200,100,400]);
+    else if(navigator.vibrate) navigator.vibrate(win?[60,30,60]:200);
+  });
+  openSigs=openSigs.filter(s=>!s.settled);
+  renderBrain(null);
+}
+
+function setStatus(cls,msg){const s=$('status');s.className='status '+cls;s.textContent='Status: '+msg;}
+renderStats(); renderBrain(null);
+</script>
+</body>
+</html>
