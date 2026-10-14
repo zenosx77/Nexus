@@ -1,0 +1,6 @@
+# never commit real API keys
+keys.js
+
+# editor/system noise
+.DS_Store
+*.swp
