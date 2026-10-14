@@ -190,6 +190,13 @@
                     background:rgba(5,10,20,.5); border:1px solid rgba(255,255,255,.1); border-radius:9px; padding:9px 0; }
   .kslot-row input { flex:1; margin:0; font-family:monospace; letter-spacing:.5px; }
   .empty-note { text-align:center; padding:10px 8px; color:var(--sub); font-size:12px; }
+  /* ---- optional LOCAL-ONLY crew art banner (public site never fetches it) ---- */
+  .heroArt { height:130px; border-radius:20px; margin-bottom:14px; border:1px solid var(--glass-brd);
+             background-size:cover; background-position:center 32%; position:relative; overflow:hidden;
+             box-shadow:0 10px 34px rgba(0,0,0,.5); animation:cardIn .6s cubic-bezier(.22,1,.36,1) both; }
+  .heroArt::after { content:'LOCAL CREW ART — not part of the public build'; position:absolute; right:8px; bottom:6px;
+                    font-size:9px; letter-spacing:1px; color:rgba(255,255,255,.75); background:rgba(5,8,16,.55);
+                    padding:3px 8px; border-radius:8px; backdrop-filter:blur(6px); }
 </style>
 </head>
 <body>
@@ -2179,6 +2186,38 @@ $('blackout').addEventListener('change',e=>{
   },{rootMargin:'-15% 0px -75% 0px'});
   secs.forEach(s=>io.observe(s));
 })();
+
+/* ---------- optional LOCAL crew art (NEVER fetched or shipped on the public site) ---------- */
+function localArtHost(h){ /* preview/dev hosts only — GitHub Pages never enters this path */
+  h=String(h||'');
+  return h==='localhost'||h==='127.0.0.1'||h.endsWith('.e2b.app');
+}
+function artUrl(u){ return 'url("'+String(u).replace(/"/g,'%22')+'")'; }
+async function loadLocalArt(){
+  if(!localArtHost(location.hostname)) return false;
+  try{
+    const r=await fetch('art/manifest.json',{cache:'no-store'});
+    if(!r.ok) return false;
+    const man=await r.json();
+    if(man.hero){
+      const d=document.createElement('div'); d.className='heroArt'; d.style.backgroundImage=artUrl(man.hero);
+      const wrap=document.querySelector('.wrap'), nav=$('secNav');
+      wrap.insertBefore(d,nav||wrap.firstChild);
+    }
+    if(man.logo){
+      const l=document.querySelector('.logo');
+      if(l){ l.innerHTML=''; l.style.backgroundImage=artUrl(man.logo);
+        l.style.backgroundSize='cover'; l.style.backgroundPosition='center 30%'; }
+    }
+    for(const k of ['m1','m3','list','bot','pub','paper']){
+      const card=$('sec-'+k);
+      if(card&&man[k]){ card.style.backgroundImage='linear-gradient(165deg, rgba(5,8,16,.88), rgba(5,8,16,.95)), '+artUrl(man[k]);
+        card.style.backgroundSize='cover'; card.style.backgroundPosition='center'; }
+    }
+    return true;
+  }catch(e){ return false; }
+}
+loadLocalArt();
 
 syncSettings();
 ensureDay();

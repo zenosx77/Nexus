@@ -348,6 +348,18 @@ async function main() {
   assert.ok(E('msgList()').includes('EURUSD•15:30;PUT'), 'msgList adopts the captured style');
   E('tg.listTpl=null; batch.rows=[]');
 
+  /* ── 13h. local-art pipeline: public site can never load it ───── */
+  assert.equal(E(`localArtHost('zenosx77.github.io')`), false, 'GitHub Pages host never loads local art');
+  assert.equal(E(`localArtHost('localhost')`), true, 'localhost may load local art');
+  assert.equal(E(`localArtHost('127.0.0.1')`), true);
+  assert.equal(E(`localArtHost('8080-sbx.e2b.app')`), true, 'preview host may load local art');
+  assert.equal(fs.existsSync('assets/art'), false, 'no copyrighted art inside the repo');
+  assert.equal(fs.existsSync('art'), false, 'no art/ directory inside the repo');
+  assert.match(fs.readFileSync('.gitignore', 'utf8'), /^art\//m, '.gitignore blocks art/');
+  const wfSrc = fs.readFileSync('.github/workflows/deploy-pages.yml', 'utf8');
+  assert.ok(!/cp\s+.*\bart\b/.test(wfSrc), 'deploy workflow never copies art');
+  assert.ok(!/art\/[A-Za-z0-9_-]+\.(jpg|png|webp)/.test(html), 'no static art references in the public HTML');
+
   /* ── 14. M1, M3 and prediction list stay separate ─────────────── */
   assert.ok($id('liveRowsM1') !== $id('liveRowsM3') && $id('liveRowsM3') !== $id('predRows'), 'three distinct streams');
   E(`addRow('EUR/USD','12:00','CALL',901,'A','M1',80)`);
