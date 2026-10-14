@@ -33,3 +33,10 @@ window.NEXUS_KEYS = [
 // Changing token/chat in the app revokes send authorization automatically.
 window.NEXUS_TG_TOKEN = "";   // e.g. "123456789:AAH..."
 window.NEXUS_TG_CHAT  = "";   // chat id (numeric) or "@yourchannel"
+
+// Supabase cloud sync (optional) — ANON PUBLIC KEY ONLY.
+// The anon key is safe to expose (row-level security: insert-only mirror);
+// the SERVICE-ROLE key must NEVER go in any frontend file — server/.env only.
+// Same values can also be entered on the CLOUD page (stored in localStorage).
+window.NEXUS_SB_URL  = "";    // e.g. "https://yourproject.supabase.co"
+window.NEXUS_SB_ANON = "";    // anon public key from Supabase → Settings → API

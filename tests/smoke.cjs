@@ -15,7 +15,10 @@
 // auto-normalized), Telegram save + authorization revocation, private-chat
 // capture, public privacy filter, credit budget throttling, deep training +
 // readiness, feed-clock timezone repair, manual news blackout, paper/
-// signal-only guards, font + license assets, and full DOM reference integrity.
+// signal-only guards, font + license assets, full DOM reference integrity,
+// and the CLOUD SYNC Supabase mirror (offline degradation, anon-only writes,
+// delivery recording, SHA-256-verified model apply, canonical JSON parity
+// with the Python trainer).
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -27,7 +30,7 @@ const html = fs.readFileSync(FILE, 'utf8');
 const inline = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m => m[1]).filter(Boolean);
 assert.equal(inline.length, 1, 'exactly one inline application script');
 
-function boot(seedStorage) {
+function boot(seedStorage, hooks) {
   const errors = [];
   const vc = new VirtualConsole();
   vc.on('jsdomError', e => errors.push(e.message));
@@ -38,6 +41,7 @@ function boot(seedStorage) {
       w.confirm = () => true;
       w.scrollTo = () => {};
       if (seedStorage) for (const [k, v] of Object.entries(seedStorage)) w.localStorage.setItem(k, v);
+      if (hooks) hooks(w);
     },
   });
   const context = dom.getInternalVMContext();
@@ -102,11 +106,12 @@ async function main() {
   // every section lives on a page; tabs cover all pages
   assert.ok($id('pageTabs'), 'page tab bar present');
   assert.ok(doc.querySelectorAll('#pageTabs button').length >= 10, 'at least 10 page tabs');
-  assert.deepEqual(E('JSON.stringify(PAGES)'), '["dash","sig","sess","vip","prem","bot","tg","res","brain","data"]');
+  assert.deepEqual(E('JSON.stringify(PAGES)'), '["dash","sig","sess","vip","prem","bot","tg","res","brain","data","cloud"]');
   for (const p of E('PAGES')) assert.ok($id('page-' + p), `page ${p} exists`);
   for (const s of ['sec-keys', 'sec-usage', 'sec-feeds', 'sec-scan', 'sec-m1', 'sec-m3', 'sec-list', 'sec-sess', 'sec-vip',
                    'sec-bot', 'sec-tg', 'sec-pub', 'sec-paper', 'sec-stats', 'sec-perf', 'sec-brain', 'sec-hist', 'sec-bt',
-                   'sec-live', 'sec-notif', 'sec-regime', 'sec-agents', 'sec-ready', 'sec-status'])
+                   'sec-live', 'sec-notif', 'sec-regime', 'sec-agents', 'sec-ready', 'sec-status',
+                   'sec-sbcfg', 'sec-sbmodel', 'sec-sbperf', 'sec-sbfresh', 'sec-sbdeliv'])
     assert.ok($id(s), `section id ${s} exists`);
   // showPage switches exactly one page and persists
   E(`showPage('sess')`);
@@ -911,7 +916,104 @@ async function main() {
     s.w.close();
   }
 
-  /* ── 32. chaos pass: every UI entry point runs without throwing ── */
+  /* ── 32. CLOUD SYNC (Supabase mirror): degradation + config + payload contracts ── */
+  {
+    // (a) source-level guarantees
+    assert.ok(html.includes('https://*.supabase.co'), 'CSP connect-src allows supabase REST');
+    assert.ok(!/SUPABASE_SERVICE_ROLE|service_role_key|"role"\s*:\s*"service_role"|sbServiceKey/.test(html),
+      'no service-role key handling anywhere in the page (anon-only mirror)');
+    assert.ok($id('page-cloud'), 'cloud page exists');
+    assert.equal(E('sbReady()'), false, 'cloud sync offline by default');
+    assert.equal(await E('sbTrackPrediction({pair:"EUR/USD",tf:"M1",dir:"CALL",targetT:Date.now()+60000,conf:.7,grade:"A",votes:{},agents:{},origin:"live"})'),
+      false, 'prediction mirror is a silent no-op without config');
+    E('sbRecordDelivery("pub","signal","sent",null,"text","@chan")');   // must never throw
+    E('showPage("cloud")');
+    assert.ok($id('sbChip').textContent.includes('OFFLINE'), 'chip shows OFFLINE');
+    assert.ok($id('sbApplyBtn').disabled, 'apply button disabled without a verified model');
+    E('showPage("dash")');
+
+    // (b) configured mirror — captured fetch, contract of every write
+    const sbCalls = [];
+    const sb = boot({ nx_sb: JSON.stringify({ url: 'https://nexus-test.supabase.co', anon: 'A'.repeat(40), record: true }) },
+      w => {
+        try { w.crypto.subtle = require('node:crypto').webcrypto.subtle; }
+        catch (e) { try { Object.defineProperty(w.crypto, 'subtle', { value: require('node:crypto').webcrypto.subtle }); } catch (e2) { /* jsdom variant */ } }
+        w.fetch = async (url, opts) => {
+          sbCalls.push({ url: String(url), opts });
+          const u = String(url);
+          if (u.includes('/rest/v1/predictions')) return jsonResponse([{ id: 'uuid-1' }]);
+          if (u.includes('/rest/v1/telegram_deliveries')) return jsonResponse([]);
+          if (u.includes('model_versions')) return jsonResponse([]);
+          if (u.includes('risk_snapshots')) return jsonResponse([]);
+          if (u.includes('v_market_freshness')) return jsonResponse([]);
+          if (u.includes('v_deliveries_public')) return jsonResponse([]);
+          if (u.includes('currency_pairs')) return jsonResponse([{ code: 'EUR/USD' }]);
+          return jsonResponse([]);
+        };
+      });
+    assert.deepEqual(sb.errors, [], 'cloud-configured boot is clean');
+    assert.equal(sb.E('sbReady()'), true, 'config accepted');
+    assert.equal(sb.E('sbRecording()'), true, 'recording enabled');
+    await sb.E('sbTrackPrediction({pair:"EUR/USD",tf:"M3",dir:"PUT",targetT:1730000000000,conf:.62,grade:"B",votes:{ema:"PUT",rsi:"CALL"},agents:{TREND:-1},origin:"live"})');
+    await sleep(50);
+    const pred = sbCalls.find(c => c.url.includes('/rest/v1/predictions'));
+    assert.ok(pred, 'prediction POST captured');
+    assert.ok(pred.url.startsWith('https://nexus-test.supabase.co/rest/v1/'), 'raw REST client — no SDK/CDN');
+    assert.equal(pred.opts.method, 'POST');
+    assert.ok(String(pred.opts.headers.prefer).includes('resolution=ignore-duplicates'), 'idempotent inserts');
+    assert.equal(pred.opts.headers.apikey, 'A'.repeat(40), 'anon key header');
+    const pbody = JSON.parse(pred.opts.body);
+    assert.equal(pbody.pair_code, 'EUR/USD');
+    assert.equal(pbody.timeframe, '3m');
+    assert.equal(pbody.evaluation_horizon, 3, 'M3 horizon = 3 one-minute candles');
+    assert.equal(pbody.direction, 'PUT');
+    assert.equal(pbody.source, 'browser');
+    assert.equal(pbody.is_shadow, false, 'browser can never write shadow rows');
+    assert.equal(pbody.strategy_version, 'nexus-fusion-v1');
+    assert.deepEqual(pbody.strategy_detail.votes, { ema: 'PUT', rsi: 'CALL' }, 'per-strategy votes recorded for the trainer');
+    assert.equal(pbody.confidence, 62, 'confidence stored 0-100');
+    sb.E('sbRecordDelivery("pub","signal","sent",null,"msg text","@channel")');
+    await sleep(50);
+    const del = sbCalls.find(c => c.url.includes('telegram_deliveries'));
+    assert.ok(del, 'delivery insert captured');
+    const dbody = JSON.parse(del.opts.body);
+    assert.equal(dbody.channel, 'public', 'pub → public channel mapping');
+    assert.equal(dbody.message_kind, 'signal');
+    assert.equal(dbody.status, 'sent');
+    assert.equal(dbody.attempts, 1, 'browser records completed attempts only');
+
+    // (c) canonical JSON + SHA-256 model verification (cross-checked with the Python trainer fixture)
+    const FIXTURE = {
+      kind: 'strategy-weights', model_id: 'nexus-weights-test',
+      timeframes: {
+        '1m': { strats: { ema: { vwr: 0.55, vtrades: 120 }, rsi: { vwr: 0.5, vtrades: 60 } } },
+        '3m': { strats: { ema: { vwr: 1.0, vtrades: 40 } } },
+      },
+      metrics: { holdout: { win_rate: 0.6, n: 50, expectancy_bps: 1.25, profit_factor: null, max_drawdown_bps: 12.5 } },
+      note: 'café ✓',
+    };
+    const FIXTURE_SHA = '43925bb7706d2e548f1a280bd123848a31189ff57a41f67654e2f5c0c1fdc3ec';   // pinned from trainer/test_trainer.py
+    const canon = sb.E(`sbCanonical(${JSON.stringify(FIXTURE)})`);
+    const nodeSha = require('node:crypto').createHash('sha256').update(canon).digest('hex');
+    assert.equal(nodeSha, FIXTURE_SHA, 'JS canonicalization matches the Python trainer byte-for-byte');
+    // apply the VERIFIED model → weights merge into the brain, logic untouched
+    sb.E('deep = {M1:null,M3:null}');
+    sb.E(`sbDeployed = ${JSON.stringify({ id: 'nexus-weights-test', artifact_sha256: FIXTURE_SHA, artifact_payload: FIXTURE, metrics: {} })}`);
+    await sb.E('sbApplyModel()');
+    assert.equal(sb.E('deep.M1.strats.ema.vwr'), 0.55, 'cloud vwr merged into deep brain');
+    assert.equal(sb.E('deep.M1.strats.ema.vtrades'), 120, 'cloud vtrades merged');
+    assert.equal(sb.E('deep.M3.strats.ema.vwr'), 1, '3m timeframe mapped to M3');
+    assert.ok(sb.doc.getElementById('sbApplyMsg').textContent.includes('applied'), 'apply confirmation shown (never silent)');
+    // checksum mismatch → rejected, nothing merged
+    sb.E('deep = {M1:null,M3:null}');
+    sb.E(`sbDeployed = ${JSON.stringify({ id: 'tampered', artifact_sha256: 'deadbeef'.repeat(8), artifact_payload: FIXTURE, metrics: {} })}`);
+    await sb.E('sbApplyModel()');
+    assert.equal(sb.E('deep.M1'), null, 'checksum mismatch → artifact rejected, brain untouched');
+    assert.ok(sb.doc.getElementById('sbApplyMsg').textContent.includes('checksum mismatch'), 'mismatch reason surfaced');
+    sb.w.close();
+  }
+
+  /* ── 33. chaos pass: every UI entry point runs without throwing ── */
   E('tg.auth=false; tg.listen=false; sxStop("chaos"); premStop()');
   w.fetch = async (url) => {
     const u = String(url);
@@ -931,7 +1033,8 @@ async function main() {
     'renderPerf()', 'renderPred()', 'renderVault()', 'tgRender()', 'renderSess()', 'renderReady()', 'renderDeepInfo()',
     'setBrainTf("M3")', 'setBrainTf("M1")', 'renderStats()', 'renderPaper()', 'syncSettings()', 'ensureDay()',
     'settleAll()', 'settlePrem()', 'settlementFetches()', 'livePairsRender()', 'renderTopLive()', 'renderNotes()',
-    'clearNotes()', 'showPage("brain")', 'showPage("dash")', 'showPage("vip")', 'sxTick()', 'premTick()', 'premStudySample(0)', 'sxForce()',
+    'clearNotes()', 'showPage("brain")', 'showPage("dash")', 'showPage("vip")', 'showPage("cloud")', 'sxTick()', 'premTick()', 'premStudySample(0)', 'sxForce()',
+    'sbSave()', 'sbClear()', 'sbTest()', 'sbLoadModel()', 'sbLoadPerf()', 'sbLoadFresh()', 'sbLoadDeliv()', 'sbInit()',
   ];
   for (const ep of entryPoints) {
     await assert.doesNotReject(E(`(async()=>{ ${ep}; })()`), `UI entry point ${ep} must not throw`);
@@ -940,13 +1043,15 @@ async function main() {
   assert.deepEqual(errors, [], 'no DOM/runtime errors during the chaos pass');
 
   assert.deepEqual(errors, [], 'no DOM/runtime errors across the whole suite');
-  console.log('PASS: boot · DOM refs · 10 tabbed pages · font+license · Meridian branding · 10 live pairs ·');
+  console.log('PASS: boot · DOM refs · 11 tabbed pages · font+license · Meridian branding · 10 live pairs ·');
   console.log('      10 key slots (save/rotate/cooldown) + API CREDIT USAGE · stale+weekend gates · quality gates ·');
   console.log('      FAST confirmed settlement (feed-keyed · no confirming-candle wait · ties=push) · 4-channel routing ·');
   console.log('      sticker bank (9 event roles · dedupe · nothing unassigned ever fires) · format engine (/setformat) ·');
   console.log('      parallel scans · PUBLIC stream (quality-only, before the open) · VIP stream (best shot/10 min) ·');
   console.log('      news blackout · credit budget throttle · LIST e2e (study→4-min slots→result+stickers) ·');
   console.log('      bot stream · public privacy filter · local-art lockdown · M1/M3/list separation ·');
+  console.log('      CLOUD SYNC (anon-only mirror · idempotent writes · delivery records · SHA-256 model apply ·');
+  console.log('      offline degradation · canonical JSON matches the Python trainer) ·');
   console.log('      paper mode · deep training + readiness honesty · legacy migration · SESSION scenarios · chaos pass');
   w.close();
 }

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="NEXUS Glass v5.1 Meridian — multi-pair, multi-agent M1 + M3 signal engine with 4 Telegram channels (PUBLIC 1-min stream · VIP 10-min shots · LIST · MAIN), bot-configured message formats, per-event sticker bank, fast confirmed settlement, quality-first signals, paper trading and deep backtesting. Signal-only; no live execution.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.twelvedata.com https://api.telegram.org; img-src data: https:; font-src 'self'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.twelvedata.com https://api.telegram.org https://*.supabase.co; img-src data: https:; font-src 'self'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
 <title>NEXUS Glass v5.1 — Meridian · Multi-Pair Signal & Channel Engine</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2300e5ff'/><stop offset='.55' stop-color='%233d7bff'/><stop offset='1' stop-color='%23a06bff'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='%23070c18'/><g stroke='url(%23g)' stroke-width='5' stroke-linecap='round'><path d='M26 72V52'/><path d='M46 72V40'/><path d='M66 72V30'/></g><g fill='url(%23g)'><rect x='20' y='55' width='12' height='13' rx='3'/><rect x='40' y='44' width='12' height='20' rx='3'/><rect x='60' y='34' width='12' height='26' rx='3'/></g><path d='M22 44 L42 32 L58 38 L80 16' fill='none' stroke='%23ffffff' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/><path d='M70 16 H80 V26' fill='none' stroke='%23ffffff' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 <style>
@@ -347,6 +347,7 @@
     <button type="button" data-page="res">📈 RESULTS</button>
     <button type="button" data-page="brain">🧠 BRAIN</button>
     <button type="button" data-page="data">🗄 DATA</button>
+    <button type="button" data-page="cloud">☁ CLOUD</button>
   </nav>
 
   <!-- ═══════════ PAGE 1 · DASHBOARD ═══════════ -->
@@ -855,6 +856,75 @@
     </div>
   </div>
 
+  <!-- ═══════════ PAGE 11 · CLOUD (Supabase mirror) ═══════════ -->
+  <div class="page" id="page-cloud">
+
+    <div class="glass" id="sec-sbcfg">
+      <span class="t"><span class="num">1</span> CLOUD SYNC — SUPABASE <span class="tail"><span class="chip" id="sbChip">☁ OFFLINE</span></span></span>
+      <div class="chips" style="margin-top:6px">
+        <span class="chip">mirror only — the live engine stays in this browser</span>
+        <span class="chip warn">anon key only — the service key never touches this page</span>
+      </div>
+      <div class="two" style="margin-top:10px">
+        <div><span class="mini" style="display:block;text-align:left">☁ PROJECT URL</span>
+          <input type="text" id="sbUrl" placeholder="https://yourproject.supabase.co" autocomplete="off" spellcheck="false"></div>
+        <div><span class="mini" style="display:block;text-align:left">🔑 ANON PUBLIC KEY</span>
+          <input type="password" id="sbAnon" placeholder="anon key (never the service-role key)" autocomplete="off" spellcheck="false"></div>
+      </div>
+      <div class="two" style="margin-top:8px">
+        <button class="b-gen" style="padding:10px" onclick="sbSave()">💾 SAVE &amp; CONNECT</button>
+        <button class="b-ghost" style="padding:10px" onclick="sbTest()">🔎 TEST CONNECTION</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="b-ghost" style="flex:1" onclick="sbClear()">🧹 CLEAR CLOUD CONFIG</button>
+      </div>
+      <div class="toggle" style="margin-top:8px;margin-bottom:0">
+        <span>📡 record predictions + delivery results <span class="mini">(insert-only — the cloud can never edit this engine)</span></span>
+        <label class="switch"><input type="checkbox" id="sbRecord"><span class="slider"></span></label>
+      </div>
+      <div class="mini" id="sbMsg" style="margin-top:6px;text-align:left">Cloud sync is optional — with no config, NEXUS runs exactly as before (fully offline, nothing leaves this browser).</div>
+      <div class="mini" style="text-align:left">The browser mirrors signals to your Supabase project with the <b>anon key</b> (read + insert-only, enforced by row-level security). Ingestion, outcome evaluation, retries, alerts and model training run in your <b>server worker</b> — see <b>SUPABASE_SETUP.md</b>. Keys live in this browser (localStorage <b>nx_sb</b>) or the gitignored <b>keys.js</b> — never in the repo.</div>
+    </div>
+
+    <div class="glass" id="sec-sbmodel">
+      <span class="t"><span class="num">2</span> SELF-LEARNING — CLOUD MODEL <span class="tail"><span class="chip" id="sbModelChip">no deployed model</span></span></span>
+      <div class="mini" id="sbModelInfo" style="text-align:left">not loaded — connect on block 1, then press REFRESH.</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="b-ghost" style="flex:1" onclick="sbLoadModel()">🔄 REFRESH</button>
+        <button class="b-gold" style="flex:1" id="sbApplyBtn" onclick="sbApplyModel()" disabled>🧠 APPLY CLOUD MODEL TO BRAIN</button>
+      </div>
+      <div class="risk-line" id="sbApplyMsg">Applying is never silent: the artifact is SHA-256-verified against the registry, and only the 26 strategy <b>weights</b> merge into the brain — prediction logic never changes.</div>
+      <div class="mini" style="text-align:left">Promotion is gated in the trainer (walk-forward + holdout + risk criteria, shadow mode first). Applying a cloud model overwrites deep-validated weights per strategy — re-run TRAIN THE DATA AT MAX on the BRAIN page to roll back to local weights.</div>
+    </div>
+
+    <div class="glass" id="sec-sbperf">
+      <span class="t"><span class="num">3</span> CLOUD PERFORMANCE <span class="tail"><span class="chip warn">SIMULATED — signal quality, never account profits</span></span></span>
+      <div class="mini" id="sbPerf" style="text-align:left">not loaded — connect on block 1, then press REFRESH.</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="b-ghost" style="flex:1" onclick="sbLoadPerf()">🔄 REFRESH</button>
+      </div>
+      <div class="mini" style="text-align:left">Rolling win rate / expectancy / profit factor / drawdown of <b>recorded signals</b>, evaluated from confirmed 1-minute candles minus estimated spread + slippage. Accuracy is tracked separately from these simulated returns.</div>
+    </div>
+
+    <div class="glass" id="sec-sbfresh">
+      <span class="t"><span class="num">4</span> MARKET DATA HEALTH <span class="tail"><span class="chip" id="sbFreshChip">worker feed</span></span></span>
+      <div class="mini" id="sbFresh" style="text-align:left">not loaded — connect on block 1, then press REFRESH.</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="b-ghost" style="flex:1" onclick="sbLoadFresh()">🔄 REFRESH</button>
+      </div>
+      <div class="mini" style="text-align:left">Server-side candle store per pair (completed 1-minute bars only — the worker never stores a forming candle and never fabricates prices). Rising age = provider lag; the worker alerts on it.</div>
+    </div>
+
+    <div class="glass" id="sec-sbdeliv">
+      <span class="t"><span class="num">5</span> TELEGRAM DELIVERY LOG <span class="tail"><span class="chip" id="sbDelivChip">read-only</span></span></span>
+      <div class="mini" id="sbDeliv" style="text-align:left">not loaded — connect on block 1, then press REFRESH.</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="b-ghost" style="flex:1" onclick="sbLoadDeliv()">🔄 REFRESH</button>
+      </div>
+      <div class="mini" style="text-align:left">Recent deliveries recorded by this browser + the retry worker (chat ids and message text stay server-side — only status is public). Failed sends are retried up to the configured maximum; only explicit API failures are retried, so a message can never double-send.</div>
+    </div>
+  </div>
+
   <div class="clock" id="clock"></div>
   <div class="mini" id="feedTzNote" style="display:none;margin-top:4px"></div>
   <p class="disclaimer">⚠️ NEXUS never guarantees profits — no system can, and no setting makes losses impossible. It is a decision-support tool in <b>signal-only + paper-trading mode</b>; it does not click, place, or automate real trades.<br>Binary options carry a very high risk of losing money. Preserving capital comes first: respect the daily stop-loss, cooldowns, session guards and position limits. Past performance — real or backtested — does not predict future results. Trade responsibly.</p>
@@ -1207,7 +1277,7 @@ async function apiUsageCheck(){
 /* ═══════════════════════════════════════════════════════════════════
    PAGE ROUTER — every section lives on its own page
    ═══════════════════════════════════════════════════════════════════ */
-const PAGES=['dash','sig','sess','vip','prem','bot','tg','res','brain','data'];
+const PAGES=['dash','sig','sess','vip','prem','bot','tg','res','brain','data','cloud'];
 let curPage='dash';
 function showPage(k){
   if(!PAGES.includes(k)) k='dash';
@@ -2678,7 +2748,14 @@ async function tgSend(text,extra){ /* MAIN chat */
   if(!tgReady()) throw new Error('Telegram not authorized — set token + chat id and enable AUTHORIZED');
   const params=Object.assign({chat_id:tgChat(),text,parse_mode:'HTML'},extra||{});
   if(tg.protect) params.protect_content='true';
-  return tgCall('sendMessage',params);
+  try{
+    const r=await tgCall('sendMessage',params);
+    sbRecordDelivery('main','other','sent',null,text,params.chat_id);   /* cloud mirror (no-op offline) */
+    return r;
+  }catch(e){
+    sbRecordDelivery('main','other','failed',String(e.message||e),text,params.chat_id);
+    throw e;
+  }
 }
 async function tgSendTo(kind,text){ /* any of the four channels */
   if(!tgReady()) throw new Error('Telegram not authorized');
@@ -2686,7 +2763,14 @@ async function tgSendTo(kind,text){ /* any of the four channels */
   if(!dest) throw new Error(kind+' channel not set');
   const params={chat_id:dest,text,parse_mode:'HTML'};
   if(tg.protect) params.protect_content='true';
-  return tgCall('sendMessage',params);
+  try{
+    const r=await tgCall('sendMessage',params);
+    sbRecordDelivery(kind,'other','sent',null,text,dest);            /* cloud mirror (no-op offline) */
+    return r;
+  }catch(e){
+    sbRecordDelivery(kind,'other','failed',String(e.message||e),text,dest);
+    throw e;
+  }
 }
 
 /* ---------- 🎨 FORMAT ENGINE — your layout, texted to the bot, saved permanently ----------
@@ -2790,6 +2874,7 @@ async function tgSticker(role,chatKind,onceKey){
   try{
     await tgCall('sendSticker',{chat_id:chatFor(chatKind),sticker:fid,protect_content:tg.protect?'true':'false'});
     tgLog('🎭 '+role+' sticker → '+chatLabel(chatKind));
+    sbRecordDelivery(chatKind,'sticker','sent',null,'[sticker '+role+']',chatFor(chatKind));
     return true;
   }catch(e){ tgLog('❌ '+role+' sticker failed: '+sanitizeErr(e.message)); return false; }
 }
@@ -3330,6 +3415,7 @@ function emitSignal(o){
     pub:origin==='pub',vip:origin==='vip',botSent:false,
     forced:!!o.forced,note:o.forcedNote||''};
   openSigs.push(sig); saveOpen();
+  sbTrackPrediction(sig);          /* cloud mirror — fire-and-forget, never blocks a signal */
   addRow(pair,time,dir,id,o.grade,tf,o.score);
   pushNote('sig','⚡ '+tf+' '+PAIRCODE(pair)+' '+time+' '+dir+' · '+o.grade+' '+Math.round(o.score||0)+(origin!=='live'?' · '+origin.toUpperCase():'')+(o.forced?' · relaxed ('+sig.note+')':''));
   if(navigator.vibrate) navigator.vibrate([80,40,80]);
@@ -3776,7 +3862,9 @@ function renderDeepInfo(){
   const el=$('deepInfo'); if(!el) return;
   const d1=deep.M1,d3=deep.M3;
   if(!d1&&!d3){ el.textContent='deep training: not run yet — one 5,000-bar fetch (1 credit) trains + validates all 26 strategies walk-forward and seeds their weights. Re-run weekly.'; return; }
-  const f=d=>d?(new Date(d.stamp).toISOString().slice(0,16).replace('T',' ')+' UTC · '+d.bars+' bars · ensemble validated '+(d.ensVwr*100).toFixed(1)+'% over '+d.ensVn+' trades'):'not trained';
+  const f=d=>d?(d.src==='cloud'
+    ?('☁ cloud model '+new Date(d.stamp).toISOString().slice(0,16).replace('T',' ')+' UTC · '+Object.keys(d.strats||{}).length+' cloud-weighted strategies (re-run local training to roll back)')
+    :(new Date(d.stamp).toISOString().slice(0,16).replace('T',' ')+' UTC · '+d.bars+' bars · ensemble validated '+(d.ensVwr*100).toFixed(1)+'% over '+d.ensVn+' trades')):'not trained';
   el.innerHTML='deep training — M1: <b>'+f(d1)+'</b><br>M3: <b>'+f(d3)+'</b><br><span style="opacity:.75">validated segment = last 30% of history (out-of-sample). Weights blend: 22% quick + 33% deep-validated + 45% live memory.</span>';
 }
 
@@ -4002,6 +4090,327 @@ async function loadLocalArt(){
 }
 
 /* ---------- boot ---------- */
+/* ═══════════════════════════════════════════════════════════════════
+   CLOUD SYNC (Supabase mirror) — raw REST via fetch, NO SDK/CDN.
+   Contract: the browser is the live prediction source and only MIRRORS.
+   It inserts predictions + completed delivery results with the ANON key
+   (row-level security: insert-only, no update/delete) and reads public
+   monitoring data. Service-role key, market keys and the bot token never
+   appear here. With no config every sb* call is a silent no-op and the
+   engine behaves exactly as before.
+   ═══════════════════════════════════════════════════════════════════ */
+const SB_STORE_KEY='nx_sb';
+const SB_STRAT_VER='nexus-fusion-v1';
+let sbCfg=(function(){ try{ const v=loadJSON(SB_STORE_KEY,null); return (v&&typeof v==='object')?v:{}; }catch(e){ return {}; } })();
+let sbDeployed=null;
+const sbSentKeys=new Set();
+let sbFailT=0;
+function sbUrl(){ return String(sbCfg.url||window.NEXUS_SB_URL||'').trim().replace(/\/+$/,''); }
+function sbAnon(){ return String(sbCfg.anon||window.NEXUS_SB_ANON||'').trim(); }
+function sbReady(){ return /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(sbUrl())&&sbAnon().length>20; }
+function sbRecording(){ return sbReady()&&sbCfg.record!==false; }
+function sbRest(path,opts){
+  opts=opts||{};
+  const headers=Object.assign({'apikey':sbAnon(),'authorization':'Bearer '+sbAnon()},opts.headers||{});
+  return fetch(sbUrl()+'/rest/v1/'+path,Object.assign({},opts,{headers}));
+}
+function sbFail(e){                       /* throttled, non-intrusive cloud status */
+  const now=Date.now();
+  if(now-sbFailT<60000) return;
+  sbFailT=now;
+  const el=$('sbMsg'); if(el) el.innerHTML='⚠ cloud sync error: '+esc(String(e&&e.message||e).slice(0,140))+' — signals continue unaffected (engine is offline-first).';
+}
+/* ---- mirror: predictions (insert-only, idempotent by unique constraint) ---- */
+function sbTrackPrediction(sig){
+  try{
+    if(!sbRecording()||!sig||!sig.pair||!sig.dir||!sig.targetT) return Promise.resolve(false);
+    const key=sig.pair+'|'+sig.tf+'|'+sig.targetT;
+    if(sbSentKeys.has(key)) return Promise.resolve(false);
+    sbSentKeys.add(key);
+    const ck=cache[sig.pair];
+    const ref=(ck&&ck.m1&&ck.m1.length&&isFinite(ck.m1[ck.m1.length-1].c))?ck.m1[ck.m1.length-1].c:null;
+    const body={
+      pair_code:sig.pair,
+      timeframe:sig.tf==='M3'?'3m':'1m',
+      target_open_ts:new Date(sig.targetT).toISOString(),
+      direction:sig.dir,
+      confidence:+((sig.conf==null?0.5:sig.conf)*100).toFixed(2),
+      grade:sig.grade||null,
+      strategy_version:SB_STRAT_VER,
+      strategy_detail:{votes:sig.votes||{},agents:sig.agents||{},regime:sig.regime||'',origin:sig.origin||'',forced:!!sig.forced,score:sig.score==null?null:+sig.score,tf:sig.tf},
+      feature_version:'browser-live-v1',
+      evaluation_horizon:sig.tf==='M3'?3:1,
+      source:'browser',
+      is_shadow:false,
+      telegram_sent:false,
+      reference_price:ref
+    };
+    return sbRest('predictions',{method:'POST',headers:{'content-type':'application/json','prefer':'resolution=ignore-duplicates'},body:JSON.stringify(body)})
+      .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return true; })
+      .catch(e=>{ sbFail(e); return false; });
+  }catch(e){ return Promise.resolve(false); }
+}
+/* ---- mirror: delivery results (completed attempts only; worker retries failures) ---- */
+function sbRecordDelivery(channel,kind,status,error,text,chatId){
+  try{
+    if(!sbRecording()) return;
+    const chMap={main:'main',pub:'public',vip:'vip',list:'list',ops:'ops'};
+    const body={
+      channel:chMap[channel]||'main',
+      chat_id:String(chatId||''),
+      message_kind:(['signal','verdict','list','result','alert','sticker'].includes(kind)?kind:'other'),
+      status:(status==='sent'||status==='skipped')?status:'failed',
+      attempts:1,
+      telegram_message_id:null,
+      last_error:error?String(error).slice(0,200):null,
+      payload:String(text||'').slice(0,4096)
+    };
+    if(!body.chat_id) return;
+    sbRest('telegram_deliveries',{method:'POST',headers:{'content-type':'application/json','prefer':'resolution=ignore-duplicates'},body:JSON.stringify(body)})
+      .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); })
+      .catch(sbFail);
+  }catch(e){ /* delivery recording must never break a send */ }
+}
+/* ---- canonical JSON + SHA-256: exactly what the trainer hashes ---- */
+function sbCanonicalStr(s){
+  let out='"';
+  for(const ch of String(s)){
+    const c=ch.codePointAt(0);
+    if(ch==='"') out+='\\"';
+    else if(ch==='\\') out+='\\\\';
+    else if(ch==='\n') out+='\\n';
+    else if(ch==='\r') out+='\\r';
+    else if(ch==='\t') out+='\\t';
+    else if(ch==='\b') out+='\\b';
+    else if(ch==='\f') out+='\\f';
+    else if(c>0xffff){ const c2=c-0x10000;
+      out+='\\u'+(0xd800+(c2>>10)).toString(16).padStart(4,'0')+'\\u'+(0xdc00+(c2&0x3ff)).toString(16).padStart(4,'0'); }
+    else if(c<0x20||c>0x7e) out+='\\u'+c.toString(16).padStart(4,'0');
+    else out+=ch;
+  }
+  return out+'"';
+}
+function sbCanonical(v){
+  if(v===null||v===undefined) return 'null';
+  if(typeof v==='number') return String(v);
+  if(typeof v==='boolean') return v?'true':'false';
+  if(typeof v==='string') return sbCanonicalStr(v);
+  if(Array.isArray(v)) return '['+v.map(sbCanonical).join(',')+']';
+  return '{'+Object.keys(v).sort().map(k=>sbCanonicalStr(k)+':'+sbCanonical(v[k])).join(',')+'}';
+}
+function sbUtf8(str){
+  if(typeof TextEncoder!=='undefined') return new TextEncoder().encode(str);
+  const out=[];                                   /* manual UTF-8 for old engines */
+  for(const ch of String(str)){
+    const c=ch.codePointAt(0);
+    if(c<0x80) out.push(c);
+    else if(c<0x800) out.push(0xc0|(c>>6),0x80|(c&63));
+    else if(c<0x10000) out.push(0xe0|(c>>12),0x80|((c>>6)&63),0x80|(c&63));
+    else out.push(0xf0|(c>>18),0x80|((c>>12)&63),0x80|((c>>6)&63),0x80|(c&63));
+  }
+  return new Uint8Array(out);
+}
+async function sbSha256Hex(str){
+  const d=await crypto.subtle.digest('SHA-256',sbUtf8(str));
+  return [...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+/* ---- CLOUD page: config ---- */
+function sbChipRender(){
+  const chip=$('sbChip'); if(!chip) return;
+  if(!sbReady()){ chip.textContent='☁ OFFLINE'; chip.className='chip warn'; }
+  else if(sbCfg.record===false){ chip.textContent='☁ CONNECTED · recording off'; chip.className='chip warn'; }
+  else { chip.textContent='☁ SYNC ON'; chip.className='chip'; }
+}
+function sbSave(){
+  const u=String($('sbUrl')?$('sbUrl').value:'').trim().replace(/\/+$/,'');
+  const a=String($('sbAnon')?$('sbAnon').value:'').trim();
+  const rec=$('sbRecord')?$('sbRecord').checked:true;
+  const msg=$('sbMsg');
+  if(/service[_-]?role|SUPABASE_SERVICE/i.test(u+a)){
+    if(msg) msg.innerHTML='🚨 that looks like a <b>service-role key</b> — never paste it here. Use the <b>anon public</b> key (Settings → API).';
+    return;
+  }
+  if(u&&a){
+    if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(u)){ if(msg) msg.textContent='❌ project URL must look like https://yourproject.supabase.co'; return; }
+    if(a.length<20){ if(msg) msg.textContent='❌ anon key looks too short — paste the full anon public key.'; return; }
+  }
+  sbCfg={url:u,anon:a,record:rec};
+  store.set(SB_STORE_KEY,JSON.stringify(sbCfg));
+  sbChipRender();
+  if(msg) msg.innerHTML=sbReady()?'✅ cloud config saved — mirror '+(sbCfg.record===false?'paused':'active')+'. Testing connection…':'☁ cloud config cleared — NEXUS runs fully offline again.';
+  if(sbReady()) sbTest();
+}
+function sbClear(){
+  sbCfg={}; store.set(SB_STORE_KEY,'');
+  const u=$('sbUrl'),a=$('sbAnon');
+  if(u) u.value=''; if(a) a.value='';
+  sbChipRender(); sbDeployed=null;
+  ['sbModelInfo','sbPerf','sbFresh','sbDeliv'].forEach(id=>{ const el=$(id); if(el) el.textContent='not loaded — connect on block 1, then press REFRESH.'; });
+  const chip=$('sbModelChip'); if(chip) chip.textContent='no deployed model';
+  const btn=$('sbApplyBtn'); if(btn) btn.disabled=true;
+  const msg=$('sbMsg'); if(msg) msg.textContent='Cloud sync cleared — the engine keeps running exactly as before.';
+}
+async function sbTest(){
+  if(!sbReady()){ const msg=$('sbMsg'); if(msg) msg.textContent='cloud sync not configured.'; return; }
+  const msg=$('sbMsg'); if(msg) msg.textContent='⏳ testing connection…';
+  try{
+    const r=await sbRest('currency_pairs?select=code&limit=1');
+    if(!r.ok) throw new Error('HTTP '+r.status+' — check URL + anon key and that migrations are applied');
+    const rows=await r.json();
+    if(msg) msg.innerHTML='✅ connected — schema reachable ('+(rows&&rows.length?rows[0].code+' is live':'no pairs seeded yet')+').';
+    sbLoadModel(); sbLoadPerf(); sbLoadFresh(); sbLoadDeliv();
+  }catch(e){ if(msg) msg.innerHTML='❌ connection failed: '+esc(String(e.message||e).slice(0,120)); }
+}
+/* ---- CLOUD page: model registry ---- */
+async function sbLoadModel(){
+  const info=$('sbModelInfo'), chip=$('sbModelChip'), btn=$('sbApplyBtn');
+  if(!sbReady()){ if(info) info.textContent='cloud sync not configured — block 1.'; if(chip){chip.textContent='offline';chip.className='chip warn';} if(btn) btn.disabled=true; sbDeployed=null; return; }
+  if(info) info.textContent='⏳ loading model registry…';
+  try{
+    const r=await sbRest('model_versions?select=id,artifact_sha256,artifact_payload,metrics,trained_at,promoted_at,status&kind=eq.strategy-weights&is_deployed=is.true&limit=1');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const rows=await r.json();
+    if(!rows||!rows.length){
+      sbDeployed=null;
+      if(chip){ chip.textContent='no deployed model'; chip.className='chip warn'; }
+      if(btn) btn.disabled=true;
+      if(info) info.textContent='No deployed model in the registry yet — run the Python trainer (trainer/train.py run). Until then the brain uses its local weights.';
+      return;
+    }
+    sbDeployed=rows[0];
+    if(chip){ chip.textContent='deployed'; chip.className='chip'; }
+    if(btn) btn.disabled=false;
+    const m=(sbDeployed.metrics||{});
+    const ho=m.holdout||{}, wf=m.walk_forward||{};
+    if(info) info.innerHTML='<b>'+esc(sbDeployed.id)+'</b><br>'
+      +'promoted: '+esc(String(sbDeployed.promoted_at||'—').slice(0,19).replace('T',' '))+' UTC · trained: '+esc(String(sbDeployed.trained_at||'—').slice(0,19).replace('T',' '))+' UTC<br>'
+      +'SHA-256: <code>'+esc(String(sbDeployed.artifact_sha256||'').slice(0,16))+'…</code><br>'
+      +'walk-forward win rate: <b>'+esc(ho.win_rate!=null&&wf.win_rate!=null?(wf.win_rate*100).toFixed(1)+'%':'—')+'</b>'
+      +' · holdout (SIMULATED): <b>'+esc(ho.win_rate!=null?(ho.win_rate*100).toFixed(1)+'%':'—')+'</b> on '+esc(String(ho.n||'—'))+' replayed signals'
+      +' · expectancy '+esc(ho.expectancy_bps!=null?ho.expectancy_bps+' bps':'—');
+  }catch(e){ sbDeployed=null; if(btn) btn.disabled=true; if(info) info.textContent='⚠ model registry read failed: '+String(e.message||e).slice(0,120); }
+}
+async function sbApplyModel(){
+  const btn=$('sbApplyBtn'), msg=$('sbApplyMsg');
+  const model=sbDeployed;                       /* snapshot — a concurrent refresh can never corrupt an in-flight apply */
+  if(!model){ if(msg) msg.textContent='no deployed cloud model — run the trainer first.'; return; }
+  if(btn) btn.disabled=true;
+  if(msg) msg.textContent='⏳ verifying SHA-256 signature of the artifact…';
+  try{
+    const payload=model.artifact_payload;
+    if(!payload||!payload.timeframes||typeof payload.timeframes!=='object') throw new Error('artifact carries no timeframes');
+    const sha=await sbSha256Hex(sbCanonical(payload));
+    if(sha!==String(model.artifact_sha256||'')) throw new Error('checksum mismatch — artifact rejected (registry sha '+String(model.artifact_sha256).slice(0,12)+'… vs computed '+sha.slice(0,12)+'…)');
+    const tfMap={'1m':'M1','3m':'M3'};
+    let applied=0; const tfSeen=[];
+    for(const tk in payload.timeframes){
+      const tf=tfMap[tk]; if(!tf) continue;
+      if(!deep[tf]||typeof deep[tf]!=='object'||Array.isArray(deep[tf])||!deep[tf].strats){
+        const prev=(deep[tf]&&typeof deep[tf]==='object'&&!Array.isArray(deep[tf]))?deep[tf]:null;
+        deep[tf]={stamp:(prev&&prev.stamp)||Date.now(),bars:(prev&&prev.bars)||0,
+                  ensVwr:(prev&&prev.ensVwr)||0,ensVn:(prev&&prev.ensVn)||0,
+                  strats:(prev&&prev.strats)||{},src:'cloud'};
+      }
+      const strats=payload.timeframes[tk].strats||{};
+      for(const s in strats){
+        const w=strats[s];
+        if(!w||typeof w.vwr!=='number'||typeof w.vtrades!=='number') continue;
+        const vtr=Math.max(0,Math.min(5000,Math.round(w.vtrades)));
+        const vwr=Math.max(0,Math.min(1,w.vwr));
+        deep[tf].strats[s]={trades:0,wins:0,wr:0.5,vtrades:vtr,vwins:Math.round(vwr*vtr),vwr:vwr};
+        applied++;
+      }
+      deep[tf].cloud={id:model.id,at:Date.now()};
+      if(applied) tfSeen.push(tf);
+    }
+    if(!applied) throw new Error('artifact carries no usable strategy weights');
+    saveDeep(); renderDeepInfo();
+    if(lastW[brainTf]) renderBrain(lastW[brainTf]);
+    try{ renderReady(); }catch(e){}
+    store.set('nx_sb_applied',JSON.stringify({id:model.id,sha:sha.slice(0,12),t:Date.now()}));
+    if(msg) msg.innerHTML='✅ applied <b>'+esc(model.id)+'</b> — '+applied+' strategy weights merged into '+esc(tfSeen.join(' + '))+'. Weights only: prediction logic, agents and filters are untouched.';
+    pushNote('sys','☁ cloud model applied — '+applied+' SHA-256-verified weights merged into the brain');
+  }catch(e){
+    if(msg) msg.innerHTML='❌ '+esc(String(e.message||e));
+  }
+  if(btn) btn.disabled=!sbDeployed;
+}
+/* ---- CLOUD page: performance (SIMULATED, labelled) ---- */
+async function sbLoadPerf(){
+  const el=$('sbPerf');
+  if(!sbReady()){ if(el) el.textContent='cloud sync not configured — block 1.'; return; }
+  if(el) el.textContent='⏳ loading risk snapshots…';
+  try{
+    const r=await sbRest('risk_snapshots?select=scope,window,as_of,sample_size,win_rate,expectancy_bps,profit_factor,net_return_bps,max_drawdown_bps,current_losing_streak&scope=eq.global&order=as_of.desc&limit=60');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const rows=await r.json();
+    if(!rows||!rows.length){ if(el) el.textContent='No snapshots yet — they appear once the worker has evaluated recorded predictions (risk job runs every 5 minutes).'; return; }
+    const seen=new Set(), latest=[];
+    for(const row of rows){ if(seen.has(row.window)) continue; seen.add(row.window); latest.push(row); }
+    if(el) el.innerHTML=latest.map(s=>{
+      const wr=s.win_rate!=null?(s.win_rate*100).toFixed(1)+'%':'—';
+      const fresh=Date.now()-Date.parse(s.as_of)<15*60000;
+      return '<div class="usage-row" style="padding:7px 10px">'
+        +'<span class="k" style="flex:0 0 92px">'+esc(s.window.toUpperCase())+(fresh?'':' <span class="mini">stale</span>')+'</span>'
+        +'<span style="flex:1;text-align:left;font-size:12px">WR <b>'+esc(wr)+'</b> ('+esc(String(s.sample_size))+' signals)'
+        +' · expectancy <b>'+esc(s.expectancy_bps!=null?s.expectancy_bps+' bps':'—')+'</b>'
+        +' · PF <b>'+esc(s.profit_factor!=null?s.profit_factor:'—')+'</b>'
+        +' · sim net '+esc(s.net_return_bps!=null?s.net_return_bps+' bps':'—')
+        +' · max DD '+esc(s.max_drawdown_bps!=null?s.max_drawdown_bps+' bps':'—')
+        +' · losing streak '+esc(String(s.current_losing_streak))+'</span>'
+        +'<span class="chip warn" style="font-size:9px">SIM</span></div>';
+    }).join('');
+  }catch(e){ if(el) el.textContent='⚠ performance read failed: '+String(e.message||e).slice(0,120); }
+}
+/* ---- CLOUD page: market data health ---- */
+async function sbLoadFresh(){
+  const el=$('sbFresh');
+  if(!sbReady()){ if(el) el.textContent='cloud sync not configured — block 1.'; return; }
+  if(el) el.textContent='⏳ loading feed health…';
+  try{
+    const r=await sbRest('v_market_freshness?select=pair,is_active,age_seconds,candle_count&is_active=eq.true&order=pair.asc');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const rows=await r.json();
+    if(!rows||!rows.length){ if(el) el.textContent='No pairs active yet — the worker ingests the 10 seeded pairs on its first run.'; return; }
+    if(el) el.innerHTML=rows.map(f=>{
+      const age=f.age_seconds==null?'—':f.age_seconds<90?f.age_seconds+'s':f.age_seconds<3600?Math.round(f.age_seconds/60)+'m':Math.round(f.age_seconds/3600)+'h';
+      const lag=f.age_seconds!=null&&f.age_seconds>180;
+      return '<div class="usage-row" style="padding:5px 10px">'
+        +'<span class="k" style="flex:0 0 88px">'+esc(f.pair)+'</span>'
+        +'<span style="flex:1;text-align:left;font-size:12px">newest candle <b'+(lag?' style="color:var(--warn)"':'')+'>'+esc(String(age))+'</b> ago'
+        +' · stored bars <b>'+esc(String(f.candle_count==null?'—':f.candle_count))+'</b></span>'
+        +(lag?'<span class="chip warn" style="font-size:9px">LAG</span>':'')+'</div>';
+    }).join('');
+  }catch(e){ if(el) el.textContent='⚠ feed health read failed: '+String(e.message||e).slice(0,120); }
+}
+/* ---- CLOUD page: delivery log ---- */
+async function sbLoadDeliv(){
+  const el=$('sbDeliv');
+  if(!sbReady()){ if(el) el.textContent='cloud sync not configured — block 1.'; return; }
+  if(el) el.textContent='⏳ loading deliveries…';
+  try{
+    const r=await sbRest('v_deliveries_public?select=channel,message_kind,status,attempts,has_error,created_at&order=created_at.desc&limit=10');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const rows=await r.json();
+    if(!rows||!rows.length){ if(el) el.textContent='No deliveries recorded yet — they appear once this browser (or the worker) records a send with cloud sync on.'; return; }
+    const stChip=s=>s==='sent'?'<span class="chip" style="font-size:9px">SENT</span>':s==='failed'?'<span class="chip warn" style="font-size:9px">FAILED</span>':'<span class="chip warn" style="font-size:9px">'+esc(String(s).toUpperCase())+'</span>';
+    if(el) el.innerHTML=rows.map(d=>'<div class="usage-row" style="padding:5px 10px">'
+      +'<span class="k" style="flex:0 0 72px">'+esc(String(d.created_at||'').slice(11,19))+'</span>'
+      +'<span style="flex:1;text-align:left;font-size:12px">'+esc(String(d.channel))+' · '+esc(String(d.message_kind))+' · attempts '+esc(String(d.attempts))+(d.has_error?' · ⚠ error':'')+'</span>'
+      +stChip(d.status)+'</div>').join('');
+  }catch(e){ if(el) el.textContent='⚠ delivery log read failed: '+String(e.message||e).slice(0,120); }
+}
+function sbInit(){
+  const u=$('sbUrl'),a=$('sbAnon'),rec=$('sbRecord');
+  if(u) u.value=sbCfg.url||'';
+  if(a) a.value=sbCfg.anon||'';
+  if(rec) rec.checked=sbCfg.record!==false;
+  sbChipRender();
+  const applied=loadJSON('nx_sb_applied',null);
+  if(applied&&applied.id){ const m=$('sbApplyMsg'); if(m) m.innerHTML='last applied: <b>'+esc(applied.id)+'</b> ('+esc(applied.sha||'')+'…) — re-run TRAIN THE DATA AT MAX on the BRAIN page to return to local weights.'; }
+  if(sbReady()){ sbLoadModel(); sbLoadPerf(); sbLoadFresh(); sbLoadDeliv(); }
+}
+
 initTabs();
 showPage(store.get('nx_page')||'dash');
 renderKeyInputs();
@@ -4018,7 +4427,9 @@ if($('vipLog')&&vx.notes&&vx.notes.length) $('vipLog').innerHTML=vx.notes.slice(
 if(tg.listen&&tgReady()) tgListenLoop();
 if(sx.status==='hunting'&&!sx.huntStart) sx.huntStart=Date.now();   /* resume the hunt after reload */
 loadLocalArt();
+sbInit();
 setInterval(()=>{ livePairsRender(); renderTopLive(); },5000);       /* pair grid ages refresh without hogging the main tick */
+setInterval(()=>{ if(sbReady()&&curPage==='cloud'&&document.visibilityState!=='hidden'){ sbLoadFresh(); sbLoadDeliv(); } },60000);
 setStatus('wait','NEXUS v5.1 Meridian ready — 10 pairs · 26 strategies · 4 channels (PUBLIC · VIP · LIST · MAIN) · fast verdicts. Flip the streams on the TELEGRAM page.');
 </script>
 </body>

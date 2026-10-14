@@ -34,7 +34,8 @@ npm test        # smoke + regression suite (~40 s)
 ```
 
 Then open `index.html` in a browser (or serve the folder). No build step, no CDN,
-everything is one self-contained file with a strict CSP (`api.twelvedata.com` + `api.telegram.org` only).
+everything is one self-contained file with a strict CSP (`api.twelvedata.com` + `api.telegram.org`
++ `*.supabase.co` when cloud sync is configured).
 
 ### Keys (never committed)
 
@@ -60,8 +61,34 @@ The CI credential guard (`tools/check-public.cjs`) refuses to publish if any key
 `/start` `/help` `/session` `/premium` `/vip` `/signal` `/list` `/results` `/stats`
 `/formats` `/setformat <kind> <layout>` `/resetformat <kind|all>`
 
+## Cloud sync (Supabase — optional)
+
+The engine runs **fully offline by default**. If you want server-grade record-keeping,
+outcome evaluation, risk monitoring and self-learning, connect a Supabase project:
+
+- **CLOUD page** in the app — paste the project URL + **anon public key** (never the
+  service-role key). The browser *mirrors* signals and delivery results (insert-only,
+  enforced by row-level security) and can apply SHA-256-verified cloud-trained weights
+  to the brain — a button, never silent. With no config every cloud call is a no-op.
+- **`server/`** — Node worker (service-role key, server only): 1-minute candle ingestion
+  with gap/duplicate/revision detection, outcome evaluation (direction-adjusted returns
+  minus estimated costs), risk snapshots, Telegram retries, ops alerts, retention.
+- **`trainer/`** — Python trainer (stdlib only): leakage-free chronological walk-forward
+  training, gated promotion (shadow mode first), rollback support, private model artifacts.
+- **`supabase/migrations/`** — versioned SQL schema (10 tables + views + RLS + retention).
+
+Full setup: **[SUPABASE_SETUP.md](SUPABASE_SETUP.md)** · architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
+Simulated returns shown anywhere (cloud performance included) are **signal-quality
+metrics, never realized account profits**.
+
 ## Repo map
 
 - `index.html` — the entire app (UI + engines)
-- `tests/smoke.cjs` — jsdom regression suite (settlement math, channels, formats, sticker dedupe, engines, privacy, migrations, chaos pass)
+- `tests/smoke.cjs` — jsdom regression suite (settlement math, channels, formats, sticker dedupe, engines, privacy, migrations, cloud mirror, chaos pass)
 - `tools/check-public.cjs` — credential guard used by the Pages deploy workflow
+- `server/` — Supabase worker (ingestion, evaluation, risk, retries, alerts) — `npm test` inside
+- `trainer/` — Python trainer + promotion pipeline — `python3 -m unittest` inside
+- `supabase/migrations/` — versioned database schema
+- `docs/ARCHITECTURE.md` — inspection report + target architecture
+- `SUPABASE_SETUP.md` — end-to-end cloud setup guide

@@ -1,0 +1,24 @@
+{
+  "name": "nexus-supabase-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "NEXUS server-side worker: market-data ingestion, outcome evaluation, risk monitoring, Telegram retries, alerts, retention. Runs with the Supabase SERVICE-ROLE key — never expose it to the browser.",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node src/index.js loop",
+    "once": "node src/index.js once",
+    "ingest": "node src/index.js ingest",
+    "backfill": "node src/index.js backfill",
+    "evaluate": "node src/index.js evaluate",
+    "risk": "node src/index.js risk",
+    "telegram": "node src/index.js telegram",
+    "alerts": "node src/index.js alerts",
+    "housekeeping": "node src/index.js housekeeping",
+    "settings-sync": "node src/index.js settings-sync",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}
