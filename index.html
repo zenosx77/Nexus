@@ -3,18 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="NEXUS Glass v4.0 — multi-agent, regime-aware M1 + M3 signal engine with paper trading, risk limits and deep backtesting. Signal-only; no live execution.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.twelvedata.com https://api.telegram.org; img-src data: https:; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
-<title>NEXUS Glass v4.0 — Multi-Agent Signal & Paper-Trading System</title>
+<meta name="description" content="NEXUS Glass v4.2 — EUR/USD-only, multi-agent, regime-aware M1 + M3 signal engine with paper trading, risk limits and deep backtesting. Signal-only; no live execution.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.twelvedata.com https://api.telegram.org; img-src data: https:; font-src 'self'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+<title>NEXUS Glass v4.2 — Straw-Hat Edition · EUR/USD Signal & Paper-Trading System</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2300c6ff'/><stop offset='1' stop-color='%23b57fff'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%230b1220'/><text x='50' y='70' font-size='58' text-anchor='middle' fill='url(%23g)' font-family='Arial' font-weight='900'>N</text></svg>">
 <style>
+  /* ── Self-hosted typeface: Inter Variable (latin subset, wght 100-900).
+        Source: https://github.com/rsms/inter · © The Inter Project Authors.
+        License: SIL Open Font License 1.1 — full text in assets/fonts/INTER-OFL-LICENSE.txt
+        (shipped with this site; no external font requests, works offline). ── */
+  @font-face {
+    font-family:'Inter'; font-style:normal; font-display:swap; font-weight:100 900;
+    src:url('assets/fonts/inter-latin-wght-normal.woff2') format('woff2-variations');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+  }
   :root{
     --glass:linear-gradient(160deg, rgba(255,255,255,.09), rgba(255,255,255,.03));
     --glass-brd:rgba(255,255,255,.13);
     --txt:#e8f0fa; --sub:#93a7c4; --acc:#00c6ff; --win:#00e5a0; --loss:#ff5c7a; --warn:#ffd54f;
   }
-  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,Roboto,Arial,sans-serif; }
+  html { scroll-behavior:smooth; }
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter','Segoe UI',system-ui,Roboto,Arial,sans-serif; }
   body { color:var(--txt); min-height:100vh; padding:16px; background:#05070f; overflow-x:hidden; }
+  /* ---- Apple HIG "notebook" materials: vibrancy, depth, motion ---- */
+  @keyframes cardIn { from { opacity:0; transform:translateY(14px) scale(.985); } to { opacity:1; transform:none; } }
+  @keyframes rowPop { 0% { opacity:0; transform:translateX(-8px); } 60% { transform:translateX(2px); } 100% { opacity:1; transform:none; } }
+  @keyframes sheen { 0% { background-position:-120% 0; } 100% { background-position:220% 0; } }
+  @keyframes hatSway { 0%,100% { transform:rotate(-3deg); } 50% { transform:rotate(3deg); } }
+  @media (prefers-reduced-motion: reduce) { * { animation:none!important; transition:none!important; } html { scroll-behavior:auto; } }
+  .glass { animation:cardIn .5s cubic-bezier(.22,1,.36,1) both; }
+  .glass:nth-of-type(2) { animation-delay:.04s; } .glass:nth-of-type(3) { animation-delay:.08s; }
+  .glass:nth-of-type(4) { animation-delay:.12s; } .glass:nth-of-type(5) { animation-delay:.16s; }
+  .sig-row, .pred-row { animation:rowPop .35s ease-out both; }
+  .b-gen { background-image:linear-gradient(100deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.25) 50%, rgba(255,255,255,0) 70%), linear-gradient(90deg,#0072ff,#00c6ff);
+           background-size:220% 100%, 100% 100%; animation:sheen 3.2s ease-in-out infinite; }
+  .logo svg { animation:hatSway 4s ease-in-out infinite; }
   .orb { position:fixed; border-radius:50%; filter:blur(90px); opacity:.5; z-index:0; pointer-events:none; }
   .o1 { width:420px;height:420px; background:#0b3a6e; top:-140px; left:-120px; }
   .o2 { width:380px;height:380px; background:#3a1663; top:30%; right:-140px; }
@@ -32,7 +55,18 @@
                background:linear-gradient(90deg,#7fd8ff,#c9a7ff);
                -webkit-background-clip:text; background-clip:text; color:transparent; }
   .header p { font-size:11px; color:var(--sub); }
-  .t { font-size:11px; color:var(--sub); letter-spacing:1.5px; text-transform:uppercase; display:block; margin-bottom:8px; }
+  .t { font-size:11px; color:var(--sub); letter-spacing:1.5px; text-transform:uppercase; display:block; margin-bottom:8px;
+       padding-left:52px; position:relative; }
+  /* macOS notebook window dots on every section header */
+  .t::before { content:''; position:absolute; left:0; top:50%; transform:translateY(-50%);
+               width:44px; height:12px; border-radius:6px;
+               background:radial-gradient(circle at 6px 6px, #ff5f57 4px, transparent 4.5px),
+                          radial-gradient(circle at 22px 6px, #febc2e 4px, transparent 4.5px),
+                          radial-gradient(circle at 38px 6px, #28c840 4px, transparent 4.5px); }
+  /* wanted-poster treatment for the three signal streams */
+  .batch { border-style:dashed; border-width:1.5px; background:
+           linear-gradient(160deg, rgba(255,244,214,.05), rgba(255,255,255,.02)), var(--glass); }
+  .batch .nm { letter-spacing:3px; text-shadow:0 2px 0 rgba(0,0,0,.45); }
   select, input { background:rgba(5,10,20,.55); color:var(--txt); border:1px solid rgba(255,255,255,.15);
                   border-radius:10px; padding:10px; font-size:13px; width:100%; margin-bottom:8px; outline:none; }
   select:focus, input:focus { border-color:var(--acc); }
@@ -137,38 +171,97 @@
   input[type="time"] { color-scheme:dark; }
   .tg-log { max-height:120px; overflow-y:auto; font-family:monospace; font-size:10px; line-height:1.6; }
   .tg-log div { border-bottom:1px solid rgba(255,255,255,.05); padding:2px 0; word-break:break-word; }
+  /* ---- mobile section navigation (sticky jump bar) ---- */
+  .secnav { position:sticky; top:6px; z-index:30; display:flex; gap:6px; overflow-x:auto; align-items:center;
+            padding:8px; margin-bottom:14px; border-radius:16px; border:1px solid var(--glass-brd);
+            background:rgba(7,12,24,.88); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+            box-shadow:0 6px 24px rgba(0,0,0,.45); scrollbar-width:none; -ms-overflow-style:none; }
+  .secnav::-webkit-scrollbar { display:none; }
+  .secnav a { flex:0 0 auto; font-size:11px; font-weight:700; letter-spacing:.6px; text-decoration:none;
+              color:var(--sub); background:rgba(255,255,255,.05); border:1px solid transparent;
+              border-radius:10px; padding:8px 11px; white-space:nowrap; transition:.15s; }
+  .secnav a:active { transform:scale(.95); }
+  .secnav a.active { color:var(--acc); border-color:rgba(0,198,255,.45); background:rgba(0,198,255,.08); }
+  .glass[id] { scroll-margin-top:64px; }
+  /* ---- four-slot key manager ---- */
+  .kslots { display:grid; grid-template-columns:1fr; gap:8px; }
+  .kslot-row { display:flex; gap:8px; align-items:center; }
+  .kslot-row .tag { flex:0 0 34px; text-align:center; font-size:10px; font-weight:800; color:var(--sub);
+                    background:rgba(5,10,20,.5); border:1px solid rgba(255,255,255,.1); border-radius:9px; padding:9px 0; }
+  .kslot-row input { flex:1; margin:0; font-family:monospace; letter-spacing:.5px; }
+  .empty-note { text-align:center; padding:10px 8px; color:var(--sub); font-size:12px; }
+  /* ---- optional LOCAL-ONLY crew art banner (public site never fetches it) ---- */
+  .heroArt { height:130px; border-radius:20px; margin-bottom:14px; border:1px solid var(--glass-brd);
+             background-size:cover; background-position:center 32%; position:relative; overflow:hidden;
+             box-shadow:0 10px 34px rgba(0,0,0,.5); animation:cardIn .6s cubic-bezier(.22,1,.36,1) both; }
+  .heroArt::after { content:'LOCAL CREW ART — not part of the public build'; position:absolute; right:8px; bottom:6px;
+                    font-size:9px; letter-spacing:1px; color:rgba(255,255,255,.75); background:rgba(5,8,16,.55);
+                    padding:3px 8px; border-radius:8px; backdrop-filter:blur(6px); }
 </style>
 </head>
 <body>
 <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
 <div class="wrap">
   <div class="glass header">
-    <div class="logo">N</div>
-    <div><h1>NEXUS</h1><p>Glass v4.0 · multi-agent · M1 + M3 · paper-first · capital preservation</p></div>
+    <div class="logo" aria-label="NEXUS straw-hat mark"><svg viewBox="0 0 64 64" width="34" height="34" aria-hidden="true">
+      <path d="M15 47 L49 17 M15 17 L49 47" stroke="rgba(255,255,255,.9)" stroke-width="5" stroke-linecap="round"/>
+      <ellipse cx="32" cy="40" rx="24" ry="8.5" fill="#e9c46a"/>
+      <path d="M15 40 C15 24 22 15 32 15 C42 15 49 24 49 40 Z" fill="#f4d58d"/>
+      <rect x="15" y="33" width="34" height="7" rx="3.5" fill="#c62828"/>
+      <path d="M8 40 q24 11 48 0" stroke="#a97b2f" stroke-width="2.5" fill="none"/>
+    </svg></div>
+    <div><h1>NEXUS</h1><p>Glass v4.2 · Straw-Hat edition · EUR/USD only · M1 + M3 · paper-first · capital preservation</p></div>
   </div>
 
-  <div class="glass">
-    <span class="t">🔑 Twelve Data Key</span>
-    <input type="text" id="key" placeholder="Paste your Twelve Data API key" autocomplete="off">
-    <div class="mini" id="vaultInfo" style="margin-top:6px">🔐 loading key vault…</div>
-    <div class="mini">Permanent keys: edit <b>PERMANENT_KEYS</b> at the top of the script (works on every device) or <b>keys.js</b> (private). Free key at <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener">twelvedata.com</a> · field keys stay in your browser</div>
+  <nav class="secnav" id="secNav" aria-label="Section navigation">
+    <a href="#sec-keys">🔑 KEYS</a>
+    <a href="#sec-feeds">📡 FEEDS</a>
+    <a href="#sec-regime">🧭 REGIME</a>
+    <a href="#sec-agents">🤖 AGENTS</a>
+    <a href="#sec-scan">🎯 SCAN</a>
+    <a href="#sec-m1">⚡ M1</a>
+    <a href="#sec-m3">⚡ M3</a>
+    <a href="#sec-list">📊 LIST</a>
+    <a href="#sec-bot">🤖 BOT</a>
+    <a href="#sec-tg">📨 TELEGRAM</a>
+    <a href="#sec-pub">📢 PUBLIC</a>
+    <a href="#sec-paper">💼 PAPER</a>
+    <a href="#sec-stats">🔥 RESULTS</a>
+    <a href="#sec-perf">📈 PERF</a>
+    <a href="#sec-brain">🧠 BRAIN</a>
+    <a href="#sec-hist">📜 HISTORY</a>
+    <a href="#sec-bt">🔬 BACKTEST</a>
+  </nav>
+
+  <div class="glass" id="sec-keys">
+    <span class="t">🔑 Twelve Data Keys — 4 Slots <button class="b-ghost" id="keyShow" type="button" style="float:right;padding:3px 9px;font-size:10px">👁 SHOW</button></span>
+    <div class="kslots">
+      <div class="kslot-row"><span class="tag">K1</span><input type="password" id="key1" class="kslot" placeholder="API key slot 1" autocomplete="off" spellcheck="false"></div>
+      <div class="kslot-row"><span class="tag">K2</span><input type="password" id="key2" class="kslot" placeholder="API key slot 2 (optional)" autocomplete="off" spellcheck="false"></div>
+      <div class="kslot-row"><span class="tag">K3</span><input type="password" id="key3" class="kslot" placeholder="API key slot 3 (optional)" autocomplete="off" spellcheck="false"></div>
+      <div class="kslot-row"><span class="tag">K4</span><input type="password" id="key4" class="kslot" placeholder="API key slot 4 (optional)" autocomplete="off" spellcheck="false"></div>
+    </div>
+    <button class="b-gen" style="width:100%;margin-top:10px" onclick="saveKeys()">💾 SAVE ALL KEYS (one click · browser only)</button>
+    <div class="mini" id="vaultMsg" role="status" style="margin-top:6px"></div>
+    <div class="mini" id="vaultInfo" style="margin-top:8px">🔐 loading key vault…</div>
+    <div class="mini">Keys rotate automatically; a key that hits its quota cools down for 60s and the next slot takes over. Saved keys live <b>only in this browser</b> (localStorage) and are <b>never committed or uploaded</b>. Optional permanent sources: <b>PERMANENT_KEYS</b> at the top of the script or the private, gitignored <b>keys.js</b>. Free key at <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener">twelvedata.com</a></div>
   </div>
 
-  <div class="glass">
-    <span class="t">📡 Data Feeds — 4 APIs</span>
+  <div class="glass" id="sec-feeds">
+    <span class="t">📡 Market Data — candles + optional diagnostics</span>
     <div class="feed4">
-      <div class="f4">time_series · candles<b id="f_ts">—</b></div>
-      <div class="f4">quote · OHLC+Δ%<b id="f_q">—</b></div>
-      <div class="f4">price · spot tick<b id="f_p">—</b></div>
-      <div class="f4">exchange_rate · cross<b id="f_er">—</b></div>
+      <div class="f4">time_series · candles <span style="color:var(--acc)">(scan feed · 1 credit)</span><b id="f_ts">—</b></div>
+      <div class="f4">quote · OHLC+Δ% <span style="opacity:.7">(diagnostic)</span><b id="f_q">not checked</b></div>
+      <div class="f4">price · spot tick <span style="opacity:.7">(diagnostic)</span><b id="f_p">not checked</b></div>
+      <div class="f4">exchange_rate · cross <span style="opacity:.7">(diagnostic)</span><b id="f_er">not checked</b></div>
     </div>
-    <div class="mini" id="agree" style="margin-top:8px">cross-check: —</div>
+    <div class="mini" id="agree" style="margin-top:8px">normal scans use <b>only</b> the candle feed (quota-friendly) · quote / price / exchange_rate run on demand below</div>
     <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="b-ghost" style="flex:1" onclick="verifyFeeds()">🔍 VERIFY FEEDS</button>
+      <button class="b-ghost" style="flex:1" onclick="verifyFeeds()">🔍 RUN FEED DIAGNOSTICS (4 credits)</button>
     </div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-regime">
     <span class="t">🧭 Market Regime Detector</span>
     <div id="regimeRows">
       <div class="regime">
@@ -180,7 +273,7 @@
     <div class="mini" style="margin-top:8px">ADX&gt;25 → trend (75% threshold) · ADX&lt;20 → range (70%) · 20-25 mixed (80%) · doji candles blocked 👿 · M3 = 3×M1 candles aggregated</div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-agents">
     <span class="t">🤖 Multi-Agent Console</span>
     <div id="agentRows">
       <div class="agent-row"><span class="nm">TREND</span><span class="bias ab-nu">·</span><span class="note">waiting for scan…</span><span class="abar"><i style="width:0"></i></span></div>
@@ -195,26 +288,39 @@
     <div class="mini" style="margin-top:8px">6 agents analyse real Twelve Data candles → fusion + validation filter → risk gate → paper trade. Local rule-based AI (no cloud, no fabricated prices). Weak setups are rejected, not traded.</div>
   </div>
 
-  <div class="glass">
-    <span class="t">🎯 Watchlist & Controls</span>
+  <div class="glass" id="sec-scan">
+    <span class="t">🎯 Pair & Controls — EUR/USD</span>
     <div class="chk" id="watch"></div>
+    <div class="mini" style="margin-top:6px">NEXUS trades <b>EUR/USD only</b> — the deepest, tightest-spread retail pair. No pair rotation.</div>
     <div class="mini" style="margin-top:8px">TIMEFRAMES</div>
     <div class="chk" id="tfsel"></div>
     <div style="display:flex;gap:10px;margin-top:10px">
-      <select id="tzoff" style="margin:0;flex:1">
+      <select id="tzoff" style="margin:0;flex:1" aria-label="Display timezone offset">
         <option value="6" selected>UTC +6:00</option><option value="5.5">UTC +5:30</option>
         <option value="3">UTC +3:00</option><option value="0">UTC +0:00</option>
         <option value="-5">UTC −5:00</option>
       </select>
       <button class="b-gen" id="btnRun" onclick="runScan(true)">⚡ SCAN</button>
     </div>
+    <div class="two" style="margin-top:8px">
+      <div><span class="mini" style="display:block;text-align:left">⏱ SIGNAL LEAD — seconds before candle close</span>
+        <input type="number" id="leadSec" min="5" max="55" step="5" value="30" title="Prediction for the next candle is issued this many seconds before the current candle closes (30s → the 5:30 candle is called at ~5:29:30)"></div>
+      <div><span class="mini" style="display:block;text-align:left">🧭 M5 CONFIRMATION (+1 credit/scan)</span>
+        <label class="switch" style="margin-top:8px"><input type="checkbox" id="m5conf" checked><span class="slider"></span></label></div>
+    </div>
     <div class="toggle" style="margin-top:10px">
-      <span>🤖 AUTO-MODE <span class="mini">(3 pairs/candle, rotates)</span></span>
+      <span>🤖 AUTO-MODE <span class="mini">(EUR/USD every candle)</span></span>
       <label class="switch"><input type="checkbox" id="auto"><span class="slider"></span></label>
     </div>
+    <div class="toggle">
+      <span>📵 NEWS BLACKOUT <span class="mini">(manual — blocks new signals)</span></span>
+      <label class="switch"><input type="checkbox" id="blackout"><span class="slider"></span></label>
+    </div>
+    <div class="mini" id="blackoutNote" style="margin:-4px 0 10px">Manual switch for high-impact news (NFP, CPI, rate decisions…). <b>NEXUS has no live news feed</b> — you decide when to go dark. Open signals still settle; only <b>new</b> signals are blocked.</div>
     <div class="countdown cd-ok" id="cd">
       <div id="cd1w">⏳ M1 closes in <b>—</b></div>
       <div id="cd3w" style="display:none">⏳ M3 closes in <b>—</b></div>
+      <div class="mini" id="tgtBadge" style="margin-top:4px">🎯 next M1 candle opens: —</div>
       <div class="mini" style="margin-top:4px">signals predict the <b>next</b> candle · enter at its open · <b>paper-trade only</b></div>
     </div>
     <div class="status wait" id="status">NEXUS idle — scan a few seconds before candle close for best entry timing</div>
@@ -223,23 +329,39 @@
     <div class="mini" id="credits" style="margin-top:6px">API credits this session: 0</div>
   </div>
 
-  <div class="glass batch" id="cardM1" style="display:none">
+  <div class="glass batch" id="sec-m1">
     <div class="batch-head">
       <div class="nm">⚡ LIVE SIGNALS · M1</div>
-      <div class="mini">1-minute predictions · enter at <b>next candle open</b> · ✅ win · ❌ loss</div>
+      <div class="mini">1-minute predictions · enter at <b>next candle open</b> · ✅ win · ❌ loss · <b>separate stream from M3 and the list</b></div>
     </div>
-    <div id="liveRowsM1"></div>
+    <div id="liveRowsM1"><div class="empty-note">No live M1 signals yet — run a scan.</div></div>
   </div>
 
-  <div class="glass batch" id="cardM3" style="display:none">
+  <div class="glass batch" id="sec-m3">
     <div class="batch-head">
       <div class="nm">⚡ LIVE SIGNALS · M3</div>
       <div class="mini">3-minute predictions · separate stream · enter at <b>next candle open</b></div>
     </div>
-    <div id="liveRowsM3"></div>
+    <div id="liveRowsM3"><div class="empty-note">No live M3 signals yet — run a scan.</div></div>
   </div>
 
-  <div class="glass batch" id="predCard">
+  <div class="glass batch" id="sec-bot">
+    <div class="batch-head">
+      <div class="nm">🤖 BOT SIGNALS</div>
+      <div class="mini">every passed signal → bot chat · verification message on settle · sticker after · separate stream</div>
+    </div>
+    <div id="botRows"><div class="empty-note">No bot signals yet — they appear here the moment a signal passes every gate.</div></div>
+    <div class="toggle" style="margin-top:8px">
+      <span>📤 AUTO-SEND each signal <span class="mini">(needs AUTHORIZED + chat)</span></span>
+      <label class="switch"><input type="checkbox" id="botAuto"><span class="slider"></span></label>
+    </div>
+    <div class="toggle">
+      <span>✅ VERIFICATION + 🎉 STICKER <span class="mini">(sent when each bot signal settles)</span></span>
+      <label class="switch"><input type="checkbox" id="botVerify" checked><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="glass batch" id="sec-list">
     <div class="batch-head">
       <div class="nm" id="predBrand">📊 NEXUS PREMIUM SIGNAL 🔔</div>
       <div class="mini">🗓 DATE :- <b id="predDate">—</b></div>
@@ -249,7 +371,9 @@
     </div>
     <div id="predRows"><div class="mini" style="text-align:center;padding:8px">No predictions yet — press START LIST (premium setups only).</div></div>
     <div class="batch-summary" id="predSummary">✅ = Win (0)  |  ❌ = Loss (0)</div>
-    <div style="display:flex;gap:8px;margin-top:10px">
+    <div class="mini" id="winLeft" style="margin-top:6px">⏳ list window: 60 minutes from start — the whole list completes inside one hour</div>
+    <button class="b-gen" style="width:100%;margin-top:8px" onclick="runSession()">🏴‍☠️ RUN SESSION — start list + auto-send list, result & sticker</button>
+    <div style="display:flex;gap:8px;margin-top:8px">
       <button class="b-gen" style="flex:1" onclick="batchStart(true)">▶ START LIST</button>
       <button class="b-ghost" style="flex:1" onclick="batchStop()">■ STOP</button>
     </div>
@@ -266,7 +390,7 @@
     <div class="mini" style="margin-top:8px">Only <b>premium</b> setups are collected (high score, 3+ agents agreeing, zero conflicts, positive EV). ✅/❌ ticks settle automatically from real candle closes — results are never hand-edited. Research output, not financial advice.</div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-tg">
     <span class="t">📨 Telegram Delivery</span>
     <div class="chips">
       <span class="chip" id="tgStatChip">bot: not configured</span>
@@ -277,12 +401,20 @@
       <input type="text" id="tgChat" placeholder="Chat ID or @channel" autocomplete="off" style="margin:0">
       <input type="text" id="tgBrand" placeholder="Brand name (NEXUS)" autocomplete="off" style="margin:0">
     </div>
-    <div class="mini" id="tgVault" style="margin-top:6px">🔐 token: none — paste here, or set window.NEXUS_TG_TOKEN in keys.js (private)</div>
+    <button class="b-gen" style="width:100%;margin-top:8px" onclick="tgSaveSettings()">💾 SAVE TELEGRAM SETTINGS (one click)</button>
+    <div class="mini" id="tgVault" style="margin-top:8px">🔐 token: none — paste here, or set window.NEXUS_TG_TOKEN in keys.js (private)</div>
+    <div class="mini" style="margin-top:6px">🔁 Changing the <b>token</b> or the <b>destination chat</b> instantly <b>revokes send authorization</b> — re-enable AUTHORIZED below to resume delivery. Settings persist in this browser only.</div>
     <div class="chips" style="margin-top:8px">
       <button class="b-ghost" onclick="tgCaptureSticker()">😀 CAPTURE STICKER</button>
+      <button class="b-ghost" onclick="tgCaptureStyle('list')">🎨 CAPTURE LIST STYLE</button>
+      <button class="b-ghost" onclick="tgCaptureStyle('result')">🎨 CAPTURE RESULT STYLE</button>
+    </div>
+    <div class="chips" style="margin-top:6px">
       <button class="b-ghost" onclick="tgTest()">✉ TEST</button>
       <button class="b-ghost" onclick="tgSetCommands()">⌨ REGISTER COMMANDS</button>
+      <button class="b-ghost" onclick="tgClearStyle()">🧹 RESET STYLE</button>
     </div>
+    <div class="mini" id="tplInfo" style="margin-top:6px">style: built-in template — send your example list/result to the bot, then CAPTURE to adopt its exact look</div>
     <div class="mini" id="tgStickerInfo" style="margin-top:6px">sticker: none — send your animated sticker to your bot in Telegram, then press CAPTURE</div>
     <div class="toggle" style="margin-top:8px">
       <span>🔐 AUTHORIZED TO SEND <span class="mini">(required for every Telegram message)</span></span>
@@ -303,7 +435,23 @@
     <div class="risk-line tg-log" id="tgLog">telegram log: ready</div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-pub">
+    <span class="t">📢 Public Channel — Community</span>
+    <div class="chips"><span class="chip warn">🛡 privacy filter ON — tokens, keys, ids & emails are stripped before posting</span></div>
+    <input type="text" id="pubChat" placeholder="Public channel: @yourcommunity or numeric chat id" autocomplete="off">
+    <div class="mini" id="pubInfo" style="margin-top:6px">Fully separate from your signal chat and bot stream. Auto-posts carry <b>aggregate stats only</b> — never keys, tokens, private chats or balances.</div>
+    <textarea id="pubMsg" rows="3" placeholder="Announcement: new features, news, reminders for your community…" style="width:100%;background:rgba(5,10,20,.55);color:var(--txt);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:10px;font-size:13px;margin-top:8px;outline:none;resize:vertical"></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="b-gen" style="flex:1" onclick="pubPost()">📢 POST TO CHANNEL</button>
+    </div>
+    <div class="toggle" style="margin-top:8px">
+      <span>🧾 AUTO daily summary <span class="mini">(aggregate W/L when a list settles)</span></span>
+      <label class="switch"><input type="checkbox" id="pubAuto"><span class="slider"></span></label>
+    </div>
+    <div class="risk-line tg-log" id="pubLog">public log: ready</div>
+  </div>
+
+  <div class="glass" id="sec-paper">
     <span class="t">💼 Paper Trading & Risk</span>
     <div class="chips">
       <span class="chip ok">PAPER MODE</span><span class="chip">signal-only</span>
@@ -341,7 +489,7 @@
     <div class="mini" style="margin-top:8px">Payouts are estimates — set your real average. Friction (spread/latency) is charged per trade (1% of stake). Nothing here places real orders.</div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-stats">
     <span class="t">🔥 Session Result</span>
     <div class="stats">
       <div class="stat"><b class="rate" id="wins">0</b><span>WINS ✅</span></div>
@@ -354,7 +502,7 @@
     <div class="mini" id="breaker" style="margin-top:8px;display:none">🚨 CIRCUIT BREAKER — 3 straight losses. Take a break. <a href="#" onclick="resetStreak();return false">reset</a></div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-perf">
     <span class="t">📈 Performance Analytics</span>
     <div class="kv">
       <div class="cell">WIN RATE (paper)<b id="fWR">—</b></div>
@@ -381,18 +529,18 @@
     <div class="mini" id="perfNote" style="margin-top:8px">Metrics need settled paper trades — they appear after your first signals close. EV is computed after estimated friction costs.</div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-brain">
     <span class="t">🧠 Self-Learning Brain <span style="float:right"><button class="b-ghost b-on" id="brainM1" style="padding:2px 10px;font-size:10px">M1</button> <button class="b-ghost" id="brainM3" style="padding:2px 10px;font-size:10px">M3</button></span></span>
     <div class="brain" id="brain"></div>
     <div class="mini" style="margin-top:8px">weights are per timeframe · 35% backtest + 65% live memory × regime boost · persists across sessions</div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-hist">
     <span class="t">📜 History <button onclick="clearStats()" style="padding:4px 10px;font-size:11px;float:right" class="b-ghost">reset</button></span>
     <div class="history" id="hist" style="margin-top:6px"><div style="color:var(--sub)">No results yet.</div></div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-bt">
     <span class="t">🔬 Deep Backtest</span>
     <div class="two" style="margin-top:6px">
       <select id="btPair" style="margin:0"></select>
@@ -404,34 +552,39 @@
 
   <div class="clock" id="clock"></div>
   <p class="disclaimer">⚠️ NEXUS never guarantees profits — no system can. It is a decision-support tool in <b>signal-only + paper-trading mode</b>; it does not click, place, or automate real trades.<br>Binary options carry a very high risk of losing money. Preserving capital comes first: respect the daily stop-loss, cooldowns and position limits. Past performance — real or backtested — does not predict future results. Trade responsibly.</p>
-  <div class="ver">NEXUS Glass v4.0 · multi-agent · M1 + M3 · paper-first</div>
+  <div class="ver">NEXUS Glass v4.2 · Straw-Hat edition · EUR/USD · M1 + M3 · paper-first<br>Typeface: Inter (self-hosted, variable) — © The Inter Project Authors, SIL Open Font License 1.1 · license: assets/fonts/INTER-OFL-LICENSE.txt</div>
 </div>
 
 <script src="keys.js"></script>
 <script>
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════
-🔑 PERMANENT API KEYS — edit here and they work on every device.
+NEXUS Glass v4.1 — EUR/USD only · candle-feed scans · 4 key slots
+🔑 PERMANENT API KEYS — optional; the normal path is the 4 key slots
+   in the UI (one-click save to this browser's localStorage — never
+   committed, never uploaded).
    1) IN-FILE: paste one or more Twelve Data keys between the quotes.
    2) PRIVATE FILE: create keys.js (gitignored) with
       window.NEXUS_KEYS = ["your_key"]; — safer while this repo is PUBLIC.
-   Several keys rotate automatically and spread the 8-credits/min limit;
-   a key that hits its quota cools down and the next one takes over.
+   All sources merge into one pool: keys rotate automatically and spread
+   the 8-credits/min limit; a key that hits its quota cools down (60s)
+   and the next one takes over.
    ⚠ SECURITY: this repository is PUBLIC — any key written into this
    file (or keys.js that gets committed) is visible to the world and
-   WILL be stolen/abused. Prefer free keys you can rotate, make the
-   repo private, or keep keys only in the browser key field.
+   WILL be stolen/abused. Prefer the browser slots, make the repo
+   private, or keep keys only in keys.js (gitignored).
    ═══════════════════════════════════════════════════════════════════ */
 const PERMANENT_KEYS=[
   "", /* key 1 — paste here */
   "", /* key 2 — optional */
   "", /* key 3 — optional */
+  "", /* key 4 — optional */
 ];
 
 const $=id=>document.getElementById(id), pad=n=>String(n).padStart(2,'0');
-const PAIRS=['EUR/USD','GBP/USD','USD/JPY','AUD/USD','USD/CAD','EUR/JPY','GBP/JPY','EUR/GBP','AUD/JPY','CAD/JPY'];
+const PAIRS=['EUR/USD']; /* single pair by design — no rotation */
 const PAIRCODE=p=>p.replace('/','');
-let busy=false, lastMinute=-1, rrIdx=0, credits=0, uid=0;
+let busy=false, lastMinute=-1, credits=0, uid=0;
 let cache={}, openSigs=[];
 
 const FAM={
@@ -461,8 +614,24 @@ if(memRaw&&typeof memRaw==='object'){
   if(memRaw.M1&&memRaw.M3){ Object.assign(mem.M1,memRaw.M1); Object.assign(mem.M3,memRaw.M3); }
   else Object.assign(mem.M1,memRaw);                 // legacy flat → M1
 }
-function saveMem(){ store.set('nx_mem',JSON.stringify(mem)); }
-function liveWR(tf,s){ const m=mem[tf][s]||{w:0,l:0}; return (m.w+2)/(m.w+m.l+4); }
+function saveMem(){ store.set('nx_mem',JSON.stringify(mem)); store.set('nx_memR',JSON.stringify(memR)); }
+/* per-regime memory: strategies learn WHERE they work (TREND vs RANGE vs MIXED) */
+const memRRaw=loadJSON('nx_memR',null);
+const memR={M1:{},M3:{}};
+if(memRRaw&&typeof memRRaw==='object'){
+  for(const tf of ['M1','M3']) if(memRRaw[tf]&&typeof memRRaw[tf]==='object') memR[tf]=memRRaw[tf];
+}
+function memBucket(tf,regime,s){
+  if(!memR[tf][regime]) memR[tf][regime]={};
+  if(!memR[tf][regime][s]) memR[tf][regime][s]={w:0,l:0};
+  return memR[tf][regime][s];
+}
+function liveWR(tf,s,regime){
+  const g=mem[tf][s]||{w:0,l:0}, gw=(g.w+2)/(g.w+g.l+4);
+  const r=regime&&memR[tf]&&memR[tf][regime]?memR[tf][regime][s]:null;
+  if(!r||(r.w+r.l)<6) return gw;              /* not enough regime samples — trust global */
+  return 0.6*((r.w+2)/(r.w+r.l+4))+0.4*gw;    /* regime-weighted blend */
+}
 function saveStats(){ store.set('nx_stats2',JSON.stringify(stat)); store.set('nx_streak',streak); }
 function renderStats(){
   const W=stat.M1.w+stat.M3.w, L=stat.M1.l+stat.M3.l, tot=W+L;
@@ -485,7 +654,7 @@ const DEF_PAPER={platform:'quotex',payout:80,stakePct:2,frictionPct:1,
   startBalance:1000,balance:1000,peak:1000,maxDD:0,dayStartBalance:1000,
   dayKey:'',tradesToday:0,plToday:0,wins:0,losses:0,netPL:0,
   consecLoss:0,cooldownUntil:0,halted:false,haltReason:'',closed:[]};
-const DEF_RISK={dailyStopPct:5,maxTradesDay:20,maxOpen:3,cooldownLosses:2,cooldownMin:15,minScore:62,premiumMin:78};
+const DEF_RISK={dailyStopPct:5,maxTradesDay:20,maxOpen:3,cooldownLosses:2,cooldownMin:15,minScore:65,premiumMin:80}; /* quality-first defaults */
 let paper=Object.assign({},DEF_PAPER,loadJSON('nx_paper',null)||{});
 if(!Array.isArray(paper.closed)) paper.closed=[];
 let risk=Object.assign({},DEF_RISK,loadJSON('nx_risk',null)||{});
@@ -613,9 +782,12 @@ $('brainM1').addEventListener('click',()=>setBrainTf('M1'));
 $('brainM3').addEventListener('click',()=>setBrainTf('M3'));
 setBrainTf(brainTf);
 
-/* ---------- watchlist + timeframes ---------- */
+/* ---------- watchlist (EUR/USD only) + timeframes ---------- */
 let savedWatch=loadJSON('nx_watch',null);
 if(!Array.isArray(savedWatch)) savedWatch=PAIRS.slice();
+savedWatch=savedWatch.filter(p=>PAIRS.includes(p));   /* migrate legacy multi-pair lists */
+if(!savedWatch.length) savedWatch=PAIRS.slice();
+store.set('nx_watch',JSON.stringify(savedWatch));
 $('watch').innerHTML=PAIRS.map(p=>
   `<label><input type="checkbox" value="${p}" ${savedWatch.includes(p)?'checked':''}>${PAIRCODE(p)}</label>`).join('');
 function watch(){ const w=[...document.querySelectorAll('#watch input:checked')].map(i=>i.value);
@@ -631,8 +803,43 @@ function saveTfs(){ store.set('nx_tfs',JSON.stringify(tfs())); }
 document.querySelectorAll('#tfsel input').forEach(i=>i.addEventListener('change',saveTfs));
 saveTfs();
 
-$('key').value=store.get('td_key')||'';
-$('key').addEventListener('change',e=>{ store.set('td_key',e.target.value.trim()); renderVault(); });
+/* ---------- 4 Twelve Data key slots (browser storage · one-click save · never committed) ---------- */
+const KEY_SLOTS_KEY='nx_keys4';
+function loadKeySlots(){ const v=loadJSON(KEY_SLOTS_KEY,null);
+  const a=Array.isArray(v)?v.slice(0,4).map(x=>String(x||'').trim()):[];
+  while(a.length<4) a.push('');
+  return a; }
+let keySlots=loadKeySlots();
+(function migrateLegacyKey(){                        /* old single key field → first free slot */
+  const legacy=String(store.get('td_key')||'').trim();
+  if(legacy){
+    if(!keySlots.some(k=>k===legacy)){
+      const i=keySlots.indexOf('');
+      if(i>=0){ keySlots[i]=legacy; store.set(KEY_SLOTS_KEY,JSON.stringify(keySlots)); }
+    }
+    store.set('td_key','');                          /* retire the legacy store key */
+  }
+})();
+function syncKeyInputs(){ for(let i=0;i<4;i++){ const el=$('key'+(i+1)); if(el) el.value=keySlots[i]||''; } }
+function setVaultMsg(m){ const el=$('vaultMsg'); if(el) el.textContent=m; }
+function saveKeys(){ /* one-click save of all four slots to this browser only */
+  const vals=[],seen=new Set(); let dup=false;
+  for(let i=0;i<4;i++){ const el=$('key'+(i+1)); const v=el?String(el.value).trim():'';
+    if(v){ if(seen.has(v)) dup=true; seen.add(v); }
+    vals.push(v); }
+  if(dup){ setVaultMsg('⚠ not saved — duplicate key across slots; each slot needs a distinct key'); return false; }
+  keySlots=vals; store.set(KEY_SLOTS_KEY,JSON.stringify(keySlots));
+  renderVault();
+  const n=keySlots.filter(Boolean).length;
+  setVaultMsg(n?('✅ saved '+n+' key'+(n===1?'':'s')+' to this browser (never committed) · rotation '+(n>1?'ACTIVE':'off (single key)'))
+               :'✅ slots cleared — no browser keys saved');
+  return true; }
+$('keyShow').addEventListener('click',()=>{
+  const show=$('keyShow').getAttribute('data-show')!=='1';
+  $('keyShow').setAttribute('data-show',show?'1':'0');
+  $('keyShow').textContent=show?'🙈 HIDE':'👁 SHOW';
+  for(let i=1;i<=4;i++){ const el=$('key'+i); if(el) el.type=show?'text':'password'; } });
+syncKeyInputs();
 
 /* ---------- clock + countdown + auto (fires in the last 5s before M1 close) ---------- */
 const tzLabel=()=>{const v=parseFloat($('tzoff').value),abs=Math.abs(v),h=Math.floor(abs),m=Math.round((abs-h)*60);
@@ -643,8 +850,11 @@ setInterval(()=>{ ensureDay(); renderVault(); const d=tzNow(), now=new Date(), m
   $('clock').textContent='NEXUS time ('+tzLabel()+'): '+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+':'+pad(d.getUTCSeconds());
   const pt=$('predTz'); if(pt) pt.textContent=tzLabel();
   const secLeft=60-now.getUTCSeconds();
-  $('cd').className='countdown '+(secLeft<=10?'cd-hot':'cd-ok');
-  $('cd1w').innerHTML=(secLeft<=10?'⚡⚡ GET READY — enter at next open in ':'⏳ M1 closes in ')+'<b>'+secLeft+'s</b>';
+  $('cd').className='countdown '+(secLeft<=leadSecOf()?'cd-hot':'cd-ok');
+  $('cd1w').innerHTML=(secLeft<=leadSecOf()?'⚡⚡ GET READY — enter at next open in ':'⏳ M1 closes in ')+'<b>'+secLeft+'s</b>';
+  const tgt=new Date(ms+secLeft*1000);
+  const tb=$('tgtBadge');
+  if(tb) tb.textContent='🎯 prediction target: M1 candle opening '+pad(tgt.getUTCHours())+':'+pad(tgt.getUTCMinutes())+':00 UTC (call lands '+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+' — lead '+leadSecOf()+'s)';
   const on3=tfs().includes('M3');
   $('cd3w').style.display=on3?'':'none';
   if(on3){ const s3=Math.ceil((180000-(ms%180000))/1000);
@@ -657,9 +867,15 @@ setInterval(()=>{ ensureDay(); renderVault(); const d=tzNow(), now=new Date(), m
     }
   }
   settleBatch();
-  if($('auto').checked && secLeft<=5 && lastMinute!==now.getUTCMinutes() && !busy){
-    lastMinute=now.getUTCMinutes(); runScan(false);
+  if($('auto').checked && shouldAutoFire(secLeft,now.getUTCMinutes(),lastMinute,leadSecOf(),busy)){
+    lastMinute=now.getUTCMinutes(); runScan(false);   /* fires `lead` seconds BEFORE close → the 5:30 candle is called during 5:29 */
   }
+  const wl2=batchWindowLeft(batch,ms);
+  const wEl=$('winLeft');
+  if(wEl) wEl.textContent = wl2===null
+    ? '⏳ list window: 60 minutes from start — the whole list completes inside one hour'
+    : (wl2>0 ? '⏳ list window closes in '+Math.floor(wl2/60000)+'m '+pad(Math.floor(wl2%60000/1000))+'s'
+             : '⏳ list window elapsed — session closed automatically');
 },1000);
 
 /* ---------- candle time parser ---------- */
@@ -669,14 +885,61 @@ function parseCandleUTC(t){
   return new Date(s.replace(' ','T')+'Z');
 }
 
-/* ---------- key vault + auto-rotation ---------- */
+/* ---------- quality-first gates: session hours, family confluence, ATR band, M5 bias ---------- */
+function sessionGate(d){ /* EUR/USD liquidity: skip dead hours & late Friday */
+  d=d||new Date(); const h=d.getUTCHours(), day=d.getUTCDay();
+  if(day===5&&h>=20) return {ok:false,reason:'late Friday — liquidity closing'};
+  if(h>=21||h===0) return {ok:false,reason:'dead session hours (21:00-01:00 UTC)'};
+  return {ok:true,reason:'active session'};
+}
+function famCount(votes,dir){ /* distinct strategy families voting for dir */
+  const set=new Set();
+  for(const s in votes) if(votes[s]===dir) set.add(FAM[s]);
+  return set.size;
+}
+function batchWindowLeft(b,now){ /* ms left in the 1-hour list window; null when not running */
+  if(!b||b.status!=='active'||!b.startedAt) return null;
+  return Math.max(0,BATCH_WINDOW_MS-((now||Date.now())-b.startedAt));
+}
+function sanitizePublic(s){ /* strip anything sensitive before a public post */
+  return String(s||'')
+    .replace(/\d{6,}:[A-Za-z0-9_-]{25,}/g,'[redacted-token]')          /* tg bot tokens */
+    .replace(/\b[0-9a-f]{32}\b/gi,'[redacted-key]')                    /* twelvedata-style keys */
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,'[redacted-email]')
+    .replace(/(^|[^\w.])-?\d{12,}(?!\w)/g,'$1[redacted-id]')          /* numeric chat ids (no lookbehind — old Safari safe) */
+    .replace(/\bNX_[A-Z0-9_]+\b/gi,'[redacted]')
+    .slice(0,3000);
+}
+function shouldAutoFire(secLeft,minute,lastMin,lead,isBusy){
+  return secLeft<=lead && secLeft>0 && lastMin!==minute && !isBusy;
+}
+function leadSecOf(){ const el=$('leadSec'); return Math.min(55,Math.max(5,+(el&&el.value)||30)); }
+
+/* ---------- freshness + weekend gate: reject stale/closed-market candles BEFORE predicting ---------- */
+const STALE_MS=180000; /* newest M1 candle close may be at most 3 min old (feed-lag tolerance) */
+function isWeekendWindow(d){ /* retail forex is closed Fri ~22:00 UTC → Sun ~22:00 UTC */
+  d=d||new Date(); const day=d.getUTCDay(), h=d.getUTCHours()+d.getUTCMinutes()/60;
+  return day===6||(day===0&&h<22)||(day===5&&h>=22); }
+function candleGate(m1,d){
+  const now=(d||new Date()).getTime();
+  if(!Array.isArray(m1)||!m1.length) return {ok:false,reason:'no candles'};
+  const last=m1[m1.length-1];
+  if(!isFinite(last.ts)||!(last.ts>0)) return {ok:false,reason:'unparseable candle timestamps'};
+  if(last.ts-now>120000) return {ok:false,reason:'candle timestamp in the future — clock/feed problem'};
+  if(isWeekendWindow(new Date(now))) return {ok:false,reason:'weekend — forex market closed'};
+  const age=now-(last.ts+60000);
+  if(age>STALE_MS) return {ok:false,reason:'stale candles — last close '+Math.round(age/60000)+' min old'};
+  return {ok:true,reason:'fresh',ageMs:age};
+}
+
+/* ---------- key vault + auto-rotation + quota cooldown ---------- */
 function maskKey(v){ v=String(v||''); return v.length<9?'••••••':v.slice(0,4)+'••••'+v.slice(-4); }
 function keyPool(){
   const pool=[];
-  for(const k of PERMANENT_KEYS){ const v=String(k||'').trim(); if(v) pool.push({src:'vault',v}); }
-  for(const k of (window.NEXUS_KEYS||[])){ const v=String(k||'').trim(); if(v&&!pool.some(p=>p.v===v)) pool.push({src:'keys.js',v}); }
-  const ui=$('key')?$('key').value.trim():'';
-  if(ui&&!pool.some(p=>p.v===ui)) pool.push({src:'field',v:ui});
+  const push=(src,v0)=>{ const v=String(v0||'').trim(); if(v&&!pool.some(p=>p.v===v)) pool.push({src,v}); };
+  for(let i=0;i<4;i++) push('slot'+(i+1),keySlots[i]);      /* saved browser slots (SAVE ALL KEYS) */
+  for(const k of PERMANENT_KEYS) push('vault',k);           /* in-file (empty in public build) */
+  for(const k of (window.NEXUS_KEYS||[])) push('keys.js',k);/* private gitignored file */
   return pool;
 }
 const keyHealth={}; /* v -> {calls, until} */
@@ -696,20 +959,20 @@ function nextKey(){
 }
 function requireKey(){
   const k=nextKey();
-  if(!k) throw new Error('No API key — add one in PERMANENT_KEYS (top of script), keys.js, or the key field');
+  if(!k) throw new Error('No API key — fill a slot and press SAVE ALL KEYS (browser only), or use keys.js / PERMANENT_KEYS');
   return k;
 }
 function renderVault(){
   const el=$('vaultInfo'); if(!el) return;
   const pool=keyPool();
-  if(!pool.length){ el.innerHTML='🔐 no API key yet — paste one below <b>or</b> embed it in PERMANENT_KEYS at the top of the script'; return; }
-  const nV=pool.filter(k=>k.src!=='field').length, nF=pool.length-nV;
+  if(!pool.length){ el.innerHTML='🔐 no API key yet — fill a slot above and press <b>SAVE ALL KEYS</b> (stored in this browser only)'; return; }
+  const nS=pool.filter(k=>k.src.startsWith('slot')).length, nP=pool.length-nS;
   const cooling=pool.filter(k=>{const h=keyHealth[k.v];return h&&Date.now()<h.until;}).length;
-  el.innerHTML='🔐 <b>'+nV+'</b> permanent + <b>'+nF+'</b> browser key'+(pool.length===1?'':'s')
-    +' · rotation '+(pool.length>1?'ACTIVE':'off')+(cooling?' · <span style="color:var(--warn)">'+cooling+' cooling (quota)</span>':'')
+  el.innerHTML='🔐 <b>'+nS+'</b> browser slot'+(nS===1?'':'s')+(nP?' + <b>'+nP+'</b> permanent':'')
+    +' · rotation '+(pool.length>1?'ACTIVE':'off (single key)')+(cooling?' · <span style="color:var(--warn)">'+cooling+' cooling (quota)</span>':'')
     +'<br><span style="opacity:.75">'+pool.map(k=>{
       const h=keyHealth[k.v];
-      return maskKey(k.v)+' ('+k.src+(h?' · '+h.calls+' calls':'')+(h&&Date.now()<h.until?' · COOLING':'')+')';
+      return esc(maskKey(k.v))+' ('+esc(k.src)+(h?' · '+h.calls+' calls':'')+(h&&Date.now()<h.until?' · COOLING':'')+')';
     }).join(' · ')+'</span>';
 }
 
@@ -753,16 +1016,29 @@ async function apiPrice(pair){ const k=requireKey();
 async function apiRate(from,to){ const k=requireKey();
   const j=await jget(`${BASE}exchange_rate?symbol=${from}/${to}&apikey=${encodeURIComponent(k.v)}`,k);
   return +j.exchange_rate; }
+async function apiM5Bias(pair){ /* candle-feed only (time_series 5min) — higher-TF direction filter */
+  const ck=cache['m5:'+pair];
+  if(ck&&Date.now()-ck.t<50000) return ck.bias;
+  const k=requireKey();
+  const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=5min&outputsize=80&apikey=${encodeURIComponent(k.v)}`,k);
+  if(!Array.isArray(j.values)||j.values.length<40) throw new Error('m5: too few candles');
+  const cl=j.values.map(v=>+v.close).reverse();
+  const e9=ema(cl,9), e21=ema(cl,21);
+  const bias=e9[cl.length-1]>e21[cl.length-1]?'CALL':'PUT';
+  cache['m5:'+pair]={t:Date.now(),bias};
+  return bias;
+}
 
-async function verifyFeeds(){
-  if(!keyPool().length){ setStatus('err','Add your API key first (key field or PERMANENT_KEYS at top of script)'); return; }
-  setStatus('wait','Verifying all 4 feeds...');
+async function verifyFeeds(){ /* OPTIONAL diagnostic — normal scans never call quote/price/exchange_rate */
+  if(!keyPool().length){ setStatus('err','Save an API key slot first (or use keys.js / PERMANENT_KEYS)'); return; }
+  setStatus('wait','Running optional feed diagnostics (4 credits — time_series + quote + price + exchange_rate)...');
   const p0=(watch()[0]||'EUR/USD');
   const [ts,q,pr,er]=await Promise.allSettled([apiTimeSeries(p0),apiQuote(p0),apiPrice(p0),apiRate(...p0.split('/'))]);
   feed4Render(p0,q,pr,er,ts.status==='fulfilled'?ts.value:null);
   const ok=[ts,q,pr,er].filter(x=>x.status==='fulfilled').length;
-  setStatus(ok===4?'ok':'err', ok===4?'✅ All 4 feeds live — data flowing correctly ('+p0+')'
-    :'⚠️ '+ok+'/4 feeds OK — '+[ts,q,pr,er].map((x,i)=>['time_series','quote','price','exchange_rate'][i]+(x.status==='fulfilled'?'✅':':'+String(x.reason&&x.reason.message||x.reason).slice(0,30))).join(' · '));
+  setStatus(ok===4?'ok':'err', ok===4?'✅ Diagnostics: all 4 feeds live ('+p0+') — scans still use only the candle feed (1 credit)'
+    :'⚠️ Diagnostics: '+ok+'/4 feeds OK — '+[ts,q,pr,er].map((x,i)=>['time_series','quote','price','exchange_rate'][i]+(x.status==='fulfilled'?'✅':':'+String(x.reason&&x.reason.message||x.reason).slice(0,30))).join(' · ')
+      +(ts.status==='fulfilled'?' — scans unaffected (candle feed OK)':' — ⛔ candle feed down: scans blocked'));
 }
 
 /* ---------- indicators ---------- */
@@ -852,8 +1128,8 @@ function strategyVote(i,x,weights){
   const dir=callW>putW?'CALL':putW>callW?'PUT':null;
   return {dir,conf,agreeN:dir==='CALL'?callN:dir==='PUT'?putN:0,votes};
 }
-function finalWeights(stats,boost,tf){const w={};
-  for(const s in STRATS) w[s]=Math.max((0.35*stats[s].wr+0.65*liveWR(tf,s))*boost[FAM[s]],0.03);
+function finalWeights(stats,boost,tf,regime){const w={};
+  for(const s in STRATS) w[s]=Math.max((0.35*stats[s].wr+0.65*liveWR(tf,s,regime))*boost[FAM[s]],0.03);
   return w;}
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -861,9 +1137,11 @@ function finalWeights(stats,boost,tf){const w={};
    Picture-format premium list: rows `M1;PAIR•HH:MM;DIR` with live
    ✅/❌ ticks settled from real candle closes. Premium setups only.
    ═══════════════════════════════════════════════════════════════════ */
-const DEF_BATCH={date:'',tz:'',status:'idle',rows:[],target:10,resultSent:false,listSent:false};
+const BATCH_WINDOW_MS=3600000; /* the whole list lives inside one hour */
+const DEF_BATCH={date:'',tz:'',status:'idle',rows:[],target:10,resultSent:false,listSent:false,startedAt:0};
 let batch=loadJSON('nx_batch',null)||Object.assign({},DEF_BATCH);
 if(!Array.isArray(batch.rows)) batch.rows=[];
+if(batch.status==='active'&&!batch.startedAt) batch.startedAt=Date.now();  /* migrate pre-v4.2 sessions */
 function saveBatch(){ store.set('nx_batch',JSON.stringify(batch)); }
 function displayDate(){ const d=tzNow(); return pad(d.getUTCDate())+'-'+pad(d.getUTCMonth()+1)+'-'+d.getUTCFullYear(); }
 function candleOutcome(pair,tf,dir,targetT){ /* shared settlement primitive — snapshot must postdate close */
@@ -882,7 +1160,7 @@ function batchStart(manual){
   const r=riskAdmit();
   if(!r.ok){ setStatus('err','Prediction list blocked by risk gate: '+r.reason); return; }
   batch=Object.assign({},DEF_BATCH,{date:displayDate(),tz:tzLabel(),status:'active',
-    target:Math.min(20,Math.max(1,+$('predSize').value||10))});
+    target:Math.min(20,Math.max(1,+$('predSize').value||10)),startedAt:Date.now()});
   saveBatch(); renderPred();
   setStatus('ok','📋 Prediction list session STARTED — collecting premium setups ('+batch.target+' target)');
   if(manual) runScan(true);
@@ -891,7 +1169,14 @@ function batchStop(){
   if(batch.status==='active'){ batch.status=batch.rows.length?'closed':'idle'; saveBatch(); renderPred();
     setStatus('ok','Prediction list session stopped ('+batch.rows.length+' rows)'); }
 }
+function runSession(){ /* ONE click: start the 1h list + arm auto-send (list → result → sticker) */
+  batchStart(true);
+  if(batch.status!=='active') return;
+  if(!tg.auto){ tg.auto=true; const cb=$('tgAuto'); if(cb) cb.checked=true; saveTg(); tgRender(); }
+  setStatus('ok','🏴‍☠️ SESSION RUNNING — collecting premium setups for 60 min; list, result & sticker auto-send when ready');
+}
 function batchCollect(sig){ /* called from runScan on every passed signal */
+  if(batch.status==='active'&&(batchWindowLeft(batch)||0)<=0){ batch.status=batch.rows.length?'closed':'idle'; saveBatch(); renderPred(); }
   if(batch.status!=='active'||batch.date!==displayDate()) return;
   if(sig.tf!=='M1') return;                       /* picture format list is M1-only */
   if(batch.rows.length>=batch.target){ batchFinish(); return; }
@@ -915,6 +1200,10 @@ function batchFinish(){
 }
 let resultSending=false, resultRetryAt=0;
 function settleBatch(){
+  if(batch&&batch.status==='active'&&(batchWindowLeft(batch)||0)<=0){
+    batch.status=batch.rows.length?'closed':'idle'; saveBatch(); renderPred();
+    setStatus('ok','⏳ 1-hour list window elapsed — session closed with '+batch.rows.length+' rows');
+  }
   if(!batch||!batch.rows||!batch.rows.length) return;
   let changed=false;
   for(const r of batch.rows){
@@ -926,7 +1215,9 @@ function settleBatch(){
   if(!changed) return;
   saveBatch(); renderPred();
   const done=batch.rows.every(r=>r.win!==null);
-  if(done&&batch.status!=='settled'){ batch.status='settled'; saveBatch(); renderPred(); }
+  if(done&&batch.status!=='settled'){ batch.status='settled'; saveBatch(); renderPred();
+    if(tg.pubAuto&&pubChatOf()) pubSummary();   /* 📢 aggregate-only community post */
+  }
   if(done&&!batch.resultSent&&!resultSending&&Date.now()>=resultRetryAt){
     if(tgReady()&&tg.auto){ resultRetryAt=Date.now()+60000; tgSendResult(); }
   }
@@ -957,7 +1248,8 @@ function renderPred(){
    Sends via api.telegram.org with form-encoded POST (no CORS preflight).
    A bot can never start chats — users must /start the bot first.
    ═══════════════════════════════════════════════════════════════════ */
-const DEF_TG={token:'',chatId:'',brand:'NEXUS',sticker:'',auth:false,auto:false,protect:true,listen:false,lastUpd:0,log:[]};
+const DEF_TG={token:'',chatId:'',brand:'NEXUS',sticker:'',auth:false,auto:false,protect:true,listen:false,lastUpd:0,log:[],
+  botAuto:false,botVerify:true,pubChat:'',pubAuto:false,listTpl:null,resultTpl:null};
 let tg=Object.assign({},DEF_TG,loadJSON('nx_tg',null)||{});
 if(!Array.isArray(tg.log)) tg.log=[];
 function saveTg(){ store.set('nx_tg',JSON.stringify(tg)); }
@@ -1001,6 +1293,10 @@ function tgRow(r,tick){ return 'M1;'+PAIRCODE(r.pair)+'•'+r.time+';'+r.dir
   +(tick?(r.win===null?' ⏳':(r.win?' ✅':' ❌')):''); }
 function msgList(){
   const rows=(batch&&batch.rows)||[];
+  if(tg.listTpl&&rows.length){
+    const t=applyTpl(tg.listTpl,rows,{date:batch.date||displayDate(),tz:batch.tz||tzLabel(),w:0,l:0});
+    if(t) return t;
+  }
   if(!rows.length) return '📋 <b>'+esc(tgBrandName())+' PREMIUM SIGNAL</b>\n\nNo predictions collected yet.';
   return '📊 <b>'+esc(tgBrandName())+' PREMIUM SIGNAL</b> 🔔\n\n'
     +'🗓 <b>DATE :- '+esc(batch.date||displayDate())+'</b>\n'
@@ -1013,6 +1309,10 @@ function msgList(){
 function msgResult(){
   const rows=(batch&&batch.rows)||[];
   const w=rows.filter(r=>r.win===true).length, l=rows.filter(r=>r.win===false).length;
+  if(tg.resultTpl&&rows.length){
+    const t=applyTpl(tg.resultTpl,rows,{date:batch.date||displayDate(),tz:batch.tz||tzLabel(),w,l});
+    if(t) return t;
+  }
   return '🏁 <b>RESULT — '+esc(batch&&batch.date||displayDate())+'</b>\n\n'
     +rows.map(r=>'<code>'+esc(tgRow(r,true))+'</code>').join('\n')
     +'\n\n✅ = <b>Win ('+w+')</b>  |  ❌ = <b>Loss ('+l+')</b>\n'
@@ -1048,6 +1348,135 @@ async function tgSendResult(){
   catch(e){ tgLog('❌ result failed: '+sanitizeErr(e.message)); }
   finally{ resultSending=false; }
 }
+/* ═══════════════════════════════════════════════════════════
+   🤖 BOT SIGNAL STREAM — signal → verification → sticker
+   ═══════════════════════════════════════════════════════════ */
+const sigLine=s=>(s.tf||'M1')+';'+PAIRCODE(s.pair)+'•'+s.time+';'+s.dir;
+function botAddRow(sig){
+  const t=$('botRows'); if(!t) return;
+  const e=t.querySelector('.empty-note'); if(e) e.remove();
+  const row=document.createElement('div'); row.className='sig-row';
+  row.innerHTML='<span>'+esc(sigLine(sig)+(sig.grade?' ·'+sig.grade:''))+'</span>'
+    +'<span class="mark sig-open" id="botmk-'+sig.id+'">⏳</span>';
+  t.appendChild(row);
+}
+function botDispatch(sig){ /* called on every passed signal */
+  if(!sig) return;
+  botAddRow(sig);
+  if(tg.botAuto&&tgReady()){
+    sig.botSent=true; saveOpen();
+    tgSend('🤖 <b>BOT SIGNAL</b> — '+esc(tgBrandName())+'\n<code>'+esc(sigLine(sig))+'</code>\ngrade '+esc(sig.grade||'B')
+      +' · score '+Math.round(sig.score||0)+' · enter at NEXT candle open\n<i>paper-first research — not financial advice</i>')
+      .then(()=>tgLog('🤖 bot signal sent ('+sigLine(sig)+')'))
+      .catch(e=>tgLog('❌ bot signal failed: '+sanitizeErr(e.message)));
+  }
+}
+async function botSettleVerify(sig,win){ /* verification message, then the sticker */
+  const el=$('botmk-'+sig.id);
+  if(el){ el.textContent=win?'✅':'❌'; el.className='mark '+(win?'w':'l'); }
+  if(!tg.botVerify||!tgReady()) return;
+  try{
+    await tgSend((win?'✅':'❌')+' <b>VERIFIED</b> <code>'+esc(sigLine(sig))+'</code> — '+(win?'WIN':'LOSS')
+      +'\n<i>settled automatically from the real candle close</i>');
+    if(tg.sticker) await tgCall('sendSticker',{chat_id:tgChat(),sticker:tg.sticker,protect_content:tg.protect?'true':'false'});
+    tgLog('🤖 verification sent ('+(win?'WIN':'LOSS')+')'+(tg.sticker?' + sticker':''));
+  }catch(e){ tgLog('❌ bot verification failed: '+sanitizeErr(e.message)); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   📢 PUBLIC CHANNEL — community broadcasts, privacy-filtered
+   ═══════════════════════════════════════════════════════════ */
+const pubLogArr=[];
+function pubLogMsg(m){
+  pubLogArr.unshift('['+new Date().toTimeString().slice(0,8)+'] '+m);
+  if(pubLogArr.length>20) pubLogArr.length=20;
+  const el=$('pubLog'); if(el) el.innerHTML=pubLogArr.map(l=>'<div>'+esc(l)+'</div>').join('');
+}
+function pubChatOf(){ return String(tg.pubChat||'').trim(); }
+async function pubPost(custom){
+  const raw=custom!=null?custom:(($('pubMsg')?$('pubMsg').value:''));
+  const txt=sanitizePublic(raw).trim();
+  if(!txt||!txt.replace(/\[redacted[a-z-]*\]/g,'').trim()){ pubLogMsg('⚠ nothing safe to post'); return false; }
+  if(!tgReady()){ pubLogMsg('❌ authorize Telegram first'); return false; }
+  const dest=pubChatOf(); if(!dest){ pubLogMsg('❌ set the public channel first'); return false; }
+  try{ await tgCall('sendMessage',{chat_id:dest,text:txt});   /* plain text — user content never parsed as markup */
+    pubLogMsg('✅ posted to '+dest);
+    if(custom==null&&$('pubMsg')) $('pubMsg').value='';
+    return true;
+  }catch(e){ pubLogMsg('❌ '+sanitizeErr(e.message)); return false; }
+}
+function pubSummary(){ /* aggregate stats ONLY — never keys, chats, balances */
+  const rows=(batch&&batch.rows)||[];
+  const w=rows.filter(r=>r.win===true).length, l=rows.filter(r=>r.win===false).length;
+  return pubPost('📊 '+tgBrandName()+' — daily list summary\n✅ wins: '+w+' · ❌ losses: '+l+' · settled: '+(w+l)+'/'+rows.length
+    +'\nWin rate: '+(w+l?Math.round(w/(w+l)*100):0)+'%\nAggregate research stats only — signal-only & paper trading. Not financial advice.');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   🎨 CAPTURED STYLE TEMPLATES — adopt the user's exact layout
+   ═══════════════════════════════════════════════════════════ */
+function entToHtml(text,ents){ /* Telegram entities → safe HTML (bold/italic/code/underline/pre) */
+  ents=(ents||[]).filter(e=>e&&typeof e.offset==='number').slice().sort((a,b)=>a.offset-b.offset);
+  let out='',pos=0;
+  for(const e of ents){
+    if(e.offset<pos||e.offset>text.length) continue;
+    out+=esc(text.slice(pos,e.offset));
+    const inner=esc(text.slice(e.offset,e.offset+e.length));
+    const tag=e.type==='bold'?'b':e.type==='italic'?'i':e.type==='code'?'code':e.type==='underline'?'u':e.type==='pre'?'pre':null;
+    out+=tag?'<'+tag+'>'+inner+'</'+tag+'>':inner;
+    pos=e.offset+e.length;
+  }
+  return (out+esc(text.slice(pos))).replace(/\n/g,'<br>');
+}
+function applyTpl(tpl,rows,ctx){ /* rebuild the captured layout with live values */
+  if(!tpl||!tpl.text) return null;
+  const lines=entToHtml(tpl.text,tpl.entities).split('<br>');
+  const rowRe=/[A-Z]{6}\s*•?\s*\d{2}:\d{2}|CALL|PUT|UP|DOWN/;
+  let i0=lines.findIndex(l=>rowRe.test(l));
+  if(i0<0) return lines.join('\n');
+  let i1=i0; while(i1+1<lines.length&&rowRe.test(lines[i1+1])) i1++;
+  const pat=lines[i0];
+  const built=rows.map(r=>{
+    let s=pat;
+    s=s.replace(/[A-Z]{6}/,PAIRCODE(r.pair));
+    s=s.replace(/\d{2}:\d{2}/,r.time);
+    s=s.replace(/CALL|PUT|UP|DOWN|BUY|SELL/,r.dir);
+    s=s.replace(/✅|❌|⏳|✓|✗/,r.win===null?'⏳':(r.win?'✅':'❌'));
+    return s;
+  });
+  const fix=l=>l.replace(/\d{2}-\d{2}-\d{4}/,ctx.date||'').replace(/UTC[+−\-]\d{1,2}:\d{2}/,ctx.tz||'');
+  const head=lines.slice(0,i0).map(fix);
+  const tail=lines.slice(i1+1).map(l=>fix(l)
+    .replace(/(Win\s*\()\d+(\))/i,'$1'+(ctx.w||0)+'$2')
+    .replace(/(Loss\s*\()\d+(\))/i,'$1'+(ctx.l||0)+'$2'));
+  return head.concat(built,tail).join('\n');
+}
+async function tgCaptureStyle(kind){
+  if(!tgToken()){ tgLog('❌ no token'); return false; }
+  if(kind!=='list'&&kind!=='result') return false;
+  tgLog('fetching your example '+kind+' message from the bot inbox…');
+  try{
+    const res=await tgCall('getUpdates',{offset:tg.lastUpd+1,limit:50,timeout:0,allowed_updates:JSON.stringify(['message'])});
+    let found=null;
+    for(const u of (Array.isArray(res)?res:[])){ tg.lastUpd=Math.max(tg.lastUpd,u.update_id);
+      const m=u.message||u.channel_post;
+      if(m&&m.text&&!m.text.startsWith('/')&&tgMatchesChat(m.chat)) found=m; }
+    if(!found){ tgLog('⚠ no example found — send your '+kind+' example to the bot in Telegram, then press CAPTURE again'); return false; }
+    tg[kind==='list'?'listTpl':'resultTpl']={text:String(found.text).slice(0,3500),
+      entities:(found.entities||[]).map(e=>({type:e.type,offset:e.offset,length:e.length}))};
+    saveTg(); tplRender();
+    tgLog('✅ '+kind+' style captured ('+found.text.length+' chars) — future '+kind+'s use your exact layout');
+    return true;
+  }catch(e){ tgLog('❌ style capture failed: '+sanitizeErr(e.message)); return false; }
+}
+function tgClearStyle(){ tg.listTpl=null; tg.resultTpl=null; saveTg(); tplRender(); tgLog('style reset to the built-in template'); }
+function tplRender(){
+  const el=$('tplInfo'); if(!el) return;
+  const has=(tg.listTpl?'list':'')+(tg.listTpl&&tg.resultTpl?' + ':'')+(tg.resultTpl?'result':'');
+  el.textContent=has?('style: '+has+' template captured from your example — live values are merged into your layout')
+    :'style: built-in template — send your example list/result to the bot, then CAPTURE to adopt its exact look';
+}
+
 async function tgTest(){
   if(!tgToken()||!tgChat()){ tgLog('❌ configure token + chat id first'); return; }
   tgLog('sending test message…');
@@ -1074,7 +1503,7 @@ async function tgCaptureSticker(){
   try{
     const res=await tgCall('getUpdates',{offset:tg.lastUpd+1,limit:50,timeout:0,allowed_updates:JSON.stringify(['message'])});
     let found=null;
-    for(const u of res||[]){ tg.lastUpd=Math.max(tg.lastUpd,u.update_id);
+    for(const u of (Array.isArray(res)?res:[])){ tg.lastUpd=Math.max(tg.lastUpd,u.update_id);
       const m=u.message||u.channel_post;
       if(m&&m.sticker&&tgMatchesChat(m.chat)) found=m.sticker; }
     if(found){ tg.sticker=found.file_id; saveTg();
@@ -1094,7 +1523,7 @@ function tgListenLoop(){
   (async()=>{
     try{
       const res=await tgCall('getUpdates',{offset:tg.lastUpd+1,limit:20,timeout:0,allowed_updates:JSON.stringify(['message'])});
-      for(const u of res||[]){
+      for(const u of (Array.isArray(res)?res:[])){
         tg.lastUpd=Math.max(tg.lastUpd,u.update_id);
         const m=u.message||u.channel_post; if(!m||!tgMatchesChat(m.chat)||!tgReady()) continue;
         if(m.sticker){ tg.sticker=m.sticker.file_id; saveTg(); tgRender();
@@ -1122,8 +1551,10 @@ function tgListenLoop(){
 }
 function latestSignalText(){
   const rows=[];
-  if($('liveRowsM1')&&$('liveRowsM1').children.length) rows.push('M1 stream: '+$('liveRowsM1').children.length+' signals');
-  if($('liveRowsM3')&&$('liveRowsM3').children.length) rows.push('M3 stream: '+$('liveRowsM3').children.length+' signals');
+  const n1=$('liveRowsM1')?$('liveRowsM1').querySelectorAll('.sig-row').length:0;
+  const n3=$('liveRowsM3')?$('liveRowsM3').querySelectorAll('.sig-row').length:0;
+  if(n1) rows.push('M1 stream: '+n1+' signal'+(n1===1?'':'s'));
+  if(n3) rows.push('M3 stream: '+n3+' signal'+(n3===1?'':'s'));
   return '⚡ <b>'+esc(tgBrandName())+' LIVE</b>\n\n'+(rows.length?rows.join('\n'):'No live signals yet — scanner idle.');
 }
 function tgRender(){
@@ -1243,8 +1674,13 @@ function scoreOf(fx,vol){
 function gradeOf(sc){ return sc>=82?'A+':sc>=72?'A':'B'; }
 function validateSetup(fx,vol,regime,opt){ /* AGENT 7: filter weak / unsafe setups */
   const fails=[],warns=[];
+  if(opt.gate&&!opt.gate.ok) fails.push(opt.gate.reason);   /* stale / weekend candles rejected first */
+  if(opt.sessOk===false) fails.push(opt.sessReason||'dead session hours');
   if(opt.marketOpen===false) fails.push('market closed');
   if(opt.doji) fails.push('doji candle');
+  if(opt.famN!=null&&fx.dir&&opt.famN<2) fails.push('single-family vote — no confluence');
+  if(opt.atrPct!=null&&(opt.atrPct<0.35||opt.atrPct>0.90)) fails.push('ATR percentile '+Math.round(opt.atrPct*100)+'% outside 35-90 band');
+  if(opt.m5&&fx.dir&&opt.m5!==fx.dir) fails.push('M5 bias conflict ('+opt.m5+')');
   if(vol.q<0.3) fails.push('volatility quality too low');
   if(opt.score<opt.minScore) fails.push('weak confidence '+opt.score.toFixed(0)+' < '+opt.minScore);
   if(fx.conf<regime.thr*0.85) fails.push('below regime threshold');
@@ -1262,7 +1698,7 @@ let btBusy=false;
 async function deepBacktest(){
   if(btBusy||busy) return;
   const pair=$('btPair').value;
-  if(!keyPool().length){ setStatus('err','No API key — use the key field or PERMANENT_KEYS (top of script)'); return; }
+  if(!keyPool().length){ setStatus('err','No API key — fill a slot and press SAVE ALL KEYS (or use keys.js / PERMANENT_KEYS)'); return; }
   btBusy=true;
   $('btResults').textContent='⏳ Fetching up to 5,000 real M1 candles for '+pair+' …';
   try{
@@ -1285,14 +1721,28 @@ async function deepBacktest(){
   }
   btBusy=false;
 }
+function m5BiasSeries(series){ /* causal M5 EMA9/21 bias per M1 index, aggregated from the same candles */
+  const g=new Map();
+  for(const b of series){ const k=Math.floor(b.ts/300000); g.set(k,b.c); }  /* close of last M1 in each M5 bar */
+  const keys=[...g.keys()].sort((a,b)=>a-b);
+  const closes=keys.map(k=>g.get(k));
+  if(closes.length<40) return ()=>null;
+  const e9=ema(closes,9), e21=ema(closes,21);
+  return i=>{ const gi=Math.floor(series[i].ts/300000)-1;   /* only fully-closed M5 bars */
+    if(gi<30||gi>=closes.length) return null;
+    return e9[gi]>e21[gi]?'CALL':'PUT'; };
+}
+const hourBand=ts=>{ const h=new Date(ts).getUTCHours();
+  return h<7?'00-07':h<13?'07-13':h<21?'13-21':'21-24'; };
 function backtestSeries(series,tf){
   const n=series.length;
   const o=series.map(v=>v.o),h=series.map(v=>v.h),l=series.map(v=>v.l),c=series.map(v=>v.c);
   const x=makeCtx(o,h,l,c);
+  const m5bias=m5BiasSeries(series);
   const trades=[]; let filtered=0;
   for(let i=130;i<n-1;i++){
     const regime=detectRegimeAt(x,i);
-    const weights=finalWeights(train(x,Math.max(0,i-120),i-2),regime.boost,tf);
+    const weights=finalWeights(train(x,Math.max(0,i-120),i-2),regime.boost,tf,regime.label);
     const vote=strategyVote(i,x,weights);
     const fx=fuse(vote,agTrend(i,x),agMomentum(i,x),agPattern(i,x),agStructure(i,x));
     if(!fx.dir) continue;
@@ -1301,13 +1751,15 @@ function backtestSeries(series,tf){
     const upW=h[i]-Math.max(o[i],c[i]), dnW=Math.min(o[i],c[i])-l[i];
     const doji=range>0&&body/range<0.25&&upW<range*0.55&&dnW<range*0.55;
     const score=scoreOf(fx,vol), grade=gradeOf(score);
-    const vd=validateSetup(fx,vol,regime,{doji,marketOpen:true,minScore:risk.minScore,ttOpen:5,dataLagMs:0,score,grade});
+    const sess=sessionGate(new Date(series[i].ts));
+    const vd=validateSetup(fx,vol,regime,{doji,marketOpen:true,minScore:risk.minScore,ttOpen:5,dataLagMs:0,score,grade,
+      sessOk:sess.ok,sessReason:sess.reason,famN:famCount(vote.votes,fx.dir),atrPct:regime.atrPct,m5:m5bias(i)});
     if(!vd.pass){ filtered++; continue; }
     const e=o[i+1],cl=c[i+1];
     const win=fx.dir==='CALL'?cl>e:cl<e;
     const stake=1;
     const pl=(win?stake*paper.payout/100:-stake)-stake*paper.frictionPct/100;
-    trades.push({dir:fx.dir,win,pl,grade,agents:agentMap(fx),score});
+    trades.push({dir:fx.dir,win,pl,grade,agents:agentMap(fx),score,reg:regime.label,hb:hourBand(series[i].ts)});
   }
   return summarizeBT(trades,filtered,n);
 }
@@ -1319,7 +1771,8 @@ function summarizeBT(trades,filtered,n){
   let peak=0,dd=0,acc=0;
   for(const t of trades){ acc+=t.pl; if(acc>peak)peak=acc; if(peak-acc>dd)dd=peak-acc; }
   return {n:k,filtered,bars:n,wins:w,wr:k?w/k:0,net,ev:k?net/k:0,pf:gl?gw/gl:(gw?Infinity:0),dd,
-    grades:btGroups(trades,'grade'),agents:btAgents(trades)};
+    grades:btGroups(trades,'grade'),agents:btAgents(trades),
+    regimes:btGroups(trades,'reg'),hours:btGroups(trades,'hb')};
 }
 function btGroups(trades,key){
   const g={};
@@ -1347,42 +1800,52 @@ function renderBacktest(pair,out,n1,n3){
     +(out.M1&&out.M1.n?'<br><span style="opacity:.8">M1 grades: '+gr(out.M1.grades)+'</span>':'')
     +(out.M3&&out.M3.n?'<br><span style="opacity:.8">M3 grades: '+gr(out.M3.grades)+'</span>':'')
     +(out.M1&&out.M1.n?'<br><span style="opacity:.8">M1 agents: '+ag(out.M1.agents)+'</span>':'')
+    +(out.M1&&out.M1.n?'<br><span style="opacity:.8">M1 by regime: '+gr(out.M1.regimes)+' · by hour: '+gr(out.M1.hours)+'</span>':'')
+    +(out.M3&&out.M3.n?'<br><span style="opacity:.8">M3 by regime: '+gr(out.M3.regimes)+' · by hour: '+gr(out.M3.hours)+'</span>':'')
     +'<br><span style="opacity:.7">Unit stakes, walk-forward (weights trained on the 120 bars before each decision). Not a profit promise.</span>';
 }
 
 /* ---------- main scan ---------- */
 async function runScan(manual){
   if(busy) return;
-  if(!keyPool().length){ setStatus('err','No API key — add one in the key field or PERMANENT_KEYS at the top of the script'); return; }
+  if(!keyPool().length){ setStatus('err','No API key — fill a slot and press SAVE ALL KEYS (browser only), or use keys.js / PERMANENT_KEYS'); return; }
+  if(isWeekendWindow()){ /* forex closed — don't even spend a credit; candles would be stale anyway */
+    setStatus('wait','📅 Weekend — forex market closed. Scanning paused to save quota; stale/weekend candles are rejected before any prediction.');
+    return; }
   busy=true; $('btnRun').disabled=true;
   const active=tfs();
   if(!active.length){ setStatus('err','Select at least one timeframe (M1 / M3)'); busy=false;$('btnRun').disabled=false;return; }
   const wl=watch();
-  if(!wl.length){ setStatus('err','Select at least one pair in the watchlist'); busy=false;$('btnRun').disabled=false;return; }
-  let targets=wl;
-  if(!manual){ targets=[]; for(let k=0;k<Math.min(3,wl.length);k++){ targets.push(wl[rrIdx%wl.length]); rrIdx++; } }
+  if(!wl.length){ setStatus('err','EUR/USD is unticked — enable it in the pair list to scan'); busy=false;$('btnRun').disabled=false;return; }
+  const targets=wl;                    /* EUR/USD only — single fixed pair, no rotating */
   const breakerOn = streak>=3;
-  setStatus('wait','NEXUS scanning '+targets.map(PAIRCODE).join(', ')+' ['+active.join('+')+']'+(breakerOn?' · 🚨 BREAKER ON (analysis only)':'')+' ...');
+  const blackout = blackoutOn();
+  setStatus('wait','NEXUS scanning '+targets.map(PAIRCODE).join(', ')+' ['+active.join('+')+']'
+    +(breakerOn?' · 🚨 BREAKER ON (analysis only)':'')
+    +(blackout?' · 📵 NEWS BLACKOUT (analysis only)':'')+' ...');
 
   settleAll();   /* settle anything already complete against cached snapshots */
 
   try{
     const p0=targets[0];
-    const [ts,q,pr,er]=await Promise.allSettled([apiTimeSeries(p0),apiQuote(p0),apiPrice(p0),apiRate(...p0.split('/'))]);
-    if(ts.status==='rejected') throw ts.reason;
-    const lead=ts.value;
-    feed4Render(p0,q,pr,er,lead);
+    const lead=await apiTimeSeries(p0);   /* normal scans use ONLY the candle feed (1 credit) */
+    feedScanRender(p0,lead);
 
     let newSignals=0; const byTf={M1:0,M3:0};
     const regs={M1:null,M3:null};
-    const marketOpen = q.status==='fulfilled' ? q.value.open : null;
-    let filterNote='';
+    let filterNote='', leadGate=null;
+    const sess=sessionGate(new Date());          /* quality-first: skip dead liquidity hours */
+    const m5On=$('m5conf')&&$('m5conf').checked;
     for(const pair of targets){
       let cd=lead;
       if(pair!==p0){
         try{ cd=await apiTimeSeries(pair); }
         catch(e){ addRow(pair,'—:—','FAIL',null,'',null); continue; }
       }
+      const gate=candleGate(cd.m1);  /* reject stale / weekend candles BEFORE producing predictions */
+      if(pair===p0) leadGate=gate;
+      let m5=null;
+      if(m5On&&gate.ok){ try{ m5=await apiM5Bias(pair); }catch(e){ m5=null; } }
       for(const tf of active){
         const series = tf==='M3' ? cd.m3 : cd.m1;
         if(!series || series.length<40) continue;
@@ -1390,7 +1853,7 @@ async function runScan(manual){
         const x=makeCtx(o,h,l,c);
         const i=c.length-1;
         const regime=detectRegimeAt(x,i);
-        const weights=finalWeights(train(x),regime.boost,tf);
+        const weights=finalWeights(train(x),regime.boost,tf,regime.label);
         lastW[tf]=weights;
 
         /* AGENTS 1-6: analyse + fuse */
@@ -1412,12 +1875,14 @@ async function runScan(manual){
           renderAgents(fx,vol,tf);
         }
 
-        /* AGENT 7: validation filter */
-        const vd=validateSetup(fx,vol,regime,{doji,marketOpen,minScore:risk.minScore,ttOpen,
-          dataLagMs:cd.latencyMs||0,score,grade});
+        /* AGENT 7: validation filter (freshness/weekend gate, session, confluence, ATR band, M5) */
+        const vd=validateSetup(fx,vol,regime,{doji,marketOpen:null,minScore:risk.minScore,ttOpen,
+          dataLagMs:cd.latencyMs||0,score,grade,gate,
+          sessOk:sess.ok,sessReason:sess.reason,
+          famN:famCount(vote.votes,fx.dir),atrPct:regime.atrPct,m5});
         /* AGENT 8: risk gate */
         const riskOk=riskAdmit();
-        const pass = fx.dir && vd.pass && riskOk.ok && !breakerOn;
+        const pass = fx.dir && vd.pass && riskOk.ok && !breakerOn && !blackout;
 
         if(pair===p0) renderValidation(vd,riskOk,breakerOn,fx);
 
@@ -1426,14 +1891,20 @@ async function runScan(manual){
           const time=pad(dd.getUTCHours())+':'+pad(dd.getUTCMinutes());
           const id=++uid;
           openSigs.push({id,pair,tf,time,dir:fx.dir,votes:vote.votes,conf:fx.conf,score,grade,targetT,
-            agents:agentMap(fx),stake:stakeOf(),payout:paper.payout/100,ttOpen});
+            agents:agentMap(fx),stake:stakeOf(),payout:paper.payout/100,ttOpen,
+            regime:regime.label,botSent:false});
           saveOpen();
           addRow(pair,time,fx.dir,id,grade,tf,score);
+          botDispatch(openSigs[openSigs.length-1]);          /* 🤖 bot stream: signal now, verification+sticker on settle */
           batchCollect({pair,tf,time,dir:fx.dir,targetT,score,grade,agree:fx.agree,conflict:fx.conflict,ev:vd.ev});
           newSignals++; byTf[tf]++;
           if(navigator.vibrate) navigator.vibrate([80,40,80]);
-        } else if(pair===p0 && fx.dir && !filterNote){
-          filterNote = !vd.pass ? vd.fails[0] : (!riskOk.ok ? riskOk.reason : (breakerOn?'circuit breaker active':''));
+        } else if(pair===p0 && !filterNote){
+          filterNote = !vd.pass ? vd.fails[0]
+            : (!riskOk.ok ? riskOk.reason
+            : (breakerOn ? 'circuit breaker active'
+            : (blackout ? 'news blackout active (manual switch)'
+            : (fx.dir?'':'no directional consensus'))));
         }
       }
     }
@@ -1444,7 +1915,9 @@ async function runScan(manual){
     const last=lead.m1[lead.m1.length-1].c;
     const pe=$('price'); pe.textContent=last.toFixed(5);
     pe.className='price '+(last>=lead.m1[lead.m1.length-2].c?'up':'dn');
-    if(breakerOn) setStatus('err','🚨 Circuit breaker active — 3 straight losses. Analysis running, signals suppressed. Reset when calm.');
+    if(leadGate&&!leadGate.ok) setStatus('err','⛔ Data rejected — '+leadGate.reason+'. No live predictions until candles are fresh again.');
+    else if(blackout) setStatus('wait','📵 News blackout active (manual switch — NEXUS has no live news feed). Analysis ran; new signals blocked. Open signals still settle.');
+    else if(breakerOn) setStatus('err','🚨 Circuit breaker active — 3 straight losses. Analysis running, signals suppressed. Reset when calm.');
     else setStatus(newSignals?'ok':'wait', newSignals
       ? '🔥 '+newSignals+' paper signal(s) ['+Object.entries(byTf).filter(e=>e[1]).map(e=>e[0]+'×'+e[1]).join(', ')+'] — enter at NEXT candle open ('+tzLabel()+')'
       : (filterNote?'No signal — filtered: '+filterNote+'. Learning continues.':'No signal — agents below thresholds. Learning continues.'));
@@ -1486,8 +1959,9 @@ function renderAgents(fx,vol,tf){
 }
 function renderValidation(vd,riskOk,breakerOn,fx){
   const chips=[];
-  vd.fails.forEach(f=>chips.push('<span class="chip bad">✕ '+f+'</span>'));
-  vd.warns.forEach(w=>chips.push('<span class="chip warn">⚠ '+w+'</span>'));
+  if(blackoutOn()) chips.push('<span class="chip warn">📵 news blackout — new signals blocked (manual)</span>');
+  vd.fails.forEach(f=>chips.push('<span class="chip bad">✕ '+esc(f)+'</span>'));
+  vd.warns.forEach(w=>chips.push('<span class="chip warn">⚠ '+esc(w)+'</span>'));
   if(vd.pass) chips.push('<span class="chip ok">✓ validation passed · EV '+(vd.ev*100).toFixed(1)+'%</span>');
   if(!fx.dir) chips.push('<span class="chip">no directional consensus</span>');
   chips.push(riskOk.ok&&!breakerOn
@@ -1496,7 +1970,13 @@ function renderValidation(vd,riskOk,breakerOn,fx){
   $('validChips').innerHTML=chips.join('');
 }
 
-function feed4Render(pair,q,p,er,lead){
+function feedScanRender(pair,lead){ /* scan path — updates ONLY the candle cell + freshness info */
+  $('f_ts').textContent=lead?('✅ '+lead.m1.length+' M1 · '+lead.m3.length+' M3'):'❌ no candles';
+  const g=lead?candleGate(lead.m1):{ok:false,reason:'no candles'};
+  const last=lead&&lead.m1.length?lead.m1[lead.m1.length-1]:null;
+  $('pxinfo').textContent=pair+(last?(' · last candle '+last.t+(g.ok?' · ✅ fresh':(' · ⛔ '+g.reason))):' · ⛔ '+g.reason);
+}
+function feed4Render(pair,q,p,er,lead){ /* diagnostics path — optional, VERIFY button only */
   $('f_ts').textContent=lead?'✅ '+lead.m1.length+' M1 · '+lead.m3.length+' M3':'❌ no candles';
   const fmt=(x,obj)=>x.status==='fulfilled'
     ? (obj?'price '+x.value.price.toFixed(5)+' · '+x.value.chg.toFixed(2)+'%':(+x.value).toFixed(5))
@@ -1516,16 +1996,16 @@ function feed4Render(pair,q,p,er,lead){
 }
 
 function addRow(pair,time,dir,id,grade,tf,score){
-  const target = tf==='M3' ? $('liveRowsM3') : $('liveRowsM1');
-  const card = tf==='M3' ? $('cardM3') : $('cardM1');
-  if(card) card.style.display='block';
+  const target = tf==='M3' ? $('liveRowsM3') : $('liveRowsM1');   /* M1 / M3 streams stay separate */
+  if(!target) return;
+  const empty=target.querySelector('.empty-note'); if(empty) empty.remove();
   const row=document.createElement('div');
   row.className='sig-row';
   const markHtml=id===null?'<span class="mark sig-open">⚠️</span>'
     :`<span class="mark sig-open" id="mk-${id}">⏳</span>`;
-  const gradeHtml=grade?`<span class="gradeA">·${grade}${score?' '+Math.round(score):''}</span>`:'';
-  row.innerHTML=`<span>${tf?tf+';':''}${PAIRCODE(pair)}•${time};${dir}${gradeHtml}</span>${markHtml}`;
-  if(target) target.appendChild(row);
+  const gradeHtml=grade?`<span class="gradeA">·${esc(grade)}${score?' '+Math.round(score):''}</span>`:'';
+  row.innerHTML=`<span>${esc(tf?tf+';':'')}${esc(PAIRCODE(pair))}•${esc(time)};${esc(String(dir))}${gradeHtml}</span>${markHtml}`;
+  target.appendChild(row);
 }
 
 /* ---------- auto-settle + learn + streak (UTC-keyed, per timeframe) ---------- */
@@ -1537,8 +2017,14 @@ function settleAll(){
       const m=mem[sig.tf][s]; if(!m) continue;
       if(sig.votes[s]===sig.dir) m.w++;
       else if(sig.votes[s]) m.l++;
+      if(sig.regime){                       /* self-learning: per-regime memory */
+        const r=memBucket(sig.tf,sig.regime,s);
+        if(sig.votes[s]===sig.dir) r.w++;
+        else if(sig.votes[s]) r.l++;
+      }
     }
     saveMem();
+    if(sig.botSent) botSettleVerify(sig,win);     /* 🤖 verification message + sticker on settle */
     const el=$('mk-'+sig.id);
     if(el){ el.textContent=win?'✅':'❌'; el.className='mark '+(win?'w':'l'); }
     const st=stat[sig.tf]; win?st.w++:st.l++;
@@ -1598,13 +2084,38 @@ $('tgChat').value=tg.chatId||'';
 $('tgBrand').value=tg.brand||'NEXUS';
 $('tgAuth').checked=!!tg.auth; $('tgAuto').checked=!!tg.auto;
 $('tgProtect').checked=tg.protect!==false; $('tgListen').checked=!!tg.listen;
-$('tgToken').addEventListener('change',e=>{ tg.token=e.target.value.trim(); saveTg(); tgRender(); });
+function tgApplyCreds(mutate){ /* ANY token / destination-chat change revokes send authorization */
+  const before=tgToken()+'\u0000'+tgChat()+'\u0000'+pubChatOf();
+  mutate();
+  const after=tgToken()+'\u0000'+tgChat()+'\u0000'+pubChatOf();
+  if(before!==after&&tg.auth){
+    tg.auth=false;
+    const cb=$('tgAuth'); if(cb) cb.checked=false;
+    tgLog('🔓 send authorization REVOKED — token/destination changed. Re-enable AUTHORIZED to send again.');
+  }
+  saveTg(); tgRender();
+  return before!==after;
+}
+const TG_CHAT_RE=/^(@?[A-Za-z0-9_+-]{1,64}|-?\d{1,20})$/;
+$('tgToken').addEventListener('change',e=>{ tgApplyCreds(()=>{ tg.token=e.target.value.trim(); }); });
 $('tgChat').addEventListener('change',e=>{
   const v=e.target.value.trim();
-  if(v&&!/^(@?[A-Za-z0-9_+-]{1,64}|-?\d{1,20})$/.test(v)){ tgLog('⚠ invalid chat id format — use numeric id or @channel'); return; }
-  tg.chatId=v; saveTg(); tgRender();
+  if(v&&!TG_CHAT_RE.test(v)){ tgLog('⚠ invalid chat id format — use numeric id or @channel'); e.target.value=tg.chatId||''; return; }
+  tgApplyCreds(()=>{ tg.chatId=v; });
 });
 $('tgBrand').addEventListener('change',e=>{ tg.brand=e.target.value.trim()||'NEXUS'; saveTg(); tgRender(); renderPred(); });
+function tgSaveSettings(){ /* one-click save: token + chat + brand persist to this browser */
+  const v=($('tgChat').value||'').trim();
+  if(v&&!TG_CHAT_RE.test(v)){ tgLog('⚠ not saved — invalid chat id format (numeric id or @channel)'); return false; }
+  tgApplyCreds(()=>{
+    tg.token=($('tgToken').value||'').trim();
+    tg.chatId=v;
+    tg.brand=($('tgBrand').value||'').trim()||'NEXUS';
+  });
+  tgLog('💾 telegram settings saved to this browser');
+  renderPred(); /* brand may have changed */
+  return true;
+}
 $('tgAuth').addEventListener('change',e=>{
   if(e.target.checked){
     if(!tgToken()||!tgChat()){ e.target.checked=false; tgLog('⚠ set bot token + chat id first'); return; }
@@ -1622,12 +2133,93 @@ $('tgListen').addEventListener('change',e=>{
   else { if(tgListenTimer&&tgListenTimer!==true) clearTimeout(tgListenTimer); tgListenTimer=null; tgLog('listener stopped'); }
 });
 $('predSize').addEventListener('change',e=>{ batch.target=Math.min(20,Math.max(1,+e.target.value||10)); saveBatch(); renderPred(); });
+
+/* ---------- lead time + M5 confirmation (quality-first controls) ---------- */
+$('leadSec').value=store.get('nx_lead')||'30';
+$('leadSec').addEventListener('change',e=>{ store.set('nx_lead',String(leadSecOf())); e.target.value=String(leadSecOf());
+  setStatus('ok','⏱ signal lead set to '+leadSecOf()+'s — the next candle is called that early inside the previous minute'); });
+$('m5conf').checked=store.get('nx_m5')!=='0';
+$('m5conf').addEventListener('change',e=>{ store.set('nx_m5',e.target.checked?'1':'0');
+  setStatus('ok',e.target.checked?'🧭 M5 confirmation ON (+1 candle credit per scan)':'🧭 M5 confirmation OFF'); });
+
+/* ---------- 🤖 bot stream + 📢 public channel wiring ---------- */
+$('botAuto').checked=!!tg.botAuto; $('botVerify').checked=tg.botVerify!==false;
+$('pubAuto').checked=!!tg.pubAuto; $('pubChat').value=tg.pubChat||'';
+$('botAuto').addEventListener('change',e=>{ tg.botAuto=e.target.checked; saveTg();
+  tgLog(tg.botAuto?'🤖 bot auto-send ON — every passed signal goes to the chat':'🤖 bot auto-send off'); });
+$('botVerify').addEventListener('change',e=>{ tg.botVerify=e.target.checked; saveTg(); });
+$('pubAuto').addEventListener('change',e=>{ tg.pubAuto=e.target.checked; saveTg();
+  pubLogMsg(tg.pubAuto?'🧾 auto daily summary ON (aggregate stats only)':'🧾 auto daily summary off'); });
+$('pubChat').addEventListener('change',e=>{
+  const v=e.target.value.trim();
+  if(v&&!TG_CHAT_RE.test(v)){ pubLogMsg('⚠ invalid channel format — numeric id or @channel'); e.target.value=tg.pubChat||''; return; }
+  tgApplyCreds(()=>{ tg.pubChat=v; });
+  pubLogMsg(v?('📢 public channel set: '+v):'📢 public channel cleared');
+});
+tplRender();
 $('predSched').checked=store.get('nx_schedOn')==='1';
 $('predSched').addEventListener('change',e=>{ store.set('nx_schedOn',e.target.checked?'1':'0');
   setStatus('ok',e.target.checked?'⏰ daily prediction list scheduled at '+$('predTime').value:'schedule disabled'); });
 $('predTime').addEventListener('change',()=>{ store.set('nx_schedTime',$('predTime').value); });
 $('predTime').value=store.get('nx_schedTime')||'14:00';
 if($('tgLog')&&tg.log.length) $('tgLog').innerHTML=tg.log.map(l=>'<div>'+esc(l)+'</div>').join('');
+
+/* ---------- news blackout (manual switch — NEXUS has NO live news feed) ---------- */
+function blackoutOn(){ const el=$('blackout'); return !!(el&&el.checked); }
+$('blackout').checked=store.get('nx_blackout')==='1';
+$('blackout').addEventListener('change',e=>{
+  store.set('nx_blackout',e.target.checked?'1':'0');
+  setStatus(e.target.checked?'wait':'ok', e.target.checked
+    ? '📵 News blackout ON — new signals blocked until you switch it off (manual switch; NEXUS has no live news feed). Open signals still settle.'
+    : '✅ News blackout OFF — new signals allowed again (all gates still apply)');
+});
+
+/* ---------- mobile section navigation (sticky jump bar) ---------- */
+(function initSecNav(){
+  const nav=$('secNav'); if(!nav) return;
+  const links=[...nav.querySelectorAll('a[href^="#"]')];
+  const setActive=id=>links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+id));
+  links.forEach(a=>a.addEventListener('click',()=>setActive(a.getAttribute('href').slice(1))));
+  if(!('IntersectionObserver' in window)) return;   /* graceful degradation */
+  const secs=links.map(a=>document.getElementById(a.getAttribute('href').slice(1))).filter(Boolean);
+  const io=new IntersectionObserver(es=>{
+    for(const e of es) if(e.isIntersecting) setActive(e.target.id);
+  },{rootMargin:'-15% 0px -75% 0px'});
+  secs.forEach(s=>io.observe(s));
+})();
+
+/* ---------- optional LOCAL crew art (NEVER fetched or shipped on the public site) ---------- */
+function localArtHost(h){ /* preview/dev hosts only — GitHub Pages never enters this path */
+  h=String(h||'');
+  return h==='localhost'||h==='127.0.0.1'||h.endsWith('.e2b.app');
+}
+function artUrl(u){ return 'url("'+String(u).replace(/"/g,'%22')+'")'; }
+async function loadLocalArt(){
+  if(!localArtHost(location.hostname)) return false;
+  try{
+    const r=await fetch('art/manifest.json',{cache:'no-store'});
+    if(!r.ok) return false;
+    const man=await r.json();
+    if(man.hero){
+      const d=document.createElement('div'); d.className='heroArt'; d.style.backgroundImage=artUrl(man.hero);
+      const wrap=document.querySelector('.wrap'), nav=$('secNav');
+      wrap.insertBefore(d,nav||wrap.firstChild);
+    }
+    if(man.logo){
+      const l=document.querySelector('.logo');
+      if(l){ l.innerHTML=''; l.style.backgroundImage=artUrl(man.logo);
+        l.style.backgroundSize='cover'; l.style.backgroundPosition='center 30%'; }
+    }
+    for(const k of ['m1','m3','list','bot','pub','paper']){
+      const card=$('sec-'+k);
+      if(card&&man[k]){ card.style.backgroundImage='linear-gradient(165deg, rgba(5,8,16,.88), rgba(5,8,16,.95)), '+artUrl(man[k]);
+        card.style.backgroundSize='cover'; card.style.backgroundPosition='center'; }
+    }
+    return true;
+  }catch(e){ return false; }
+}
+loadLocalArt();
+
 syncSettings();
 ensureDay();
 renderStats(); renderBrain(lastW[brainTf]); renderPaper(); renderPerf(); renderVault(); renderPred(); tgRender();

@@ -1,6 +1,9 @@
 # never commit real API keys
 keys.js
 
+# local-only crew art (copyrighted) — preview builds only, never committed, never published
+art/
+
 # local test dependencies
 node_modules/
 
