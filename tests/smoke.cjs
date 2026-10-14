@@ -77,6 +77,10 @@ async function main() {
   assert.ok(doc.querySelectorAll('#secNav a').length >= 12, 'section nav has clear links');
   for (const s of ['sec-keys', 'sec-feeds', 'sec-scan', 'sec-m1', 'sec-m3', 'sec-list', 'sec-tg', 'sec-paper', 'sec-bt'])
     assert.ok($id(s), `section id ${s} exists`);
+  // no duplicate element ids anywhere (breaks $() lookups silently)
+  const allIds = [...html.matchAll(/\sid="([^"]+)"/g)].map(m => m[1]);
+  const dupIds = allIds.filter((v, i) => allIds.indexOf(v) !== i);
+  assert.deepEqual([...new Set(dupIds)], [], 'no duplicate element ids');
 
   /* ── 3. self-hosted font + license shipped with the site ─────── */
   assert.ok(html.includes("url('assets/fonts/inter-latin-wght-normal.woff2')"), '@font-face points at the self-hosted file');
@@ -377,8 +381,14 @@ async function main() {
   assert.ok(!/placeOrder|brokerConnect|executeLive/i.test(inline[0]), 'no live-execution hooks introduced');
 
   /* ── 16. legacy single-key migration on a fresh boot ──────────── */
-  const b2 = boot({ td_key: 'legacy-key-123', nx_watch: JSON.stringify(['GBP/USD', 'EUR/USD', 'USD/JPY']) });
+  const b2 = boot({
+    td_key: 'legacy-key-123',
+    nx_watch: JSON.stringify(['GBP/USD', 'EUR/USD', 'USD/JPY']),
+    nx_batch: JSON.stringify({ date: 'old', tz: 'UTC+0:00', status: 'active', rows: [], target: 5 }),
+  });
   assert.deepEqual(b2.errors, [], 'legacy boot is clean');
+  assert.ok(b2.E('batch.startedAt') > 0, 'pre-v4.2 active batch gets a window start on migration');
+  assert.ok(b2.E('batchWindowLeft(batch,Date.now())') !== null, 'migrated batch window is enforced');
   const pool2 = b2.E('keyPool()');
   assert.equal(pool2.length, 1, 'legacy key migrated into the slot pool');
   assert.equal(pool2[0].v, 'legacy-key-123');
@@ -387,6 +397,28 @@ async function main() {
   assert.equal(b2.doc.getElementById('key1').value, 'legacy-key-123', 'slot input pre-filled');
   assert.equal(b2.E('JSON.stringify(watch())'), '["EUR/USD"]', 'legacy multi-pair watchlist collapsed to EUR/USD');
   b2.w.close();
+
+  /* ── 17. chaos pass: every UI entry point runs without throwing ── */
+  w.fetch = async (url) => {
+    const u = String(url);
+    if (u.includes('api.telegram.org')) return jsonResponse({ ok: true, result: true });
+    if (u.includes('/time_series')) return jsonResponse(candlePayload());
+    if (u.includes('/quote')) return jsonResponse({ close: '1.1', percent_change: '0.01', is_market_open: true });
+    if (u.includes('/price')) return jsonResponse({ price: '1.1' });
+    return jsonResponse({ exchange_rate: '1.1' });
+  };
+  const entryPoints = [
+    'saveKeys()', 'verifyFeeds()', 'runScan(true)', 'batchStart(false)', 'batchStop()', 'runSession()',
+    'tgSendList()', 'tgSendResult()', 'tgTest()', 'tgSetCommands()', 'tgCaptureSticker()',
+    'tgCaptureStyle("list")', 'tgCaptureStyle("bogus")', 'tgClearStyle()', 'pubPost()',
+    'resetPaper()', 'resetStreak()', 'clearStats()', 'deepBacktest()',
+    'renderPerf()', 'renderPred()', 'renderVault()', 'tgRender()', 'setBrainTf("M3")', 'setBrainTf("M1")',
+    'renderStats()', 'renderPaper()', 'syncSettings()', 'ensureDay()', 'settleAll()', 'settleBatch()',
+  ];
+  for (const ep of entryPoints) {
+    await assert.doesNotReject(E(`(async()=>{ ${ep}; })()`), `UI entry point ${ep} must not throw`);
+  }
+  assert.deepEqual(errors, [], 'no DOM/runtime errors during the chaos pass');
 
   assert.deepEqual(errors, [], 'no DOM/runtime errors across the whole suite');
   console.log('PASS: boot · DOM refs · font+license · EUR/USD-only · 4 key slots (save/rotate/cooldown) ·');

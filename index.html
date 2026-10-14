@@ -906,7 +906,7 @@ function sanitizePublic(s){ /* strip anything sensitive before a public post */
     .replace(/\d{6,}:[A-Za-z0-9_-]{25,}/g,'[redacted-token]')          /* tg bot tokens */
     .replace(/\b[0-9a-f]{32}\b/gi,'[redacted-key]')                    /* twelvedata-style keys */
     .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,'[redacted-email]')
-    .replace(/(?<![\w.])-?\d{12,}(?!\w)/g,'[redacted-id]')          /* numeric chat ids */
+    .replace(/(^|[^\w.])-?\d{12,}(?!\w)/g,'$1[redacted-id]')          /* numeric chat ids (no lookbehind — old Safari safe) */
     .replace(/\bNX_[A-Z0-9_]+\b/gi,'[redacted]')
     .slice(0,3000);
 }
@@ -1141,6 +1141,7 @@ const BATCH_WINDOW_MS=3600000; /* the whole list lives inside one hour */
 const DEF_BATCH={date:'',tz:'',status:'idle',rows:[],target:10,resultSent:false,listSent:false,startedAt:0};
 let batch=loadJSON('nx_batch',null)||Object.assign({},DEF_BATCH);
 if(!Array.isArray(batch.rows)) batch.rows=[];
+if(batch.status==='active'&&!batch.startedAt) batch.startedAt=Date.now();  /* migrate pre-v4.2 sessions */
 function saveBatch(){ store.set('nx_batch',JSON.stringify(batch)); }
 function displayDate(){ const d=tzNow(); return pad(d.getUTCDate())+'-'+pad(d.getUTCMonth()+1)+'-'+d.getUTCFullYear(); }
 function candleOutcome(pair,tf,dir,targetT){ /* shared settlement primitive — snapshot must postdate close */
@@ -1457,7 +1458,7 @@ async function tgCaptureStyle(kind){
   try{
     const res=await tgCall('getUpdates',{offset:tg.lastUpd+1,limit:50,timeout:0,allowed_updates:JSON.stringify(['message'])});
     let found=null;
-    for(const u of res||[]){ tg.lastUpd=Math.max(tg.lastUpd,u.update_id);
+    for(const u of (Array.isArray(res)?res:[])){ tg.lastUpd=Math.max(tg.lastUpd,u.update_id);
       const m=u.message||u.channel_post;
       if(m&&m.text&&!m.text.startsWith('/')&&tgMatchesChat(m.chat)) found=m; }
     if(!found){ tgLog('⚠ no example found — send your '+kind+' example to the bot in Telegram, then press CAPTURE again'); return false; }
@@ -1502,7 +1503,7 @@ async function tgCaptureSticker(){
   try{
     const res=await tgCall('getUpdates',{offset:tg.lastUpd+1,limit:50,timeout:0,allowed_updates:JSON.stringify(['message'])});
     let found=null;
-    for(const u of res||[]){ tg.lastUpd=Math.max(tg.lastUpd,u.update_id);
+    for(const u of (Array.isArray(res)?res:[])){ tg.lastUpd=Math.max(tg.lastUpd,u.update_id);
       const m=u.message||u.channel_post;
       if(m&&m.sticker&&tgMatchesChat(m.chat)) found=m.sticker; }
     if(found){ tg.sticker=found.file_id; saveTg();
@@ -1522,7 +1523,7 @@ function tgListenLoop(){
   (async()=>{
     try{
       const res=await tgCall('getUpdates',{offset:tg.lastUpd+1,limit:20,timeout:0,allowed_updates:JSON.stringify(['message'])});
-      for(const u of res||[]){
+      for(const u of (Array.isArray(res)?res:[])){
         tg.lastUpd=Math.max(tg.lastUpd,u.update_id);
         const m=u.message||u.channel_post; if(!m||!tgMatchesChat(m.chat)||!tgReady()) continue;
         if(m.sticker){ tg.sticker=m.sticker.file_id; saveTg(); tgRender();
