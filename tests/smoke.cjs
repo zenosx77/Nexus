@@ -1,4 +1,4 @@
-// NEXUS Glass v4.2.3 — smoke + regression suite (jsdom).
+// NEXUS Glass v4.2.4 — smoke + regression suite (jsdom).
 // Run: npm install && npm test        (run it twice — the suite is idempotent)
 // Covers: clean boot, EUR/USD-only watchlist (no rotation), 4 key slots with
 // one-click browser save + rotation + quota cooldown, candle-only scans
@@ -365,38 +365,51 @@ async function main() {
   assert.ok(!/cp\s+.*\bart\b/.test(wfSrc), 'deploy workflow never copies art');
   assert.ok(!/art\/[A-Za-z0-9_-]+\.(jpg|png|webp)/.test(html), 'no static art references in the public HTML');
 
-  /* ── 13i. feed clock repair: naive local stamps auto-corrected to UTC ── */
+  /* ── 13i. feed clock repair: meta fallback + data-clock inference ── */
   assert.equal(E('readFeedTz({meta:{"4. Time Zone":"UTC"}})'), 0, 'plain UTC meta → no correction');
   assert.equal(E('readFeedTz({meta:{"4. Time Zone":"UTC+11"}})'), 660, 'UTC+11 meta detected');
   assert.equal(E('readFeedTz({meta:{"5. Time Zone":"UTC-04:30"}})'), -270, 'UTC-04:30 meta detected');
   assert.equal(E('readFeedTz({meta:{timezone:-4.5}})'), -270, 'numeric meta hours detected');
   assert.equal(E('readFeedTz({values:[]})'), 0, 'missing meta → no correction');
+  const baseClock = Date.parse('2026-10-14T12:00:00Z');
+  const clockJson = mins => ({ values: [{ datetime: new Date(baseClock + mins * 60000).toISOString().slice(0, 19).replace('T', ' ') }] });
+  assert.equal(E(`inferFeedTz(${JSON.stringify(clockJson(345))},${baseClock})`), 345, 'UTC+05:45 data clock snaps to the 15-minute zone grid');
+  assert.equal(E(`inferFeedTz(${JSON.stringify(clockJson(525))},${baseClock})`), 525, 'UTC+08:45 data clock is supported');
+  const wrongMeta = { ...clockJson(660), meta: { '4. Time Zone': 'UTC' } };
+  assert.equal(E(`resolveFeedTz(${JSON.stringify(wrongMeta)},${baseClock})`), 660, 'clear local data clock wins over contradictory UTC meta');
+  assert.equal(E(`resolveFeedTz(${JSON.stringify({ ...clockJson(20), meta: { '4. Time Zone': 'UTC+11' } })},${baseClock})`), 0, 'sub-30-minute lead stays clock drift instead of using meta');
+  assert.equal(E('resolveFeedTz({values:[],meta:{"4. Time Zone":"UTC+05:30"}})'), 330, 'meta remains the fallback without a clear data-clock signal');
+  assert.match(E('apiTimeSeries.toString()'), /resolveFeedTz/, 'M1 path resolves the effective feed clock');
+  assert.match(E('apiM5Bias.toString()'), /resolveFeedTz/, 'M5 path resolves the effective feed clock');
+  assert.match(E('deepBacktest.toString()'), /resolveFeedTz/, 'backtest path resolves the effective feed clock');
   E('feedTzOff=660');
   assert.equal(E('parseCandleUTC("2024-05-01 03:15:00").toISOString()'), '2024-04-30T16:15:00.000Z', 'naive local stamp shifted back to UTC');
   assert.equal(E('parseCandleUTC("2024-05-01 03:15:00Z").toISOString()'), '2024-05-01T03:15:00.000Z', 'explicit Z stamps untouched');
   assert.equal(E('parseCandleUTC("2024-05-01 03:15:00+02:00").toISOString()'), '2024-05-01T01:15:00.000Z', 'offset-stamped candles untouched');
-  E('feedTzOff=0');
-  // a key whose feed stamps candles in +11:00 gets the shift applied end-to-end
-  E('cache={}');
+  E('feedTzOff=0; cache={}');
+  // Exact regression: meta claims UTC while every naive candle is stamped 11 hours ahead.
   w.fetch = async (url) => {
-    const u = String(url);
     const p = candlePayload();
-    if (u.includes('/time_series')) p.meta = { '1. Information': 'M1 candles', '2. Symbol': 'EUR/USD', '3. Last Refreshed': '—', '4. Time Zone': 'UTC+11' };
+    for (const v of p.values) v.datetime = new Date(Date.parse(v.datetime.replace(' ', 'T') + 'Z') + 660 * 60000).toISOString().slice(0, 19).replace('T', ' ');
+    p.meta = { '1. Information': 'candles', '2. Symbol': 'EUR/USD', '4. Time Zone': 'UTC' };
     return jsonResponse(p);
   };
   await E('runScan(true)');
-  assert.equal(E('feedTzOff'), 660, 'scan detects the feed timezone');
+  assert.equal(E('feedTzOff'), 660, 'scan infers UTC+11 despite UTC meta');
   assert.equal($id('feedTzNote').style.display, '', 'footer banner shown while the correction is active');
   assert.match($id('feedTzNote').textContent, /feed clock UTC\+11:00 auto-corrected to UTC/);
   const tzNewest = E('cache["EUR/USD"].m1[cache["EUR/USD"].m1.length-1]');
-  assert.equal(tzNewest.ts, Date.parse(tzNewest.t.replace(' ', 'T') + 'Z') - 660 * 60000, 'cached candle ts is the local stamp minus the offset');
+  assert.equal(tzNewest.ts, Date.parse(tzNewest.t.replace(' ', 'T') + 'Z') - 660 * 60000, 'cached candle ts is the local stamp minus the inferred offset');
+  assert.equal(E('candleGate(cache["EUR/USD"].m1).ok'), true, 'corrected newest candle passes the freshness gate');
+  const shownUtc = new Date(tzNewest.ts).toISOString().slice(0, 19).replace('T', ' ') + ' UTC';
+  assert.ok($id('pxinfo').textContent.includes(shownUtc), 'info line shows the corrected UTC candle stamp');
+  assert.ok(!$id('pxinfo').textContent.includes(tzNewest.t), 'info line does not show the misleading local stamp while correcting');
   assert.ok(!$id('status').textContent.includes('Error:'), 'scan still completes cleanly with the correction on');
   // UTC (or absent) meta → identical behaviour, banner hidden
   E('cache={}; feedTzOff=0');
-  w.fetch = async (url) => {
-    const u = String(url);
+  w.fetch = async () => {
     const p = candlePayload();
-    if (u.includes('/time_series')) p.meta = { '4. Time Zone': 'UTC' };
+    p.meta = { '4. Time Zone': 'UTC' };
     return jsonResponse(p);
   };
   await E('runScan(true)');
