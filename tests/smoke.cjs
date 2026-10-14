@@ -12,7 +12,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const { JSDOM, VirtualConsole } = require('jsdom');
 
-const FILE = 'index(1).html';
+const FILE = 'index.html';
 const html = fs.readFileSync(FILE, 'utf8');
 const inline = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m => m[1]).filter(Boolean);
 assert.equal(inline.length, 1, 'exactly one inline application script');
@@ -216,13 +216,22 @@ async function main() {
   const urls = [];
   w.fetch = async (url) => { urls.push(String(url)); return jsonResponse(candlePayload()); };
   await E('runScan(true)');
-  assert.ok(urls.length >= 1, 'scan fetched market data');
+  assert.ok(urls.length >= 2, 'scan fetched M1 + M5 candles');
   assert.ok(urls.every(u => u.includes('/time_series')), 'every scan request is a candle request');
+  assert.ok(urls.some(u => u.includes('interval=5min')), 'M5 confirmation also uses the candle feed');
   assert.ok(!urls.some(u => /\/(quote|price|exchange_rate)\?/.test(u)), 'no diagnostic feeds during normal scans');
-  assert.equal(E('credits'), 1, 'one scan = one credit');
+  assert.equal(E('credits'), 2, 'quality scan = 2 candle credits (M1 + M5)');
   assert.ok(!$id('status').textContent.includes('Error:'), 'scan finished without error');
   assert.ok($id('f_q').textContent.includes('not checked'), 'diagnostic cells untouched by scans');
   assert.match($id('pxinfo').textContent, /fresh|stale|weekend/, 'candle freshness is surfaced');
+  // M5 off → exactly one candle request
+  E(`$('m5conf').checked=false; cache={}`);
+  const u2 = [];
+  w.fetch = async (url) => { u2.push(String(url)); return jsonResponse(candlePayload()); };
+  await E('runScan(true)');
+  assert.equal(u2.length, 1, 'M5 off → single candle request per scan');
+  assert.equal(E('credits'), 3);
+  E(`$('m5conf').checked=true`);
 
   /* ── 12. optional diagnostics still check all four feeds ─────── */
   E('cache={}');
@@ -256,6 +265,89 @@ async function main() {
   assert.equal(E('blackoutOn()'), false);
   assert.equal(w.localStorage.getItem('nx_blackout'), '0');
 
+  /* ── 13b. quality-first gates (session, confluence, ATR band, M5) ── */
+  assert.equal(E('sessionGate(new Date("2026-10-14T12:00:00Z")).ok'), true, 'London hours: active');
+  assert.equal(E('sessionGate(new Date("2026-10-14T22:30:00Z")).ok'), false, '22:30 UTC: dead hours');
+  assert.equal(E('sessionGate(new Date("2026-10-14T00:30:00Z")).ok'), false, '00:30 UTC: dead hours');
+  assert.equal(E('sessionGate(new Date("2026-10-16T20:30:00Z")).ok'), false, 'Friday 20:30 UTC: closed');
+  assert.equal(E(`famCount({"EMA 9/21 cross":"CALL","RSI-4 + BB confirm":"CALL","Donchian 20":"PUT"},"CALL")`), 2, 'family confluence counts distinct families');
+  const vFam = E(`validateSetup({dir:"CALL",conf:0.9,agree:4,conflict:0,channels:[]},{q:0.8},{thr:0.7,boost:{}},
+    {doji:false,marketOpen:null,minScore:50,ttOpen:20,dataLagMs:0,score:85,grade:"A",famN:1,atrPct:0.6})`);
+  assert.equal(vFam.pass, false); assert.ok(vFam.fails.some(f => /single-family/.test(f)), 'single-family vote rejected');
+  const vAtr = E(`validateSetup({dir:"CALL",conf:0.9,agree:4,conflict:0,channels:[]},{q:0.8},{thr:0.7,boost:{}},
+    {doji:false,marketOpen:null,minScore:50,ttOpen:20,dataLagMs:0,score:85,grade:"A",famN:3,atrPct:0.2})`);
+  assert.ok(vAtr.fails.some(f => /ATR percentile/.test(f)), 'ATR band gate rejects too-quiet markets');
+  const vM5 = E(`validateSetup({dir:"CALL",conf:0.9,agree:4,conflict:0,channels:[]},{q:0.8},{thr:0.7,boost:{}},
+    {doji:false,marketOpen:null,minScore:50,ttOpen:20,dataLagMs:0,score:85,grade:"A",famN:3,atrPct:0.6,m5:"PUT"})`);
+  assert.ok(vM5.fails.some(f => /M5 bias conflict/.test(f)), 'M5 confirmation veto works');
+  const vSess = E(`validateSetup({dir:"CALL",conf:0.9,agree:4,conflict:0,channels:[]},{q:0.8},{thr:0.7,boost:{}},
+    {doji:false,marketOpen:null,minScore:50,ttOpen:20,dataLagMs:0,score:85,grade:"A",famN:3,atrPct:0.6,sessOk:false,sessReason:"dead session hours"})`);
+  assert.ok(vSess.fails.some(f => /dead session/.test(f)), 'session gate blocks signals');
+
+  /* ── 13c. lead time: prediction lands in the PREVIOUS minute ───── */
+  assert.equal($id('leadSec').value, '30', 'default lead 30s');
+  $id('leadSec').value = '45';
+  assert.equal(E('leadSecOf()'), 45);
+  assert.equal(E('shouldAutoFire(45,29,28,45,false)'), true, 'fires at 45s left with lead 45');
+  assert.equal(E('shouldAutoFire(46,29,28,45,false)'), false, 'not before the lead window');
+  assert.equal(E('shouldAutoFire(45,29,29,45,false)'), false, 'one fire per minute');
+  assert.equal(E('shouldAutoFire(45,29,28,45,true)'), false, 'never double-scan while busy');
+  $id('leadSec').value = '30';
+
+  /* ── 13d. one-hour list window ──────────────────────────────────── */
+  assert.ok(E('batchWindowLeft({status:"active",startedAt:Date.now()-60000},Date.now())') > 3500000, 'fresh window ~60 min');
+  assert.equal(E('batchWindowLeft({status:"active",startedAt:Date.now()-3610000},Date.now())'), 0, 'window elapsed → 0');
+  assert.equal(E('batchWindowLeft({status:"idle",startedAt:0},Date.now())'), null, 'no window when idle');
+  E(`batch.status="active"; batch.startedAt=Date.now()-3610000; batch.rows=[];`);
+  E(`batchCollect({tf:"M1",pair:"EUR/USD",time:"12:00",dir:"CALL",targetT:Date.now()+60000,score:99,grade:"A+",agree:5,conflict:0,ev:1})`);
+  assert.equal(E('batch.rows.length'), 0, 'expired window collects nothing');
+  assert.notEqual(E('batch.status'), 'active', 'expired window auto-closes');
+  E(`batch.status="idle"; batch.startedAt=0`);
+
+  /* ── 13e. bot stream: signal → verification → sticker, gated ────── */
+  E('tg.botAuto=true');
+  const bc0 = calls;
+  E(`botDispatch({id:501,pair:"EUR/USD",tf:"M1",time:"12:00",dir:"CALL",grade:"A",score:88})`);
+  assert.ok($id('botRows').querySelector('.sig-row'), 'bot stream shows the signal row');
+  assert.equal(calls, bc0, 'no bot send while unauthorized');
+  E('tg.auth=true;tgRender()');
+  w.fetch = async () => { calls++; return jsonResponse({ ok: true, result: true }); };
+  E(`botDispatch({id:502,pair:"EUR/USD",tf:"M1",time:"12:01",dir:"PUT",grade:"A",score:88})`);
+  await new Promise(r => setTimeout(r, 700));
+  assert.ok(calls > bc0, 'authorized bot signal sent');
+  const bc1 = calls;
+  await E(`botSettleVerify({id:502,tf:"M1",pair:"EUR/USD",time:"12:01",dir:"PUT"},true)`);
+  assert.ok(calls > bc1, 'verification sent on settle');
+  assert.equal($id('botmk-502').textContent, '✅', 'bot row ticks on verification');
+  E('tg.botAuto=false');
+
+  /* ── 13f. public channel: privacy filter enforced ───────────────── */
+  assert.match(E(`sanitizePublic("bot 123456789:AAFdeadbeefdeadbeefdeadbeefdeadbeef ok")`), /redacted-token/, 'token redacted');
+  assert.match(E(`sanitizePublic("mail me a@b.example.com please")`), /redacted-email/, 'email redacted');
+  assert.match(E(`sanitizePublic("chat -1001234567890 here")`), /redacted-id/, 'numeric id redacted');
+  assert.match(E(`sanitizePublic("key 0123456789abcdef0123456789abcdef leak")`), /redacted-key/, '32-hex key redacted');
+  E(`tg.pubChat="@comm"`);
+  const bodies = [];
+  w.fetch = async (url, opts) => { calls++; bodies.push(String((opts && opts.body) || '')); return jsonResponse({ ok: true, result: true }); };
+  assert.equal(await E(`pubPost("leak 123456789:AAFdeadbeefdeadbeefdeadbeefdeadbeef now")`), true);
+  assert.ok(bodies.length && bodies[bodies.length - 1].includes('redacted-token'), 'posted text is redacted');
+  assert.ok(!bodies[bodies.length - 1].includes('AAFdeadbeef'), 'raw token never leaves the machine');
+  const bc2 = calls;
+  assert.equal(await E(`pubPost("123456789:AAFdeadbeefdeadbeefdeadbeefdeadbeef")`), false, 'sensitive-only post refused');
+  assert.equal(calls, bc2, 'refused post sent nothing');
+  E(`tg.pubChat=""`);
+
+  /* ── 13g. captured style templates ──────────────────────────────── */
+  assert.equal(E(`entToHtml('ab cd',[{type:'bold',offset:3,length:2}])`), 'ab <b>cd</b>', 'entities → safe HTML');
+  const tpl = { text: '📊 PIRATE LIST\nDATE 01-01-2026 · UTC+6:00\nM1;EURUSD•14:30;CALL ⏳\nWin (0) Loss (0)', entities: [{ type: 'bold', offset: 0, length: 6 }] };
+  const tplOut = E(`applyTpl(${JSON.stringify(tpl)}, ${JSON.stringify([{ pair: 'EUR/USD', time: '15:30', dir: 'PUT', win: null }])}, ${JSON.stringify({ date: '14-10-2026', tz: 'UTC+5:30', w: 3, l: 1 })})`);
+  assert.ok(tplOut.includes('M1;EURUSD•15:30;PUT'), 'template rows carry live values');
+  assert.ok(tplOut.includes('14-10-2026') && tplOut.includes('UTC+5:30'), 'template header carries live date/tz');
+  assert.ok(tplOut.includes('Win (3)') && tplOut.includes('Loss (1)'), 'template summary carries live counts');
+  E(`tg.listTpl=${JSON.stringify(tpl)}; batch.rows=[{pair:"EUR/USD",tf:"M1",time:"15:30",dir:"PUT",targetT:5,win:null,grade:"A"}]`);
+  assert.ok(E('msgList()').includes('EURUSD•15:30;PUT'), 'msgList adopts the captured style');
+  E('tg.listTpl=null; batch.rows=[]');
+
   /* ── 14. M1, M3 and prediction list stay separate ─────────────── */
   assert.ok($id('liveRowsM1') !== $id('liveRowsM3') && $id('liveRowsM3') !== $id('predRows'), 'three distinct streams');
   E(`addRow('EUR/USD','12:00','CALL',901,'A','M1',80)`);
@@ -287,7 +379,9 @@ async function main() {
   assert.deepEqual(errors, [], 'no DOM/runtime errors across the whole suite');
   console.log('PASS: boot · DOM refs · font+license · EUR/USD-only · 4 key slots (save/rotate/cooldown) ·');
   console.log('      stale+weekend gates · telegram save+revocation · candle-only scans · diagnostics ·');
-  console.log('      news blackout · M1/M3/list separation · paper mode · legacy migration');
+  console.log('      news blackout · quality gates (session/confluence/ATR/M5) · lead-time auto-fire ·');
+  console.log('      1-hour list window · bot stream (signal→verify→sticker) · public privacy filter ·');
+  console.log('      captured style templates · M1/M3/list separation · paper mode · legacy migration');
   w.close();
 }
 main().catch(e => { console.error(e); process.exitCode = 1; try { w.close(); } catch (_) {} });
