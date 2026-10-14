@@ -1,9 +1,10 @@
-// NEXUS Glass v4.1 — smoke + regression suite (jsdom).
+// NEXUS Glass v4.2.3 — smoke + regression suite (jsdom).
 // Run: npm install && npm test        (run it twice — the suite is idempotent)
 // Covers: clean boot, EUR/USD-only watchlist (no rotation), 4 key slots with
 // one-click browser save + rotation + quota cooldown, candle-only scans
 // (quote/price/exchange_rate are optional diagnostics), stale/weekend candle
-// rejection, manual news blackout, Telegram save + authorization revocation,
+// rejection, feed-clock timezone repair (naive local stamps → UTC), manual
+// news blackout, Telegram save + authorization revocation,
 // M1/M3/list separation, paper/signal-only guards, font + license assets,
 // and full HTML/DOM reference integrity.
 'use strict';
@@ -364,6 +365,46 @@ async function main() {
   assert.ok(!/cp\s+.*\bart\b/.test(wfSrc), 'deploy workflow never copies art');
   assert.ok(!/art\/[A-Za-z0-9_-]+\.(jpg|png|webp)/.test(html), 'no static art references in the public HTML');
 
+  /* ── 13i. feed clock repair: naive local stamps auto-corrected to UTC ── */
+  assert.equal(E('readFeedTz({meta:{"4. Time Zone":"UTC"}})'), 0, 'plain UTC meta → no correction');
+  assert.equal(E('readFeedTz({meta:{"4. Time Zone":"UTC+11"}})'), 660, 'UTC+11 meta detected');
+  assert.equal(E('readFeedTz({meta:{"5. Time Zone":"UTC-04:30"}})'), -270, 'UTC-04:30 meta detected');
+  assert.equal(E('readFeedTz({meta:{timezone:-4.5}})'), -270, 'numeric meta hours detected');
+  assert.equal(E('readFeedTz({values:[]})'), 0, 'missing meta → no correction');
+  E('feedTzOff=660');
+  assert.equal(E('parseCandleUTC("2024-05-01 03:15:00").toISOString()'), '2024-04-30T16:15:00.000Z', 'naive local stamp shifted back to UTC');
+  assert.equal(E('parseCandleUTC("2024-05-01 03:15:00Z").toISOString()'), '2024-05-01T03:15:00.000Z', 'explicit Z stamps untouched');
+  assert.equal(E('parseCandleUTC("2024-05-01 03:15:00+02:00").toISOString()'), '2024-05-01T01:15:00.000Z', 'offset-stamped candles untouched');
+  E('feedTzOff=0');
+  // a key whose feed stamps candles in +11:00 gets the shift applied end-to-end
+  E('cache={}');
+  w.fetch = async (url) => {
+    const u = String(url);
+    const p = candlePayload();
+    if (u.includes('/time_series')) p.meta = { '1. Information': 'M1 candles', '2. Symbol': 'EUR/USD', '3. Last Refreshed': '—', '4. Time Zone': 'UTC+11' };
+    return jsonResponse(p);
+  };
+  await E('runScan(true)');
+  assert.equal(E('feedTzOff'), 660, 'scan detects the feed timezone');
+  assert.equal($id('feedTzNote').style.display, '', 'footer banner shown while the correction is active');
+  assert.match($id('feedTzNote').textContent, /feed clock UTC\+11:00 auto-corrected to UTC/);
+  const tzNewest = E('cache["EUR/USD"].m1[cache["EUR/USD"].m1.length-1]');
+  assert.equal(tzNewest.ts, Date.parse(tzNewest.t.replace(' ', 'T') + 'Z') - 660 * 60000, 'cached candle ts is the local stamp minus the offset');
+  assert.ok(!$id('status').textContent.includes('Error:'), 'scan still completes cleanly with the correction on');
+  // UTC (or absent) meta → identical behaviour, banner hidden
+  E('cache={}; feedTzOff=0');
+  w.fetch = async (url) => {
+    const u = String(url);
+    const p = candlePayload();
+    if (u.includes('/time_series')) p.meta = { '4. Time Zone': 'UTC' };
+    return jsonResponse(p);
+  };
+  await E('runScan(true)');
+  assert.equal(E('feedTzOff'), 0, 'UTC feed → no shift');
+  assert.equal($id('feedTzNote').style.display, 'none', 'banner hidden when the feed is already UTC');
+  const utcNewest = E('cache["EUR/USD"].m1[cache["EUR/USD"].m1.length-1]');
+  assert.equal(utcNewest.ts, Date.parse(utcNewest.t.replace(' ', 'T') + 'Z'), 'UTC feed timestamps unchanged');
+
   /* ── 14. M1, M3 and prediction list stay separate ─────────────── */
   assert.ok($id('liveRowsM1') !== $id('liveRowsM3') && $id('liveRowsM3') !== $id('predRows'), 'three distinct streams');
   E(`addRow('EUR/USD','12:00','CALL',901,'A','M1',80)`);
@@ -424,8 +465,9 @@ async function main() {
   console.log('PASS: boot · DOM refs · font+license · EUR/USD-only · 4 key slots (save/rotate/cooldown) ·');
   console.log('      stale+weekend gates · telegram save+revocation · candle-only scans · diagnostics ·');
   console.log('      news blackout · quality gates (session/confluence/ATR/M5) · lead-time auto-fire ·');
-  console.log('      1-hour list window · bot stream (signal→verify→sticker) · public privacy filter ·');
-  console.log('      captured style templates · M1/M3/list separation · paper mode · legacy migration');
+  console.log('      1-hour list window · feed-clock UTC repair · bot stream (signal→verify→sticker) ·');
+  console.log('      public privacy filter · captured style templates · M1/M3/list separation ·');
+  console.log('      paper mode · legacy migration');
   w.close();
 }
 main().catch(e => { console.error(e); process.exitCode = 1; try { w.close(); } catch (_) {} });
