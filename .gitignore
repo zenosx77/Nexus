@@ -1,0 +1,9 @@
+# never commit real API keys
+keys.js
+
+# local test dependencies
+node_modules/
+
+# editor/system noise
+.DS_Store
+*.swp
