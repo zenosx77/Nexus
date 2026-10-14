@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="NEXUS Glass v4.2.3 — EUR/USD-only, multi-agent, regime-aware M1 + M3 signal engine with paper trading, risk limits and deep backtesting. Signal-only; no live execution.">
+<meta name="description" content="NEXUS Glass v4.2.4 — EUR/USD-only, multi-agent, regime-aware M1 + M3 signal engine with paper trading, risk limits and deep backtesting. Signal-only; no live execution.">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.twelvedata.com https://api.telegram.org; img-src data: https:; font-src 'self'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
-<title>NEXUS Glass v4.2.3 — Straw-Hat Edition · EUR/USD Signal & Paper-Trading System</title>
+<title>NEXUS Glass v4.2.4 — Straw-Hat Edition · EUR/USD Signal & Paper-Trading System</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2300c6ff'/><stop offset='1' stop-color='%23b57fff'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%230b1220'/><text x='50' y='70' font-size='58' text-anchor='middle' fill='url(%23g)' font-family='Arial' font-weight='900'>N</text></svg>">
 <style>
   /* ── Self-hosted typeface: Inter Variable (latin subset, wght 100-900).
@@ -210,7 +210,7 @@
       <rect x="15" y="33" width="34" height="7" rx="3.5" fill="#c62828"/>
       <path d="M8 40 q24 11 48 0" stroke="#a97b2f" stroke-width="2.5" fill="none"/>
     </svg></div>
-    <div><h1>NEXUS</h1><p>Glass v4.2.3 · Straw-Hat edition · EUR/USD only · M1 + M3 · paper-first · capital preservation</p></div>
+    <div><h1>NEXUS</h1><p>Glass v4.2.4 · Straw-Hat edition · EUR/USD only · M1 + M3 · paper-first · capital preservation</p></div>
   </div>
 
   <nav class="secnav" id="secNav" aria-label="Section navigation">
@@ -553,7 +553,7 @@
   <div class="clock" id="clock"></div>
   <div class="mini" id="feedTzNote" style="display:none;margin-top:4px"></div>
   <p class="disclaimer">⚠️ NEXUS never guarantees profits — no system can. It is a decision-support tool in <b>signal-only + paper-trading mode</b>; it does not click, place, or automate real trades.<br>Binary options carry a very high risk of losing money. Preserving capital comes first: respect the daily stop-loss, cooldowns and position limits. Past performance — real or backtested — does not predict future results. Trade responsibly.</p>
-  <div class="ver">NEXUS Glass v4.2.3 · Straw-Hat edition · EUR/USD · M1 + M3 · paper-first · feed-clock repair<br>Typeface: Inter (self-hosted, variable) — © The Inter Project Authors, SIL Open Font License 1.1 · license: assets/fonts/INTER-OFL-LICENSE.txt</div>
+  <div class="ver">NEXUS Glass v4.2.4 · Straw-Hat edition · EUR/USD · M1 + M3 · paper-first · feed-clock repair<br>Typeface: Inter (self-hosted, variable) — © The Inter Project Authors, SIL Open Font License 1.1 · license: assets/fonts/INTER-OFL-LICENSE.txt</div>
 </div>
 
 <script src="keys.js"></script>
@@ -887,12 +887,13 @@ function parseCandleUTC(t){
 }
 
 /* ---------- feed clock repair ----------
-   Some keys/plans receive candle datetimes stamped in the exchange's LOCAL
-   timezone (feed meta "Time Zone": "UTC+11") instead of UTC. Treating those
-   naive stamps as UTC shifts every candle — and every derived signal — by the
-   offset. We read the meta timezone on every candle response and shift naive
-   stamps back to UTC; the footer states the correction while it is active. */
-let feedTzOff=0; /* minutes east of UTC reported by the feed; 0 = already UTC */
+   Some keys/plans receive naive candle datetimes stamped in an exchange-local
+   clock, even when the response meta says "UTC". A naive newest stamp clearly
+   in the future is stronger evidence than meta: infer its offset on the
+   15-minute timezone grid and shift it back to UTC. Meta remains the fallback.
+   Small future leads are left alone so real device-clock drift is still
+   reported by candleGate instead of being silently "fixed". */
+let feedTzOff=0; /* minutes east of UTC used for naive stamps; 0 = already UTC */
 function readFeedTz(j){
   const m=j&&j.meta;
   if(!m||typeof m!=='object') return 0;
@@ -903,6 +904,31 @@ function readFeedTz(j){
   const mm=String(raw).match(/([+-])(\d{1,2})(?::?(\d{2}))?/); /* explicit offset only — a plain "UTC" stays 0 */
   if(!mm) return 0;
   return (mm[1]==='-'?-1:1)*(parseInt(mm[2],10)*60+parseInt(mm[3]||'0',10));
+}
+function newestNaiveFeedMs(j){
+  if(!j||!Array.isArray(j.values)) return NaN;
+  let newest=NaN;
+  for(const v of j.values){
+    const s=String(v&&v.datetime||'').trim();
+    if(!s||/Z$/.test(s)||/[+-]\d{2}:?\d{2}$/.test(s)) continue;
+    const ms=new Date(s.replace(' ','T')+'Z').getTime();
+    if(isFinite(ms)&&(!isFinite(newest)||ms>newest)) newest=ms;
+  }
+  return newest;
+}
+function inferFeedTz(j,nowMs){
+  const newest=newestNaiveFeedMs(j), now=nowMs===undefined?Date.now():nowMs;
+  const lead=newest-now;
+  if(!isFinite(lead)||lead<=30*60000) return 0;
+  const off=Math.round(lead/(15*60000))*15; /* includes real :30 and :45 zones */
+  return off>0&&off<=14*60?off:0;
+}
+function resolveFeedTz(j,nowMs){
+  const newest=newestNaiveFeedMs(j), now=nowMs===undefined?Date.now():nowMs;
+  const lead=newest-now, inferred=inferFeedTz(j,now);
+  if(inferred) return inferred;              /* data clock beats contradictory meta */
+  if(isFinite(lead)&&lead>0&&lead<=30*60000) return 0; /* expose clock drift to the gate */
+  return readFeedTz(j);                      /* no clear data-clock signal: trust meta */
 }
 function feedTzLabel(){ const a=Math.abs(feedTzOff);
   return 'UTC'+(feedTzOff>=0?'+':'−')+Math.floor(a/60)+':'+pad(a%60); }
@@ -1031,7 +1057,7 @@ async function apiTimeSeries(pair){
   const k=requireKey();
   const t0=Date.now();
   const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=1min&outputsize=360&apikey=${encodeURIComponent(k.v)}`,k);
-  setFeedTz(readFeedTz(j)); /* set BEFORE parsing — naive stamps are corrected by the current feed offset */
+  setFeedTz(resolveFeedTz(j)); /* infer from candle clock before parsing; meta is fallback */
   if(!Array.isArray(j.values)||!j.values.length) throw new Error('unexpected time_series shape');
   const m1=j.values.map(v=>({t:v.datetime,ts:parseCandleUTC(v.datetime).getTime(),o:+v.open,h:+v.high,l:+v.low,c:+v.close})).reverse();
   if(m1.length<40) throw new Error('too few candles');
@@ -1051,7 +1077,7 @@ async function apiM5Bias(pair){ /* candle-feed only (time_series 5min) — highe
   if(ck&&Date.now()-ck.t<50000) return ck.bias;
   const k=requireKey();
   const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=5min&outputsize=80&apikey=${encodeURIComponent(k.v)}`,k);
-  setFeedTz(readFeedTz(j)); /* same feed, same clock — keep the correction current */
+  setFeedTz(resolveFeedTz(j)); /* same feed, same clock — keep the correction current */
   if(!Array.isArray(j.values)||j.values.length<40) throw new Error('m5: too few candles');
   const cl=j.values.map(v=>+v.close).reverse();
   const e9=ema(cl,9), e21=ema(cl,21);
@@ -1735,7 +1761,7 @@ async function deepBacktest(){
   try{
     const k=requireKey();
     const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=1min&outputsize=5000&apikey=${encodeURIComponent(k.v)}`,k);
-    setFeedTz(readFeedTz(j)); /* backtest candles obey the same feed clock */
+    setFeedTz(resolveFeedTz(j)); /* backtest candles obey the same feed clock */
     if(!Array.isArray(j.values)||j.values.length<200) throw new Error('not enough history returned');
     const fetchedAt=Date.now();
     const m1=j.values.map(v=>({t:v.datetime,ts:parseCandleUTC(v.datetime).getTime(),o:+v.open,h:+v.high,l:+v.low,c:+v.close})).reverse();
@@ -2006,7 +2032,8 @@ function feedScanRender(pair,lead){ /* scan path — updates ONLY the candle cel
   $('f_ts').textContent=lead?('✅ '+lead.m1.length+' M1 · '+lead.m3.length+' M3'):'❌ no candles';
   const g=lead?candleGate(lead.m1):{ok:false,reason:'no candles'};
   const last=lead&&lead.m1.length?lead.m1[lead.m1.length-1]:null;
-  $('pxinfo').textContent=pair+(last?(' · last candle '+last.t+(g.ok?' · ✅ fresh':(' · ⛔ '+g.reason))):' · ⛔ '+g.reason);
+  const stamp=last&&feedTzOff?new Date(last.ts).toISOString().slice(0,19).replace('T',' ')+' UTC':last&&last.t;
+  $('pxinfo').textContent=pair+(last?(' · last candle '+stamp+(g.ok?' · ✅ fresh':(' · ⛔ '+g.reason))):' · ⛔ '+g.reason);
 }
 function feed4Render(pair,q,p,er,lead){ /* diagnostics path — optional, VERIFY button only */
   $('f_ts').textContent=lead?'✅ '+lead.m1.length+' M1 · '+lead.m3.length+' M3':'❌ no candles';
