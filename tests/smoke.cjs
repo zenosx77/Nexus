@@ -1,38 +1,169 @@
-// Run: npm install --no-save --no-package-lock jsdom@26 && node tests/smoke.cjs
+// NEXUS Glass v4.1 — smoke + regression suite (jsdom).
+// Run: npm install && npm test        (run it twice — the suite is idempotent)
+// Covers: clean boot, EUR/USD-only watchlist (no rotation), 4 key slots with
+// one-click browser save + rotation + quota cooldown, candle-only scans
+// (quote/price/exchange_rate are optional diagnostics), stale/weekend candle
+// rejection, manual news blackout, Telegram save + authorization revocation,
+// M1/M3/list separation, paper/signal-only guards, font + license assets,
+// and full HTML/DOM reference integrity.
+'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const { JSDOM, VirtualConsole } = require('jsdom');
-const html = fs.readFileSync('index(1).html', 'utf8');
+
+const FILE = 'index(1).html';
+const html = fs.readFileSync(FILE, 'utf8');
 const inline = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m => m[1]).filter(Boolean);
-assert.equal(inline.length, 1, 'one inline application script');
-const errors = [];
-const vc = new VirtualConsole();
-vc.on('jsdomError', e => errors.push(e.message));
-const dom = new JSDOM(html, {
-  url: 'https://example.test/', runScripts: 'outside-only', virtualConsole: vc,
-  beforeParse(w) {
-    w.setInterval = () => 1;
-    w.confirm = () => true;
+assert.equal(inline.length, 1, 'exactly one inline application script');
+
+function boot(seedStorage) {
+  const errors = [];
+  const vc = new VirtualConsole();
+  vc.on('jsdomError', e => errors.push(e.message));
+  const dom = new JSDOM(html, {
+    url: 'https://example.test/', runScripts: 'outside-only', virtualConsole: vc,
+    beforeParse(w) {
+      w.setInterval = () => 1;           // never fire timers during tests
+      w.confirm = () => true;
+      if (seedStorage) for (const [k, v] of Object.entries(seedStorage)) w.localStorage.setItem(k, v);
+    },
+  });
+  const context = dom.getInternalVMContext();
+  vm.runInContext(inline[0], context);
+  const E = expr => vm.runInContext(expr, context);
+  return { dom, w: dom.window, E, errors, doc: dom.window.document };
+}
+
+/* deterministic fresh EUR/USD candle payload, Twelve Data shape (newest first) */
+function candlePayload(n = 360) {
+  const startMin = Math.floor(Date.now() / 60000) * 60000;
+  const values = [];
+  for (let i = 0; i < n; i++) {
+    const t = new Date(startMin - i * 60000);
+    const dt = t.toISOString().slice(0, 19).replace('T', ' ');
+    const p = 1.1 + 0.0009 * Math.sin(i / 9) + 0.0003 * Math.sin(i / 2.7) + 0.0002 * Math.sin(i / 23);
+    const o = +p.toFixed(5), c = +(p + 0.00012 * Math.sin(i / 1.3)).toFixed(5);
+    const h = +(Math.max(o, c) + 0.00006).toFixed(5), l = +(Math.min(o, c) - 0.00006).toFixed(5);
+    values.push({ datetime: dt, open: String(o), high: String(h), low: String(l), close: String(c) });
   }
-});
-const { window: w } = dom;
-const context = dom.getInternalVMContext();
-vm.runInContext(inline[0], context);
-assert.deepEqual(errors, [], 'application boots without DOM/runtime errors');
-const E = expr => vm.runInContext(expr, context);
+  return { values };
+}
+function jsonResponse(obj) { return { status: 200, json: async () => obj }; }
+
+const { w, E, errors, doc, dom } = boot();
+const $id = id => doc.getElementById(id);
+
 async function main() {
+  /* ── 1. clean boot ───────────────────────────────────────────── */
+  assert.deepEqual(errors, [], 'application boots without DOM/runtime errors');
+
+  /* ── 2. HTML/DOM reference integrity ─────────────────────────── */
+  // every literal $('id') in the inline script must exist in the booted DOM
+  const jsIds = new Set([...inline[0].matchAll(/\$\('([^']+)'\)/g)].map(m => m[1]));
+  const missing = [...jsIds].filter(id => !$id(id));
+  assert.deepEqual(missing, [], 'all JS-referenced element ids exist in the DOM');
+  // every onclick="fn(...)" must reference a defined function
+  const fns = new Set([...html.matchAll(/onclick="(\w+)\(/g)].map(m => m[1]));
+  for (const fn of fns) assert.equal(E(`typeof ${fn}`), 'function', `onclick handler ${fn}() is defined`);
+  // every in-page anchor (section nav etc.) must have a target
+  for (const a of doc.querySelectorAll('a[href^="#"]')) {
+    const h = a.getAttribute('href');
+    if (h === '#') continue;                       // in-card action links
+    assert.ok($id(h.slice(1)), `anchor target ${h} exists`);
+  }
+  // section navigation covers the main cards
+  assert.ok($id('secNav'), 'section nav present');
+  assert.ok(doc.querySelectorAll('#secNav a').length >= 12, 'section nav has clear links');
+  for (const s of ['sec-keys', 'sec-feeds', 'sec-scan', 'sec-m1', 'sec-m3', 'sec-list', 'sec-tg', 'sec-paper', 'sec-bt'])
+    assert.ok($id(s), `section id ${s} exists`);
+
+  /* ── 3. self-hosted font + license shipped with the site ─────── */
+  assert.ok(html.includes("url('assets/fonts/inter-latin-wght-normal.woff2')"), '@font-face points at the self-hosted file');
+  assert.ok(fs.existsSync('assets/fonts/inter-latin-wght-normal.woff2'), 'font file exists in repo');
+  const lic = fs.readFileSync('assets/fonts/INTER-OFL-LICENSE.txt', 'utf8');
+  assert.ok(lic.includes('SIL OPEN FONT LICENSE Version 1.1'), 'OFL 1.1 license included');
+  assert.ok(lic.includes('Inter Project Authors'), 'license names the Inter authors');
+  assert.ok(html.includes("font-src 'self'"), 'CSP allows self-hosted fonts only');
+  assert.ok(!/fonts\.(googleapis|gstatic)\.com/.test(html), 'no external font CDN references');
+
+  /* ── 4. EUR/USD only, no pair rotation ───────────────────────── */
+  assert.equal(E('JSON.stringify(PAIRS)'), '["EUR/USD"]', 'EUR/USD is the only pair');
+  assert.equal($id('btPair').options.length, 1, 'backtest pair list has EUR/USD only');
+  assert.equal($id('btPair').options[0].value, 'EUR/USD');
+  assert.equal(doc.querySelectorAll('#watch input').length, 1, 'watchlist has a single pair');
+  assert.equal(doc.querySelector('#watch input').checked, true, 'EUR/USD ticked by default');
+  assert.ok(!/rrIdx/.test(inline[0]), 'pair-rotation index removed from the code');
+  const scanSrc = E('runScan.toString()');
+  assert.ok(!/rrIdx|rotation/.test(scanSrc), 'runScan contains no rotation logic');
+  assert.ok(!/apiQuote|apiPrice|apiRate/.test(scanSrc), 'runScan never calls the diagnostic feeds');
+  assert.ok(/apiTimeSeries/.test(scanSrc), 'runScan uses the candle feed');
+
+  /* ── 5. legacy boot state + core primitives ──────────────────── */
   assert.equal(E('tgReady()'), false);
   assert.equal(E('tgMatchesChat({id:123})'), false);
   assert.equal(E('tzLabel()').startsWith('UTC'), true);
   assert.equal(E('candleOutcome("EUR/USD","M1","CALL",60000)'), null);
-  assert.equal(E('keyPool().length'), 0, 'no real keys in public build');
+  assert.equal(E('keyPool().length'), 0, 'no real keys in the public build');
   assert.equal(E('batch.status'), 'idle');
-  assert.ok(w.document.getElementById('liveRowsM1'));
-  assert.ok(w.document.getElementById('liveRowsM3'));
-  assert.ok(w.document.getElementById('predRows'));
-  let calls = 0;
-  w.fetch = async () => { calls++; return {json: async () => ({ok:true,result:true})}; };
+  assert.ok($id('liveRowsM1') && $id('liveRowsM3') && $id('predRows'));
+  assert.match($id('liveRowsM1').textContent, /No live M1 signals yet/, 'M1 empty state');
+  assert.match($id('liveRowsM3').textContent, /No live M3 signals yet/, 'M3 empty state');
+  assert.equal(E('blackoutOn()'), false, 'news blackout defaults to OFF');
+
+  /* ── 6. four key slots: one-click save → browser storage ─────── */
+  for (let i = 1; i <= 4; i++) $id('key' + i).value = 'td-key-' + i;
+  assert.equal(E('saveKeys()'), true, 'one-click save succeeds');
+  assert.deepEqual(JSON.parse(w.localStorage.getItem('nx_keys4')),
+    ['td-key-1', 'td-key-2', 'td-key-3', 'td-key-4'], 'slots persisted to localStorage');
+  assert.equal(E('keyPool().length'), 4, 'pool holds all four saved slots');
+  assert.equal(E('JSON.stringify(keyPool().map(k=>k.src))'), '["slot1","slot2","slot3","slot4"]');
+  // duplicates are rejected, previous slots stay intact
+  $id('key2').value = 'td-key-1';
+  assert.equal(E('saveKeys()'), false, 'duplicate keys across slots rejected');
+  assert.ok($id('vaultMsg').textContent.includes('duplicate'), 'duplicate explained to the user');
+  assert.equal(E('keyPool().length'), 4, 'rejected save changed nothing');
+  // masked display never leaks full keys
+  assert.ok(!$id('vaultInfo').textContent.includes('td-key-1'), 'vault display masks keys');
+
+  /* ── 7. rotation + quota cooldown ────────────────────────────── */
+  E('keyIdx=0');
+  assert.equal(E('nextKey().v'), 'td-key-1');
+  assert.equal(E('nextKey().v'), 'td-key-2', 'rotation advances');
+  E('keyIdx=2; markKeyLimited("td-key-3")');
+  assert.equal(E('nextKey().v'), 'td-key-4', 'quota-limited key is skipped (cooldown)');
+  E('keyIdx=2; keyHealth["td-key-3"].until=Date.now()-1');
+  assert.equal(E('nextKey().v'), 'td-key-3', 'key returns after cooldown expires');
+  E('keyHealth["td-key-3"].until=0');
+
+  /* ── 8. stale / weekend candle rejection (pure gates) ────────── */
+  assert.equal(E('isWeekendWindow(new Date("2026-10-14T12:00:00Z"))'), false, 'Wednesday: open');
+  assert.equal(E('isWeekendWindow(new Date("2026-10-16T21:59:00Z"))'), false, 'Friday 21:59 UTC: open');
+  assert.equal(E('isWeekendWindow(new Date("2026-10-16T22:01:00Z"))'), true, 'Friday 22:01 UTC: closed');
+  assert.equal(E('isWeekendWindow(new Date("2026-10-17T12:00:00Z"))'), true, 'Saturday: closed');
+  assert.equal(E('isWeekendWindow(new Date("2026-10-18T10:00:00Z"))'), true, 'Sunday morning: closed');
+  assert.equal(E('isWeekendWindow(new Date("2026-10-18T23:00:00Z"))'), false, 'Sunday 23:00 UTC: open');
+  const fresh = E(`(()=>{const m=[];const now=Date.now();const start=Math.floor(now/60000)*60000;
+    for(let i=0;i<10;i++)m.push({ts:start-i*60000,o:1,h:1,l:1,c:1,t:"x"});return m.reverse();})()`);
+  assert.equal(E('candleGate(' + JSON.stringify(fresh) + ').ok'), true, 'fresh candles pass the gate');
+  const stale = fresh.map(b => ({ ...b, ts: b.ts - 10 * 60000 }));
+  const gStale = E('candleGate(' + JSON.stringify(stale) + ')');
+  assert.equal(gStale.ok, false); assert.match(gStale.reason, /stale/i, 'stale candles rejected');
+  const future = fresh.map(b => ({ ...b, ts: b.ts + 60 * 60000 }));
+  assert.match(E('candleGate(' + JSON.stringify(future) + ').reason'), /future/i, 'future timestamps rejected');
+  const satFresh = fresh; // same freshness, but evaluated at a Saturday timestamp
+  const gWknd = E(`candleGate(${JSON.stringify(satFresh)}, new Date("2026-10-17T12:00:00Z"))`);
+  assert.equal(gWknd.ok, false); assert.match(gWknd.reason, /weekend/i, 'weekend candles rejected even if "fresh"');
+  // gate failure flows through validation → no pass
+  const vdGate = E(`validateSetup({dir:"CALL",conf:0.9,agree:4,conflict:0,channels:[]},{q:0.8},
+    {thr:0.7,boost:{}},{doji:false,marketOpen:null,minScore:50,ttOpen:20,dataLagMs:0,score:80,grade:"A",
+     gate:{ok:false,reason:"stale candles — test"}})`);
+  assert.equal(vdGate.pass, false);
+  assert.ok(vdGate.fails.some(f => /stale candles/.test(f)), 'gate reason surfaces in validation fails');
+
+  /* ── 9. Telegram transport authorization (unchanged strictness) ─ */
+  let calls = 0, lastUrl = '';
+  w.fetch = async (url) => { calls++; lastUrl = String(url); return jsonResponse({ ok: true, result: true }); };
   await assert.rejects(E('tgCall("sendMessage",{chat_id:"123",text:"hi"})'), /no bot token/);
   assert.equal(calls, 0, 'no unauthenticated network send');
   E('tg.token="test-token";tg.chatId="123"');
@@ -40,11 +171,123 @@ async function main() {
   assert.equal(calls, 0);
   E('tg.auth=true');
   assert.equal(E('tgMatchesChat({id:123})'), true);
-  assert.equal(E('tgMatchesChat({id:999})'), false);
+  assert.equal(E('tgMatchesChat({id:999})'), false, 'other chats are isolated');
   await E('tgCall("sendMessage",{chat_id:"123",text:"hi"})');
-  assert.equal(calls, 1);
-  assert.deepEqual(errors, []);
-  console.log('PASS: boot, streams, keys, settlement, authorization, chat isolation, Telegram transport');
+  assert.equal(calls, 1); assert.ok(lastUrl.includes('api.telegram.org'));
+
+  /* ── 10. Telegram: easy save + revocation on token/chat change ── */
+  // one-click save persists token/chat/brand and revokes changed credentials
+  E('tg.auth=false');
+  $id('tgToken').value = 'tok-1'; $id('tgChat').value = '@chan1'; $id('tgBrand').value = 'BRANDX';
+  assert.equal(E('tgSaveSettings()'), true);
+  assert.equal(E('tg.token'), 'tok-1'); assert.equal(E('tg.chatId'), '@chan1'); assert.equal(E('tg.brand'), 'BRANDX');
+  assert.ok(w.localStorage.getItem('nx_tg').includes('BRANDX'), 'settings persisted to browser storage');
+  // authorize, then change the token → authorization must be revoked
+  E('tg.auth=true;tgRender()');
+  $id('tgToken').value = 'tok-2';
+  $id('tgToken').dispatchEvent(new w.Event('change'));
+  assert.equal(E('tg.auth'), false, 'token change revokes authorization');
+  assert.equal($id('tgAuth').checked, false, 'AUTH toggle flips off');
+  assert.match(E('tg.log[0]'), /REVOKED/, 'revocation is logged');
+  // re-authorize, then change destination chat → revoked again
+  E('tg.auth=true;tgRender()');
+  $id('tgChat').value = '999';
+  $id('tgChat').dispatchEvent(new w.Event('change'));
+  assert.equal(E('tg.auth'), false, 'chat change revokes authorization');
+  // invalid chat format is refused and changes nothing
+  E('tg.auth=true;tg.chatId="999";tgRender()');
+  $id('tgChat').value = '!!bad!!';
+  $id('tgChat').dispatchEvent(new w.Event('change'));
+  assert.equal(E('tg.auth'), true, 'invalid input cannot strip authorization silently');
+  assert.equal(E('tg.chatId'), '999');
+  // saving identical settings keeps authorization (no needless revocation)
+  $id('tgToken').value = E('tgToken()'); $id('tgChat').value = '999';
+  assert.equal(E('tgSaveSettings()'), true);
+  assert.equal(E('tg.auth'), true, 'unchanged save keeps authorization');
+  // with authorization revoked, nothing leaves the machine
+  const before = calls;
+  E('tg.auth=false');
+  await assert.rejects(E('tgSend("hi")'), /not authorized/i);
+  assert.equal(calls, before, 'revoked token/chat → zero sends');
+
+  /* ── 11. normal scans hit ONLY the candle endpoint ────────────── */
+  E('cache={}');                                   // force a fresh fetch
+  E('isWeekendWindow=()=>false');                  // make the scan test date-independent
+  const urls = [];
+  w.fetch = async (url) => { urls.push(String(url)); return jsonResponse(candlePayload()); };
+  await E('runScan(true)');
+  assert.ok(urls.length >= 1, 'scan fetched market data');
+  assert.ok(urls.every(u => u.includes('/time_series')), 'every scan request is a candle request');
+  assert.ok(!urls.some(u => /\/(quote|price|exchange_rate)\?/.test(u)), 'no diagnostic feeds during normal scans');
+  assert.equal(E('credits'), 1, 'one scan = one credit');
+  assert.ok(!$id('status').textContent.includes('Error:'), 'scan finished without error');
+  assert.ok($id('f_q').textContent.includes('not checked'), 'diagnostic cells untouched by scans');
+  assert.match($id('pxinfo').textContent, /fresh|stale|weekend/, 'candle freshness is surfaced');
+
+  /* ── 12. optional diagnostics still check all four feeds ─────── */
+  E('cache={}');
+  const durls = [];
+  w.fetch = async (url) => {
+    const u = String(url); durls.push(u);
+    if (u.includes('/time_series')) return jsonResponse(candlePayload());
+    if (u.includes('/quote')) return jsonResponse({ close: '1.10000', percent_change: '0.05', is_market_open: true });
+    if (u.includes('/price')) return jsonResponse({ price: '1.10000' });
+    return jsonResponse({ exchange_rate: '1.10000' });
+  };
+  await E('verifyFeeds()');
+  for (const ep of ['time_series', 'quote', 'price', 'exchange_rate'])
+    assert.ok(durls.some(u => u.includes('/' + ep + '?')), `diagnostics still verify ${ep} on demand`);
+  assert.match($id('status').textContent, /Diagnostics: all 4 feeds live/);
+
+  /* ── 13. manual news blackout blocks new signals ──────────────── */
+  $id('blackout').checked = true;
+  $id('blackout').dispatchEvent(new w.Event('change'));
+  assert.equal(E('blackoutOn()'), true);
+  assert.equal(w.localStorage.getItem('nx_blackout'), '1', 'blackout persists in browser storage');
+  E('cache={}');
+  w.fetch = async (url) => { urls.push(String(url)); return jsonResponse(candlePayload()); };
+  await E('runScan(true)');
+  assert.match($id('status').textContent, /blackout/i, 'scan reports the blackout');
+  assert.match($id('validChips').textContent, /news blackout/i, 'validation shows the blackout chip');
+  E('renderValidation({pass:true,fails:[],warns:[],ev:0.1},{ok:true,reason:"ok"},false,{dir:"CALL"})');
+  assert.match($id('validChips').textContent, /news blackout/, 'chip shown even when all else passes');
+  $id('blackout').checked = false;
+  $id('blackout').dispatchEvent(new w.Event('change'));
+  assert.equal(E('blackoutOn()'), false);
+  assert.equal(w.localStorage.getItem('nx_blackout'), '0');
+
+  /* ── 14. M1, M3 and prediction list stay separate ─────────────── */
+  assert.ok($id('liveRowsM1') !== $id('liveRowsM3') && $id('liveRowsM3') !== $id('predRows'), 'three distinct streams');
+  E(`addRow('EUR/USD','12:00','CALL',901,'A','M1',80)`);
+  E(`addRow('EUR/USD','12:03','PUT',902,'A','M3',81)`);
+  assert.ok($id('mk-901') && $id('liveRowsM1').contains($id('mk-901')), 'M1 row lands in the M1 stream');
+  assert.ok($id('mk-902') && $id('liveRowsM3').contains($id('mk-902')), 'M3 row lands in the M3 stream');
+  assert.ok(!$id('liveRowsM1').contains($id('mk-902')), 'streams do not mix');
+  assert.equal($id('predRows').querySelectorAll('.pred-row').length, 0, 'list is fed only by batch collection');
+  assert.ok(!$id('liveRowsM1').querySelector('.empty-note'), 'empty placeholder cleared on first signal');
+
+  /* ── 15. signal-only / paper mode preserved ───────────────────── */
+  assert.equal(E('typeof paperResolve'), 'function');
+  assert.equal(E('paper.halted'), false);
+  assert.match(html, /signal-only \+ paper-trading mode|paper-trade only/i, 'disclaimer still states paper mode');
+  assert.ok(!/placeOrder|brokerConnect|executeLive/i.test(inline[0]), 'no live-execution hooks introduced');
+
+  /* ── 16. legacy single-key migration on a fresh boot ──────────── */
+  const b2 = boot({ td_key: 'legacy-key-123', nx_watch: JSON.stringify(['GBP/USD', 'EUR/USD', 'USD/JPY']) });
+  assert.deepEqual(b2.errors, [], 'legacy boot is clean');
+  const pool2 = b2.E('keyPool()');
+  assert.equal(pool2.length, 1, 'legacy key migrated into the slot pool');
+  assert.equal(pool2[0].v, 'legacy-key-123');
+  assert.equal(pool2[0].src, 'slot1', 'legacy key lands in slot 1');
+  assert.equal(b2.w.localStorage.getItem('td_key'), '', 'legacy store key retired');
+  assert.equal(b2.doc.getElementById('key1').value, 'legacy-key-123', 'slot input pre-filled');
+  assert.equal(b2.E('JSON.stringify(watch())'), '["EUR/USD"]', 'legacy multi-pair watchlist collapsed to EUR/USD');
+  b2.w.close();
+
+  assert.deepEqual(errors, [], 'no DOM/runtime errors across the whole suite');
+  console.log('PASS: boot · DOM refs · font+license · EUR/USD-only · 4 key slots (save/rotate/cooldown) ·');
+  console.log('      stale+weekend gates · telegram save+revocation · candle-only scans · diagnostics ·');
+  console.log('      news blackout · M1/M3/list separation · paper mode · legacy migration');
   w.close();
 }
-main().catch(e => {console.error(e);process.exitCode=1;w.close();});
+main().catch(e => { console.error(e); process.exitCode = 1; try { w.close(); } catch (_) {} });

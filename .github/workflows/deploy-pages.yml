@@ -2,7 +2,7 @@ name: Deploy NEXUS to GitHub Pages
 
 on:
   push:
-    branches: [arena/ca90ad29-nexus]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -30,9 +30,13 @@ jobs:
       - run: npm test
       - name: Prepare public site
         run: |
-          mkdir -p public
+          mkdir -p public/assets/fonts
           cp 'index(1).html' public/index.html
-          # No keys.js or other secrets may be included in the public site.
+          # Self-hosted font + its OFL license ship with the site.
+          cp assets/fonts/inter-latin-wght-normal.woff2 public/assets/fonts/
+          cp assets/fonts/INTER-OFL-LICENSE.txt public/assets/fonts/
+      - name: Credential guard (no keys.js, no embedded keys/tokens)
+        run: node tools/check-public.cjs public
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

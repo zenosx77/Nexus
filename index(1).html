@@ -3,17 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="NEXUS Glass v4.0 — multi-agent, regime-aware M1 + M3 signal engine with paper trading, risk limits and deep backtesting. Signal-only; no live execution.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.twelvedata.com https://api.telegram.org; img-src data: https:; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
-<title>NEXUS Glass v4.0 — Multi-Agent Signal & Paper-Trading System</title>
+<meta name="description" content="NEXUS Glass v4.1 — EUR/USD-only, multi-agent, regime-aware M1 + M3 signal engine with paper trading, risk limits and deep backtesting. Signal-only; no live execution.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.twelvedata.com https://api.telegram.org; img-src data: https:; font-src 'self'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+<title>NEXUS Glass v4.1 — EUR/USD Multi-Agent Signal & Paper-Trading System</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2300c6ff'/><stop offset='1' stop-color='%23b57fff'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%230b1220'/><text x='50' y='70' font-size='58' text-anchor='middle' fill='url(%23g)' font-family='Arial' font-weight='900'>N</text></svg>">
 <style>
+  /* ── Self-hosted typeface: Inter Variable (latin subset, wght 100-900).
+        Source: https://github.com/rsms/inter · © The Inter Project Authors.
+        License: SIL Open Font License 1.1 — full text in assets/fonts/INTER-OFL-LICENSE.txt
+        (shipped with this site; no external font requests, works offline). ── */
+  @font-face {
+    font-family:'Inter'; font-style:normal; font-display:swap; font-weight:100 900;
+    src:url('assets/fonts/inter-latin-wght-normal.woff2') format('woff2-variations');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+  }
   :root{
     --glass:linear-gradient(160deg, rgba(255,255,255,.09), rgba(255,255,255,.03));
     --glass-brd:rgba(255,255,255,.13);
     --txt:#e8f0fa; --sub:#93a7c4; --acc:#00c6ff; --win:#00e5a0; --loss:#ff5c7a; --warn:#ffd54f;
   }
-  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,Roboto,Arial,sans-serif; }
+  html { scroll-behavior:smooth; }
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter','Segoe UI',system-ui,Roboto,Arial,sans-serif; }
   body { color:var(--txt); min-height:100vh; padding:16px; background:#05070f; overflow-x:hidden; }
   .orb { position:fixed; border-radius:50%; filter:blur(90px); opacity:.5; z-index:0; pointer-events:none; }
   .o1 { width:420px;height:420px; background:#0b3a6e; top:-140px; left:-120px; }
@@ -137,6 +147,25 @@
   input[type="time"] { color-scheme:dark; }
   .tg-log { max-height:120px; overflow-y:auto; font-family:monospace; font-size:10px; line-height:1.6; }
   .tg-log div { border-bottom:1px solid rgba(255,255,255,.05); padding:2px 0; word-break:break-word; }
+  /* ---- mobile section navigation (sticky jump bar) ---- */
+  .secnav { position:sticky; top:6px; z-index:30; display:flex; gap:6px; overflow-x:auto; align-items:center;
+            padding:8px; margin-bottom:14px; border-radius:16px; border:1px solid var(--glass-brd);
+            background:rgba(7,12,24,.88); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+            box-shadow:0 6px 24px rgba(0,0,0,.45); scrollbar-width:none; -ms-overflow-style:none; }
+  .secnav::-webkit-scrollbar { display:none; }
+  .secnav a { flex:0 0 auto; font-size:11px; font-weight:700; letter-spacing:.6px; text-decoration:none;
+              color:var(--sub); background:rgba(255,255,255,.05); border:1px solid transparent;
+              border-radius:10px; padding:8px 11px; white-space:nowrap; transition:.15s; }
+  .secnav a:active { transform:scale(.95); }
+  .secnav a.active { color:var(--acc); border-color:rgba(0,198,255,.45); background:rgba(0,198,255,.08); }
+  .glass[id] { scroll-margin-top:64px; }
+  /* ---- four-slot key manager ---- */
+  .kslots { display:grid; grid-template-columns:1fr; gap:8px; }
+  .kslot-row { display:flex; gap:8px; align-items:center; }
+  .kslot-row .tag { flex:0 0 34px; text-align:center; font-size:10px; font-weight:800; color:var(--sub);
+                    background:rgba(5,10,20,.5); border:1px solid rgba(255,255,255,.1); border-radius:9px; padding:9px 0; }
+  .kslot-row input { flex:1; margin:0; font-family:monospace; letter-spacing:.5px; }
+  .empty-note { text-align:center; padding:10px 8px; color:var(--sub); font-size:12px; }
 </style>
 </head>
 <body>
@@ -144,31 +173,56 @@
 <div class="wrap">
   <div class="glass header">
     <div class="logo">N</div>
-    <div><h1>NEXUS</h1><p>Glass v4.0 · multi-agent · M1 + M3 · paper-first · capital preservation</p></div>
+    <div><h1>NEXUS</h1><p>Glass v4.1 · EUR/USD only · multi-agent · M1 + M3 · paper-first · capital preservation</p></div>
   </div>
 
-  <div class="glass">
-    <span class="t">🔑 Twelve Data Key</span>
-    <input type="text" id="key" placeholder="Paste your Twelve Data API key" autocomplete="off">
-    <div class="mini" id="vaultInfo" style="margin-top:6px">🔐 loading key vault…</div>
-    <div class="mini">Permanent keys: edit <b>PERMANENT_KEYS</b> at the top of the script (works on every device) or <b>keys.js</b> (private). Free key at <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener">twelvedata.com</a> · field keys stay in your browser</div>
+  <nav class="secnav" id="secNav" aria-label="Section navigation">
+    <a href="#sec-keys">🔑 KEYS</a>
+    <a href="#sec-feeds">📡 FEEDS</a>
+    <a href="#sec-regime">🧭 REGIME</a>
+    <a href="#sec-agents">🤖 AGENTS</a>
+    <a href="#sec-scan">🎯 SCAN</a>
+    <a href="#sec-m1">⚡ M1</a>
+    <a href="#sec-m3">⚡ M3</a>
+    <a href="#sec-list">📊 LIST</a>
+    <a href="#sec-tg">📨 TELEGRAM</a>
+    <a href="#sec-paper">💼 PAPER</a>
+    <a href="#sec-stats">🔥 RESULTS</a>
+    <a href="#sec-perf">📈 PERF</a>
+    <a href="#sec-brain">🧠 BRAIN</a>
+    <a href="#sec-hist">📜 HISTORY</a>
+    <a href="#sec-bt">🔬 BACKTEST</a>
+  </nav>
+
+  <div class="glass" id="sec-keys">
+    <span class="t">🔑 Twelve Data Keys — 4 Slots <button class="b-ghost" id="keyShow" type="button" style="float:right;padding:3px 9px;font-size:10px">👁 SHOW</button></span>
+    <div class="kslots">
+      <div class="kslot-row"><span class="tag">K1</span><input type="password" id="key1" class="kslot" placeholder="API key slot 1" autocomplete="off" spellcheck="false"></div>
+      <div class="kslot-row"><span class="tag">K2</span><input type="password" id="key2" class="kslot" placeholder="API key slot 2 (optional)" autocomplete="off" spellcheck="false"></div>
+      <div class="kslot-row"><span class="tag">K3</span><input type="password" id="key3" class="kslot" placeholder="API key slot 3 (optional)" autocomplete="off" spellcheck="false"></div>
+      <div class="kslot-row"><span class="tag">K4</span><input type="password" id="key4" class="kslot" placeholder="API key slot 4 (optional)" autocomplete="off" spellcheck="false"></div>
+    </div>
+    <button class="b-gen" style="width:100%;margin-top:10px" onclick="saveKeys()">💾 SAVE ALL KEYS (one click · browser only)</button>
+    <div class="mini" id="vaultMsg" role="status" style="margin-top:6px"></div>
+    <div class="mini" id="vaultInfo" style="margin-top:8px">🔐 loading key vault…</div>
+    <div class="mini">Keys rotate automatically; a key that hits its quota cools down for 60s and the next slot takes over. Saved keys live <b>only in this browser</b> (localStorage) and are <b>never committed or uploaded</b>. Optional permanent sources: <b>PERMANENT_KEYS</b> at the top of the script or the private, gitignored <b>keys.js</b>. Free key at <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener">twelvedata.com</a></div>
   </div>
 
-  <div class="glass">
-    <span class="t">📡 Data Feeds — 4 APIs</span>
+  <div class="glass" id="sec-feeds">
+    <span class="t">📡 Market Data — candles + optional diagnostics</span>
     <div class="feed4">
-      <div class="f4">time_series · candles<b id="f_ts">—</b></div>
-      <div class="f4">quote · OHLC+Δ%<b id="f_q">—</b></div>
-      <div class="f4">price · spot tick<b id="f_p">—</b></div>
-      <div class="f4">exchange_rate · cross<b id="f_er">—</b></div>
+      <div class="f4">time_series · candles <span style="color:var(--acc)">(scan feed · 1 credit)</span><b id="f_ts">—</b></div>
+      <div class="f4">quote · OHLC+Δ% <span style="opacity:.7">(diagnostic)</span><b id="f_q">not checked</b></div>
+      <div class="f4">price · spot tick <span style="opacity:.7">(diagnostic)</span><b id="f_p">not checked</b></div>
+      <div class="f4">exchange_rate · cross <span style="opacity:.7">(diagnostic)</span><b id="f_er">not checked</b></div>
     </div>
-    <div class="mini" id="agree" style="margin-top:8px">cross-check: —</div>
+    <div class="mini" id="agree" style="margin-top:8px">normal scans use <b>only</b> the candle feed (quota-friendly) · quote / price / exchange_rate run on demand below</div>
     <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="b-ghost" style="flex:1" onclick="verifyFeeds()">🔍 VERIFY FEEDS</button>
+      <button class="b-ghost" style="flex:1" onclick="verifyFeeds()">🔍 RUN FEED DIAGNOSTICS (4 credits)</button>
     </div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-regime">
     <span class="t">🧭 Market Regime Detector</span>
     <div id="regimeRows">
       <div class="regime">
@@ -180,7 +234,7 @@
     <div class="mini" style="margin-top:8px">ADX&gt;25 → trend (75% threshold) · ADX&lt;20 → range (70%) · 20-25 mixed (80%) · doji candles blocked 👿 · M3 = 3×M1 candles aggregated</div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-agents">
     <span class="t">🤖 Multi-Agent Console</span>
     <div id="agentRows">
       <div class="agent-row"><span class="nm">TREND</span><span class="bias ab-nu">·</span><span class="note">waiting for scan…</span><span class="abar"><i style="width:0"></i></span></div>
@@ -195,13 +249,14 @@
     <div class="mini" style="margin-top:8px">6 agents analyse real Twelve Data candles → fusion + validation filter → risk gate → paper trade. Local rule-based AI (no cloud, no fabricated prices). Weak setups are rejected, not traded.</div>
   </div>
 
-  <div class="glass">
-    <span class="t">🎯 Watchlist & Controls</span>
+  <div class="glass" id="sec-scan">
+    <span class="t">🎯 Pair & Controls — EUR/USD</span>
     <div class="chk" id="watch"></div>
+    <div class="mini" style="margin-top:6px">NEXUS trades <b>EUR/USD only</b> — the deepest, tightest-spread retail pair. No pair rotation.</div>
     <div class="mini" style="margin-top:8px">TIMEFRAMES</div>
     <div class="chk" id="tfsel"></div>
     <div style="display:flex;gap:10px;margin-top:10px">
-      <select id="tzoff" style="margin:0;flex:1">
+      <select id="tzoff" style="margin:0;flex:1" aria-label="Display timezone offset">
         <option value="6" selected>UTC +6:00</option><option value="5.5">UTC +5:30</option>
         <option value="3">UTC +3:00</option><option value="0">UTC +0:00</option>
         <option value="-5">UTC −5:00</option>
@@ -209,9 +264,14 @@
       <button class="b-gen" id="btnRun" onclick="runScan(true)">⚡ SCAN</button>
     </div>
     <div class="toggle" style="margin-top:10px">
-      <span>🤖 AUTO-MODE <span class="mini">(3 pairs/candle, rotates)</span></span>
+      <span>🤖 AUTO-MODE <span class="mini">(EUR/USD every candle)</span></span>
       <label class="switch"><input type="checkbox" id="auto"><span class="slider"></span></label>
     </div>
+    <div class="toggle">
+      <span>📵 NEWS BLACKOUT <span class="mini">(manual — blocks new signals)</span></span>
+      <label class="switch"><input type="checkbox" id="blackout"><span class="slider"></span></label>
+    </div>
+    <div class="mini" id="blackoutNote" style="margin:-4px 0 10px">Manual switch for high-impact news (NFP, CPI, rate decisions…). <b>NEXUS has no live news feed</b> — you decide when to go dark. Open signals still settle; only <b>new</b> signals are blocked.</div>
     <div class="countdown cd-ok" id="cd">
       <div id="cd1w">⏳ M1 closes in <b>—</b></div>
       <div id="cd3w" style="display:none">⏳ M3 closes in <b>—</b></div>
@@ -223,23 +283,23 @@
     <div class="mini" id="credits" style="margin-top:6px">API credits this session: 0</div>
   </div>
 
-  <div class="glass batch" id="cardM1" style="display:none">
+  <div class="glass batch" id="sec-m1">
     <div class="batch-head">
       <div class="nm">⚡ LIVE SIGNALS · M1</div>
-      <div class="mini">1-minute predictions · enter at <b>next candle open</b> · ✅ win · ❌ loss</div>
+      <div class="mini">1-minute predictions · enter at <b>next candle open</b> · ✅ win · ❌ loss · <b>separate stream from M3 and the list</b></div>
     </div>
-    <div id="liveRowsM1"></div>
+    <div id="liveRowsM1"><div class="empty-note">No live M1 signals yet — run a scan.</div></div>
   </div>
 
-  <div class="glass batch" id="cardM3" style="display:none">
+  <div class="glass batch" id="sec-m3">
     <div class="batch-head">
       <div class="nm">⚡ LIVE SIGNALS · M3</div>
       <div class="mini">3-minute predictions · separate stream · enter at <b>next candle open</b></div>
     </div>
-    <div id="liveRowsM3"></div>
+    <div id="liveRowsM3"><div class="empty-note">No live M3 signals yet — run a scan.</div></div>
   </div>
 
-  <div class="glass batch" id="predCard">
+  <div class="glass batch" id="sec-list">
     <div class="batch-head">
       <div class="nm" id="predBrand">📊 NEXUS PREMIUM SIGNAL 🔔</div>
       <div class="mini">🗓 DATE :- <b id="predDate">—</b></div>
@@ -266,7 +326,7 @@
     <div class="mini" style="margin-top:8px">Only <b>premium</b> setups are collected (high score, 3+ agents agreeing, zero conflicts, positive EV). ✅/❌ ticks settle automatically from real candle closes — results are never hand-edited. Research output, not financial advice.</div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-tg">
     <span class="t">📨 Telegram Delivery</span>
     <div class="chips">
       <span class="chip" id="tgStatChip">bot: not configured</span>
@@ -277,7 +337,9 @@
       <input type="text" id="tgChat" placeholder="Chat ID or @channel" autocomplete="off" style="margin:0">
       <input type="text" id="tgBrand" placeholder="Brand name (NEXUS)" autocomplete="off" style="margin:0">
     </div>
-    <div class="mini" id="tgVault" style="margin-top:6px">🔐 token: none — paste here, or set window.NEXUS_TG_TOKEN in keys.js (private)</div>
+    <button class="b-gen" style="width:100%;margin-top:8px" onclick="tgSaveSettings()">💾 SAVE TELEGRAM SETTINGS (one click)</button>
+    <div class="mini" id="tgVault" style="margin-top:8px">🔐 token: none — paste here, or set window.NEXUS_TG_TOKEN in keys.js (private)</div>
+    <div class="mini" style="margin-top:6px">🔁 Changing the <b>token</b> or the <b>destination chat</b> instantly <b>revokes send authorization</b> — re-enable AUTHORIZED below to resume delivery. Settings persist in this browser only.</div>
     <div class="chips" style="margin-top:8px">
       <button class="b-ghost" onclick="tgCaptureSticker()">😀 CAPTURE STICKER</button>
       <button class="b-ghost" onclick="tgTest()">✉ TEST</button>
@@ -303,7 +365,7 @@
     <div class="risk-line tg-log" id="tgLog">telegram log: ready</div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-paper">
     <span class="t">💼 Paper Trading & Risk</span>
     <div class="chips">
       <span class="chip ok">PAPER MODE</span><span class="chip">signal-only</span>
@@ -341,7 +403,7 @@
     <div class="mini" style="margin-top:8px">Payouts are estimates — set your real average. Friction (spread/latency) is charged per trade (1% of stake). Nothing here places real orders.</div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-stats">
     <span class="t">🔥 Session Result</span>
     <div class="stats">
       <div class="stat"><b class="rate" id="wins">0</b><span>WINS ✅</span></div>
@@ -354,7 +416,7 @@
     <div class="mini" id="breaker" style="margin-top:8px;display:none">🚨 CIRCUIT BREAKER — 3 straight losses. Take a break. <a href="#" onclick="resetStreak();return false">reset</a></div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-perf">
     <span class="t">📈 Performance Analytics</span>
     <div class="kv">
       <div class="cell">WIN RATE (paper)<b id="fWR">—</b></div>
@@ -381,18 +443,18 @@
     <div class="mini" id="perfNote" style="margin-top:8px">Metrics need settled paper trades — they appear after your first signals close. EV is computed after estimated friction costs.</div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-brain">
     <span class="t">🧠 Self-Learning Brain <span style="float:right"><button class="b-ghost b-on" id="brainM1" style="padding:2px 10px;font-size:10px">M1</button> <button class="b-ghost" id="brainM3" style="padding:2px 10px;font-size:10px">M3</button></span></span>
     <div class="brain" id="brain"></div>
     <div class="mini" style="margin-top:8px">weights are per timeframe · 35% backtest + 65% live memory × regime boost · persists across sessions</div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-hist">
     <span class="t">📜 History <button onclick="clearStats()" style="padding:4px 10px;font-size:11px;float:right" class="b-ghost">reset</button></span>
     <div class="history" id="hist" style="margin-top:6px"><div style="color:var(--sub)">No results yet.</div></div>
   </div>
 
-  <div class="glass">
+  <div class="glass" id="sec-bt">
     <span class="t">🔬 Deep Backtest</span>
     <div class="two" style="margin-top:6px">
       <select id="btPair" style="margin:0"></select>
@@ -404,34 +466,39 @@
 
   <div class="clock" id="clock"></div>
   <p class="disclaimer">⚠️ NEXUS never guarantees profits — no system can. It is a decision-support tool in <b>signal-only + paper-trading mode</b>; it does not click, place, or automate real trades.<br>Binary options carry a very high risk of losing money. Preserving capital comes first: respect the daily stop-loss, cooldowns and position limits. Past performance — real or backtested — does not predict future results. Trade responsibly.</p>
-  <div class="ver">NEXUS Glass v4.0 · multi-agent · M1 + M3 · paper-first</div>
+  <div class="ver">NEXUS Glass v4.1 · EUR/USD · multi-agent · M1 + M3 · paper-first<br>Typeface: Inter (self-hosted, variable) — © The Inter Project Authors, SIL Open Font License 1.1 · license: assets/fonts/INTER-OFL-LICENSE.txt</div>
 </div>
 
 <script src="keys.js"></script>
 <script>
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════
-🔑 PERMANENT API KEYS — edit here and they work on every device.
+NEXUS Glass v4.1 — EUR/USD only · candle-feed scans · 4 key slots
+🔑 PERMANENT API KEYS — optional; the normal path is the 4 key slots
+   in the UI (one-click save to this browser's localStorage — never
+   committed, never uploaded).
    1) IN-FILE: paste one or more Twelve Data keys between the quotes.
    2) PRIVATE FILE: create keys.js (gitignored) with
       window.NEXUS_KEYS = ["your_key"]; — safer while this repo is PUBLIC.
-   Several keys rotate automatically and spread the 8-credits/min limit;
-   a key that hits its quota cools down and the next one takes over.
+   All sources merge into one pool: keys rotate automatically and spread
+   the 8-credits/min limit; a key that hits its quota cools down (60s)
+   and the next one takes over.
    ⚠ SECURITY: this repository is PUBLIC — any key written into this
    file (or keys.js that gets committed) is visible to the world and
-   WILL be stolen/abused. Prefer free keys you can rotate, make the
-   repo private, or keep keys only in the browser key field.
+   WILL be stolen/abused. Prefer the browser slots, make the repo
+   private, or keep keys only in keys.js (gitignored).
    ═══════════════════════════════════════════════════════════════════ */
 const PERMANENT_KEYS=[
   "", /* key 1 — paste here */
   "", /* key 2 — optional */
   "", /* key 3 — optional */
+  "", /* key 4 — optional */
 ];
 
 const $=id=>document.getElementById(id), pad=n=>String(n).padStart(2,'0');
-const PAIRS=['EUR/USD','GBP/USD','USD/JPY','AUD/USD','USD/CAD','EUR/JPY','GBP/JPY','EUR/GBP','AUD/JPY','CAD/JPY'];
+const PAIRS=['EUR/USD']; /* single pair by design — no rotation */
 const PAIRCODE=p=>p.replace('/','');
-let busy=false, lastMinute=-1, rrIdx=0, credits=0, uid=0;
+let busy=false, lastMinute=-1, credits=0, uid=0;
 let cache={}, openSigs=[];
 
 const FAM={
@@ -613,9 +680,12 @@ $('brainM1').addEventListener('click',()=>setBrainTf('M1'));
 $('brainM3').addEventListener('click',()=>setBrainTf('M3'));
 setBrainTf(brainTf);
 
-/* ---------- watchlist + timeframes ---------- */
+/* ---------- watchlist (EUR/USD only) + timeframes ---------- */
 let savedWatch=loadJSON('nx_watch',null);
 if(!Array.isArray(savedWatch)) savedWatch=PAIRS.slice();
+savedWatch=savedWatch.filter(p=>PAIRS.includes(p));   /* migrate legacy multi-pair lists */
+if(!savedWatch.length) savedWatch=PAIRS.slice();
+store.set('nx_watch',JSON.stringify(savedWatch));
 $('watch').innerHTML=PAIRS.map(p=>
   `<label><input type="checkbox" value="${p}" ${savedWatch.includes(p)?'checked':''}>${PAIRCODE(p)}</label>`).join('');
 function watch(){ const w=[...document.querySelectorAll('#watch input:checked')].map(i=>i.value);
@@ -631,8 +701,43 @@ function saveTfs(){ store.set('nx_tfs',JSON.stringify(tfs())); }
 document.querySelectorAll('#tfsel input').forEach(i=>i.addEventListener('change',saveTfs));
 saveTfs();
 
-$('key').value=store.get('td_key')||'';
-$('key').addEventListener('change',e=>{ store.set('td_key',e.target.value.trim()); renderVault(); });
+/* ---------- 4 Twelve Data key slots (browser storage · one-click save · never committed) ---------- */
+const KEY_SLOTS_KEY='nx_keys4';
+function loadKeySlots(){ const v=loadJSON(KEY_SLOTS_KEY,null);
+  const a=Array.isArray(v)?v.slice(0,4).map(x=>String(x||'').trim()):[];
+  while(a.length<4) a.push('');
+  return a; }
+let keySlots=loadKeySlots();
+(function migrateLegacyKey(){                        /* old single key field → first free slot */
+  const legacy=String(store.get('td_key')||'').trim();
+  if(legacy){
+    if(!keySlots.some(k=>k===legacy)){
+      const i=keySlots.indexOf('');
+      if(i>=0){ keySlots[i]=legacy; store.set(KEY_SLOTS_KEY,JSON.stringify(keySlots)); }
+    }
+    store.set('td_key','');                          /* retire the legacy store key */
+  }
+})();
+function syncKeyInputs(){ for(let i=0;i<4;i++){ const el=$('key'+(i+1)); if(el) el.value=keySlots[i]||''; } }
+function setVaultMsg(m){ const el=$('vaultMsg'); if(el) el.textContent=m; }
+function saveKeys(){ /* one-click save of all four slots to this browser only */
+  const vals=[],seen=new Set(); let dup=false;
+  for(let i=0;i<4;i++){ const el=$('key'+(i+1)); const v=el?String(el.value).trim():'';
+    if(v){ if(seen.has(v)) dup=true; seen.add(v); }
+    vals.push(v); }
+  if(dup){ setVaultMsg('⚠ not saved — duplicate key across slots; each slot needs a distinct key'); return false; }
+  keySlots=vals; store.set(KEY_SLOTS_KEY,JSON.stringify(keySlots));
+  renderVault();
+  const n=keySlots.filter(Boolean).length;
+  setVaultMsg(n?('✅ saved '+n+' key'+(n===1?'':'s')+' to this browser (never committed) · rotation '+(n>1?'ACTIVE':'off (single key)'))
+               :'✅ slots cleared — no browser keys saved');
+  return true; }
+$('keyShow').addEventListener('click',()=>{
+  const show=$('keyShow').getAttribute('data-show')!=='1';
+  $('keyShow').setAttribute('data-show',show?'1':'0');
+  $('keyShow').textContent=show?'🙈 HIDE':'👁 SHOW';
+  for(let i=1;i<=4;i++){ const el=$('key'+i); if(el) el.type=show?'text':'password'; } });
+syncKeyInputs();
 
 /* ---------- clock + countdown + auto (fires in the last 5s before M1 close) ---------- */
 const tzLabel=()=>{const v=parseFloat($('tzoff').value),abs=Math.abs(v),h=Math.floor(abs),m=Math.round((abs-h)*60);
@@ -669,14 +774,31 @@ function parseCandleUTC(t){
   return new Date(s.replace(' ','T')+'Z');
 }
 
-/* ---------- key vault + auto-rotation ---------- */
+/* ---------- freshness + weekend gate: reject stale/closed-market candles BEFORE predicting ---------- */
+const STALE_MS=180000; /* newest M1 candle close may be at most 3 min old (feed-lag tolerance) */
+function isWeekendWindow(d){ /* retail forex is closed Fri ~22:00 UTC → Sun ~22:00 UTC */
+  d=d||new Date(); const day=d.getUTCDay(), h=d.getUTCHours()+d.getUTCMinutes()/60;
+  return day===6||(day===0&&h<22)||(day===5&&h>=22); }
+function candleGate(m1,d){
+  const now=(d||new Date()).getTime();
+  if(!Array.isArray(m1)||!m1.length) return {ok:false,reason:'no candles'};
+  const last=m1[m1.length-1];
+  if(!isFinite(last.ts)||!(last.ts>0)) return {ok:false,reason:'unparseable candle timestamps'};
+  if(last.ts-now>120000) return {ok:false,reason:'candle timestamp in the future — clock/feed problem'};
+  if(isWeekendWindow(new Date(now))) return {ok:false,reason:'weekend — forex market closed'};
+  const age=now-(last.ts+60000);
+  if(age>STALE_MS) return {ok:false,reason:'stale candles — last close '+Math.round(age/60000)+' min old'};
+  return {ok:true,reason:'fresh',ageMs:age};
+}
+
+/* ---------- key vault + auto-rotation + quota cooldown ---------- */
 function maskKey(v){ v=String(v||''); return v.length<9?'••••••':v.slice(0,4)+'••••'+v.slice(-4); }
 function keyPool(){
   const pool=[];
-  for(const k of PERMANENT_KEYS){ const v=String(k||'').trim(); if(v) pool.push({src:'vault',v}); }
-  for(const k of (window.NEXUS_KEYS||[])){ const v=String(k||'').trim(); if(v&&!pool.some(p=>p.v===v)) pool.push({src:'keys.js',v}); }
-  const ui=$('key')?$('key').value.trim():'';
-  if(ui&&!pool.some(p=>p.v===ui)) pool.push({src:'field',v:ui});
+  const push=(src,v0)=>{ const v=String(v0||'').trim(); if(v&&!pool.some(p=>p.v===v)) pool.push({src,v}); };
+  for(let i=0;i<4;i++) push('slot'+(i+1),keySlots[i]);      /* saved browser slots (SAVE ALL KEYS) */
+  for(const k of PERMANENT_KEYS) push('vault',k);           /* in-file (empty in public build) */
+  for(const k of (window.NEXUS_KEYS||[])) push('keys.js',k);/* private gitignored file */
   return pool;
 }
 const keyHealth={}; /* v -> {calls, until} */
@@ -696,20 +818,20 @@ function nextKey(){
 }
 function requireKey(){
   const k=nextKey();
-  if(!k) throw new Error('No API key — add one in PERMANENT_KEYS (top of script), keys.js, or the key field');
+  if(!k) throw new Error('No API key — fill a slot and press SAVE ALL KEYS (browser only), or use keys.js / PERMANENT_KEYS');
   return k;
 }
 function renderVault(){
   const el=$('vaultInfo'); if(!el) return;
   const pool=keyPool();
-  if(!pool.length){ el.innerHTML='🔐 no API key yet — paste one below <b>or</b> embed it in PERMANENT_KEYS at the top of the script'; return; }
-  const nV=pool.filter(k=>k.src!=='field').length, nF=pool.length-nV;
+  if(!pool.length){ el.innerHTML='🔐 no API key yet — fill a slot above and press <b>SAVE ALL KEYS</b> (stored in this browser only)'; return; }
+  const nS=pool.filter(k=>k.src.startsWith('slot')).length, nP=pool.length-nS;
   const cooling=pool.filter(k=>{const h=keyHealth[k.v];return h&&Date.now()<h.until;}).length;
-  el.innerHTML='🔐 <b>'+nV+'</b> permanent + <b>'+nF+'</b> browser key'+(pool.length===1?'':'s')
-    +' · rotation '+(pool.length>1?'ACTIVE':'off')+(cooling?' · <span style="color:var(--warn)">'+cooling+' cooling (quota)</span>':'')
+  el.innerHTML='🔐 <b>'+nS+'</b> browser slot'+(nS===1?'':'s')+(nP?' + <b>'+nP+'</b> permanent':'')
+    +' · rotation '+(pool.length>1?'ACTIVE':'off (single key)')+(cooling?' · <span style="color:var(--warn)">'+cooling+' cooling (quota)</span>':'')
     +'<br><span style="opacity:.75">'+pool.map(k=>{
       const h=keyHealth[k.v];
-      return maskKey(k.v)+' ('+k.src+(h?' · '+h.calls+' calls':'')+(h&&Date.now()<h.until?' · COOLING':'')+')';
+      return esc(maskKey(k.v))+' ('+esc(k.src)+(h?' · '+h.calls+' calls':'')+(h&&Date.now()<h.until?' · COOLING':'')+')';
     }).join(' · ')+'</span>';
 }
 
@@ -754,15 +876,16 @@ async function apiRate(from,to){ const k=requireKey();
   const j=await jget(`${BASE}exchange_rate?symbol=${from}/${to}&apikey=${encodeURIComponent(k.v)}`,k);
   return +j.exchange_rate; }
 
-async function verifyFeeds(){
-  if(!keyPool().length){ setStatus('err','Add your API key first (key field or PERMANENT_KEYS at top of script)'); return; }
-  setStatus('wait','Verifying all 4 feeds...');
+async function verifyFeeds(){ /* OPTIONAL diagnostic — normal scans never call quote/price/exchange_rate */
+  if(!keyPool().length){ setStatus('err','Save an API key slot first (or use keys.js / PERMANENT_KEYS)'); return; }
+  setStatus('wait','Running optional feed diagnostics (4 credits — time_series + quote + price + exchange_rate)...');
   const p0=(watch()[0]||'EUR/USD');
   const [ts,q,pr,er]=await Promise.allSettled([apiTimeSeries(p0),apiQuote(p0),apiPrice(p0),apiRate(...p0.split('/'))]);
   feed4Render(p0,q,pr,er,ts.status==='fulfilled'?ts.value:null);
   const ok=[ts,q,pr,er].filter(x=>x.status==='fulfilled').length;
-  setStatus(ok===4?'ok':'err', ok===4?'✅ All 4 feeds live — data flowing correctly ('+p0+')'
-    :'⚠️ '+ok+'/4 feeds OK — '+[ts,q,pr,er].map((x,i)=>['time_series','quote','price','exchange_rate'][i]+(x.status==='fulfilled'?'✅':':'+String(x.reason&&x.reason.message||x.reason).slice(0,30))).join(' · '));
+  setStatus(ok===4?'ok':'err', ok===4?'✅ Diagnostics: all 4 feeds live ('+p0+') — scans still use only the candle feed (1 credit)'
+    :'⚠️ Diagnostics: '+ok+'/4 feeds OK — '+[ts,q,pr,er].map((x,i)=>['time_series','quote','price','exchange_rate'][i]+(x.status==='fulfilled'?'✅':':'+String(x.reason&&x.reason.message||x.reason).slice(0,30))).join(' · ')
+      +(ts.status==='fulfilled'?' — scans unaffected (candle feed OK)':' — ⛔ candle feed down: scans blocked'));
 }
 
 /* ---------- indicators ---------- */
@@ -1122,8 +1245,10 @@ function tgListenLoop(){
 }
 function latestSignalText(){
   const rows=[];
-  if($('liveRowsM1')&&$('liveRowsM1').children.length) rows.push('M1 stream: '+$('liveRowsM1').children.length+' signals');
-  if($('liveRowsM3')&&$('liveRowsM3').children.length) rows.push('M3 stream: '+$('liveRowsM3').children.length+' signals');
+  const n1=$('liveRowsM1')?$('liveRowsM1').querySelectorAll('.sig-row').length:0;
+  const n3=$('liveRowsM3')?$('liveRowsM3').querySelectorAll('.sig-row').length:0;
+  if(n1) rows.push('M1 stream: '+n1+' signal'+(n1===1?'':'s'));
+  if(n3) rows.push('M3 stream: '+n3+' signal'+(n3===1?'':'s'));
   return '⚡ <b>'+esc(tgBrandName())+' LIVE</b>\n\n'+(rows.length?rows.join('\n'):'No live signals yet — scanner idle.');
 }
 function tgRender(){
@@ -1243,6 +1368,7 @@ function scoreOf(fx,vol){
 function gradeOf(sc){ return sc>=82?'A+':sc>=72?'A':'B'; }
 function validateSetup(fx,vol,regime,opt){ /* AGENT 7: filter weak / unsafe setups */
   const fails=[],warns=[];
+  if(opt.gate&&!opt.gate.ok) fails.push(opt.gate.reason);   /* stale / weekend candles rejected first */
   if(opt.marketOpen===false) fails.push('market closed');
   if(opt.doji) fails.push('doji candle');
   if(vol.q<0.3) fails.push('volatility quality too low');
@@ -1262,7 +1388,7 @@ let btBusy=false;
 async function deepBacktest(){
   if(btBusy||busy) return;
   const pair=$('btPair').value;
-  if(!keyPool().length){ setStatus('err','No API key — use the key field or PERMANENT_KEYS (top of script)'); return; }
+  if(!keyPool().length){ setStatus('err','No API key — fill a slot and press SAVE ALL KEYS (or use keys.js / PERMANENT_KEYS)'); return; }
   btBusy=true;
   $('btResults').textContent='⏳ Fetching up to 5,000 real M1 candles for '+pair+' …';
   try{
@@ -1353,36 +1479,40 @@ function renderBacktest(pair,out,n1,n3){
 /* ---------- main scan ---------- */
 async function runScan(manual){
   if(busy) return;
-  if(!keyPool().length){ setStatus('err','No API key — add one in the key field or PERMANENT_KEYS at the top of the script'); return; }
+  if(!keyPool().length){ setStatus('err','No API key — fill a slot and press SAVE ALL KEYS (browser only), or use keys.js / PERMANENT_KEYS'); return; }
+  if(isWeekendWindow()){ /* forex closed — don't even spend a credit; candles would be stale anyway */
+    setStatus('wait','📅 Weekend — forex market closed. Scanning paused to save quota; stale/weekend candles are rejected before any prediction.');
+    return; }
   busy=true; $('btnRun').disabled=true;
   const active=tfs();
   if(!active.length){ setStatus('err','Select at least one timeframe (M1 / M3)'); busy=false;$('btnRun').disabled=false;return; }
   const wl=watch();
-  if(!wl.length){ setStatus('err','Select at least one pair in the watchlist'); busy=false;$('btnRun').disabled=false;return; }
-  let targets=wl;
-  if(!manual){ targets=[]; for(let k=0;k<Math.min(3,wl.length);k++){ targets.push(wl[rrIdx%wl.length]); rrIdx++; } }
+  if(!wl.length){ setStatus('err','EUR/USD is unticked — enable it in the pair list to scan'); busy=false;$('btnRun').disabled=false;return; }
+  const targets=wl;                    /* EUR/USD only — single fixed pair, no rotating */
   const breakerOn = streak>=3;
-  setStatus('wait','NEXUS scanning '+targets.map(PAIRCODE).join(', ')+' ['+active.join('+')+']'+(breakerOn?' · 🚨 BREAKER ON (analysis only)':'')+' ...');
+  const blackout = blackoutOn();
+  setStatus('wait','NEXUS scanning '+targets.map(PAIRCODE).join(', ')+' ['+active.join('+')+']'
+    +(breakerOn?' · 🚨 BREAKER ON (analysis only)':'')
+    +(blackout?' · 📵 NEWS BLACKOUT (analysis only)':'')+' ...');
 
   settleAll();   /* settle anything already complete against cached snapshots */
 
   try{
     const p0=targets[0];
-    const [ts,q,pr,er]=await Promise.allSettled([apiTimeSeries(p0),apiQuote(p0),apiPrice(p0),apiRate(...p0.split('/'))]);
-    if(ts.status==='rejected') throw ts.reason;
-    const lead=ts.value;
-    feed4Render(p0,q,pr,er,lead);
+    const lead=await apiTimeSeries(p0);   /* normal scans use ONLY the candle feed (1 credit) */
+    feedScanRender(p0,lead);
 
     let newSignals=0; const byTf={M1:0,M3:0};
     const regs={M1:null,M3:null};
-    const marketOpen = q.status==='fulfilled' ? q.value.open : null;
-    let filterNote='';
+    let filterNote='', leadGate=null;
     for(const pair of targets){
       let cd=lead;
       if(pair!==p0){
         try{ cd=await apiTimeSeries(pair); }
         catch(e){ addRow(pair,'—:—','FAIL',null,'',null); continue; }
       }
+      const gate=candleGate(cd.m1);  /* reject stale / weekend candles BEFORE producing predictions */
+      if(pair===p0) leadGate=gate;
       for(const tf of active){
         const series = tf==='M3' ? cd.m3 : cd.m1;
         if(!series || series.length<40) continue;
@@ -1412,12 +1542,12 @@ async function runScan(manual){
           renderAgents(fx,vol,tf);
         }
 
-        /* AGENT 7: validation filter */
-        const vd=validateSetup(fx,vol,regime,{doji,marketOpen,minScore:risk.minScore,ttOpen,
-          dataLagMs:cd.latencyMs||0,score,grade});
+        /* AGENT 7: validation filter (freshness/weekend gate included) */
+        const vd=validateSetup(fx,vol,regime,{doji,marketOpen:null,minScore:risk.minScore,ttOpen,
+          dataLagMs:cd.latencyMs||0,score,grade,gate});
         /* AGENT 8: risk gate */
         const riskOk=riskAdmit();
-        const pass = fx.dir && vd.pass && riskOk.ok && !breakerOn;
+        const pass = fx.dir && vd.pass && riskOk.ok && !breakerOn && !blackout;
 
         if(pair===p0) renderValidation(vd,riskOk,breakerOn,fx);
 
@@ -1432,8 +1562,12 @@ async function runScan(manual){
           batchCollect({pair,tf,time,dir:fx.dir,targetT,score,grade,agree:fx.agree,conflict:fx.conflict,ev:vd.ev});
           newSignals++; byTf[tf]++;
           if(navigator.vibrate) navigator.vibrate([80,40,80]);
-        } else if(pair===p0 && fx.dir && !filterNote){
-          filterNote = !vd.pass ? vd.fails[0] : (!riskOk.ok ? riskOk.reason : (breakerOn?'circuit breaker active':''));
+        } else if(pair===p0 && !filterNote){
+          filterNote = !vd.pass ? vd.fails[0]
+            : (!riskOk.ok ? riskOk.reason
+            : (breakerOn ? 'circuit breaker active'
+            : (blackout ? 'news blackout active (manual switch)'
+            : (fx.dir?'':'no directional consensus'))));
         }
       }
     }
@@ -1444,7 +1578,9 @@ async function runScan(manual){
     const last=lead.m1[lead.m1.length-1].c;
     const pe=$('price'); pe.textContent=last.toFixed(5);
     pe.className='price '+(last>=lead.m1[lead.m1.length-2].c?'up':'dn');
-    if(breakerOn) setStatus('err','🚨 Circuit breaker active — 3 straight losses. Analysis running, signals suppressed. Reset when calm.');
+    if(leadGate&&!leadGate.ok) setStatus('err','⛔ Data rejected — '+leadGate.reason+'. No live predictions until candles are fresh again.');
+    else if(blackout) setStatus('wait','📵 News blackout active (manual switch — NEXUS has no live news feed). Analysis ran; new signals blocked. Open signals still settle.');
+    else if(breakerOn) setStatus('err','🚨 Circuit breaker active — 3 straight losses. Analysis running, signals suppressed. Reset when calm.');
     else setStatus(newSignals?'ok':'wait', newSignals
       ? '🔥 '+newSignals+' paper signal(s) ['+Object.entries(byTf).filter(e=>e[1]).map(e=>e[0]+'×'+e[1]).join(', ')+'] — enter at NEXT candle open ('+tzLabel()+')'
       : (filterNote?'No signal — filtered: '+filterNote+'. Learning continues.':'No signal — agents below thresholds. Learning continues.'));
@@ -1486,8 +1622,9 @@ function renderAgents(fx,vol,tf){
 }
 function renderValidation(vd,riskOk,breakerOn,fx){
   const chips=[];
-  vd.fails.forEach(f=>chips.push('<span class="chip bad">✕ '+f+'</span>'));
-  vd.warns.forEach(w=>chips.push('<span class="chip warn">⚠ '+w+'</span>'));
+  if(blackoutOn()) chips.push('<span class="chip warn">📵 news blackout — new signals blocked (manual)</span>');
+  vd.fails.forEach(f=>chips.push('<span class="chip bad">✕ '+esc(f)+'</span>'));
+  vd.warns.forEach(w=>chips.push('<span class="chip warn">⚠ '+esc(w)+'</span>'));
   if(vd.pass) chips.push('<span class="chip ok">✓ validation passed · EV '+(vd.ev*100).toFixed(1)+'%</span>');
   if(!fx.dir) chips.push('<span class="chip">no directional consensus</span>');
   chips.push(riskOk.ok&&!breakerOn
@@ -1496,7 +1633,13 @@ function renderValidation(vd,riskOk,breakerOn,fx){
   $('validChips').innerHTML=chips.join('');
 }
 
-function feed4Render(pair,q,p,er,lead){
+function feedScanRender(pair,lead){ /* scan path — updates ONLY the candle cell + freshness info */
+  $('f_ts').textContent=lead?('✅ '+lead.m1.length+' M1 · '+lead.m3.length+' M3'):'❌ no candles';
+  const g=lead?candleGate(lead.m1):{ok:false,reason:'no candles'};
+  const last=lead&&lead.m1.length?lead.m1[lead.m1.length-1]:null;
+  $('pxinfo').textContent=pair+(last?(' · last candle '+last.t+(g.ok?' · ✅ fresh':(' · ⛔ '+g.reason))):' · ⛔ '+g.reason);
+}
+function feed4Render(pair,q,p,er,lead){ /* diagnostics path — optional, VERIFY button only */
   $('f_ts').textContent=lead?'✅ '+lead.m1.length+' M1 · '+lead.m3.length+' M3':'❌ no candles';
   const fmt=(x,obj)=>x.status==='fulfilled'
     ? (obj?'price '+x.value.price.toFixed(5)+' · '+x.value.chg.toFixed(2)+'%':(+x.value).toFixed(5))
@@ -1516,16 +1659,16 @@ function feed4Render(pair,q,p,er,lead){
 }
 
 function addRow(pair,time,dir,id,grade,tf,score){
-  const target = tf==='M3' ? $('liveRowsM3') : $('liveRowsM1');
-  const card = tf==='M3' ? $('cardM3') : $('cardM1');
-  if(card) card.style.display='block';
+  const target = tf==='M3' ? $('liveRowsM3') : $('liveRowsM1');   /* M1 / M3 streams stay separate */
+  if(!target) return;
+  const empty=target.querySelector('.empty-note'); if(empty) empty.remove();
   const row=document.createElement('div');
   row.className='sig-row';
   const markHtml=id===null?'<span class="mark sig-open">⚠️</span>'
     :`<span class="mark sig-open" id="mk-${id}">⏳</span>`;
-  const gradeHtml=grade?`<span class="gradeA">·${grade}${score?' '+Math.round(score):''}</span>`:'';
-  row.innerHTML=`<span>${tf?tf+';':''}${PAIRCODE(pair)}•${time};${dir}${gradeHtml}</span>${markHtml}`;
-  if(target) target.appendChild(row);
+  const gradeHtml=grade?`<span class="gradeA">·${esc(grade)}${score?' '+Math.round(score):''}</span>`:'';
+  row.innerHTML=`<span>${esc(tf?tf+';':'')}${esc(PAIRCODE(pair))}•${esc(time)};${esc(String(dir))}${gradeHtml}</span>${markHtml}`;
+  target.appendChild(row);
 }
 
 /* ---------- auto-settle + learn + streak (UTC-keyed, per timeframe) ---------- */
@@ -1598,13 +1741,38 @@ $('tgChat').value=tg.chatId||'';
 $('tgBrand').value=tg.brand||'NEXUS';
 $('tgAuth').checked=!!tg.auth; $('tgAuto').checked=!!tg.auto;
 $('tgProtect').checked=tg.protect!==false; $('tgListen').checked=!!tg.listen;
-$('tgToken').addEventListener('change',e=>{ tg.token=e.target.value.trim(); saveTg(); tgRender(); });
+function tgApplyCreds(mutate){ /* ANY token / destination-chat change revokes send authorization */
+  const before=tgToken()+'\u0000'+tgChat();
+  mutate();
+  const after=tgToken()+'\u0000'+tgChat();
+  if(before!==after&&tg.auth){
+    tg.auth=false;
+    const cb=$('tgAuth'); if(cb) cb.checked=false;
+    tgLog('🔓 send authorization REVOKED — token/destination changed. Re-enable AUTHORIZED to send again.');
+  }
+  saveTg(); tgRender();
+  return before!==after;
+}
+const TG_CHAT_RE=/^(@?[A-Za-z0-9_+-]{1,64}|-?\d{1,20})$/;
+$('tgToken').addEventListener('change',e=>{ tgApplyCreds(()=>{ tg.token=e.target.value.trim(); }); });
 $('tgChat').addEventListener('change',e=>{
   const v=e.target.value.trim();
-  if(v&&!/^(@?[A-Za-z0-9_+-]{1,64}|-?\d{1,20})$/.test(v)){ tgLog('⚠ invalid chat id format — use numeric id or @channel'); return; }
-  tg.chatId=v; saveTg(); tgRender();
+  if(v&&!TG_CHAT_RE.test(v)){ tgLog('⚠ invalid chat id format — use numeric id or @channel'); e.target.value=tg.chatId||''; return; }
+  tgApplyCreds(()=>{ tg.chatId=v; });
 });
 $('tgBrand').addEventListener('change',e=>{ tg.brand=e.target.value.trim()||'NEXUS'; saveTg(); tgRender(); renderPred(); });
+function tgSaveSettings(){ /* one-click save: token + chat + brand persist to this browser */
+  const v=($('tgChat').value||'').trim();
+  if(v&&!TG_CHAT_RE.test(v)){ tgLog('⚠ not saved — invalid chat id format (numeric id or @channel)'); return false; }
+  tgApplyCreds(()=>{
+    tg.token=($('tgToken').value||'').trim();
+    tg.chatId=v;
+    tg.brand=($('tgBrand').value||'').trim()||'NEXUS';
+  });
+  tgLog('💾 telegram settings saved to this browser');
+  renderPred(); /* brand may have changed */
+  return true;
+}
 $('tgAuth').addEventListener('change',e=>{
   if(e.target.checked){
     if(!tgToken()||!tgChat()){ e.target.checked=false; tgLog('⚠ set bot token + chat id first'); return; }
@@ -1628,6 +1796,31 @@ $('predSched').addEventListener('change',e=>{ store.set('nx_schedOn',e.target.ch
 $('predTime').addEventListener('change',()=>{ store.set('nx_schedTime',$('predTime').value); });
 $('predTime').value=store.get('nx_schedTime')||'14:00';
 if($('tgLog')&&tg.log.length) $('tgLog').innerHTML=tg.log.map(l=>'<div>'+esc(l)+'</div>').join('');
+
+/* ---------- news blackout (manual switch — NEXUS has NO live news feed) ---------- */
+function blackoutOn(){ const el=$('blackout'); return !!(el&&el.checked); }
+$('blackout').checked=store.get('nx_blackout')==='1';
+$('blackout').addEventListener('change',e=>{
+  store.set('nx_blackout',e.target.checked?'1':'0');
+  setStatus(e.target.checked?'wait':'ok', e.target.checked
+    ? '📵 News blackout ON — new signals blocked until you switch it off (manual switch; NEXUS has no live news feed). Open signals still settle.'
+    : '✅ News blackout OFF — new signals allowed again (all gates still apply)');
+});
+
+/* ---------- mobile section navigation (sticky jump bar) ---------- */
+(function initSecNav(){
+  const nav=$('secNav'); if(!nav) return;
+  const links=[...nav.querySelectorAll('a[href^="#"]')];
+  const setActive=id=>links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+id));
+  links.forEach(a=>a.addEventListener('click',()=>setActive(a.getAttribute('href').slice(1))));
+  if(!('IntersectionObserver' in window)) return;   /* graceful degradation */
+  const secs=links.map(a=>document.getElementById(a.getAttribute('href').slice(1))).filter(Boolean);
+  const io=new IntersectionObserver(es=>{
+    for(const e of es) if(e.isIntersecting) setActive(e.target.id);
+  },{rootMargin:'-15% 0px -75% 0px'});
+  secs.forEach(s=>io.observe(s));
+})();
+
 syncSettings();
 ensureDay();
 renderStats(); renderBrain(lastW[brainTf]); renderPaper(); renderPerf(); renderVault(); renderPred(); tgRender();
