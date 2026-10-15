@@ -1,5 +1,7 @@
 # NEXUS Glass v5.2 · Meridian
 
+> **Brand:** NEXUS — Predict. Learn. Grow. · Created by Vinayyyy. The visual redesign is presentation-layer only: prediction, settlement, training, quota and delivery behaviour are unchanged.
+>
 > **Supabase Edge hosting:** see the [Edge relay runbook](docs/SUPABASE_EDGE_RELAY.md) for the prepared GitHub Pages + Supabase option, shared 0009 quota prerequisites, secrets, verification and rollback. Not deployed.
 
 A single-file, glassmorphic **multi-pair M1/M3 signal research engine** for binary-options-style candle prediction — built around **4 Telegram channels** (PUBLIC · VIP · LIST · MAIN), bot-configured message formats, an event sticker bank, revision-safe candle settlement, and quality-first paper signals.
@@ -8,7 +10,11 @@ A single-file, glassmorphic **multi-pair M1/M3 signal research engine** for bina
 
 ## Product features
 
+- **NEXUS Liquid Glass interface:** a registry-driven, responsive shell (desktop rail, tab bar, mobile bar) with a midnight-ocean token system, translucent layered surfaces, an optional light theme and a solid-background fallback. Every backend integration is preserved — see [docs/REDESIGN.md](docs/REDESIGN.md) for the audit and the feature-preservation checklist.
 - **26 strategies + 6 agents** across M1/M3, with live/deep/regime weights, risk gates, and paper-trading controls. The browser strategy and signal logic remain unchanged by the cloud relay.
+- **Signal registry:** every emitted signal (live · session · VIP · public · list) is recorded with an explicit state — pending, settled win/loss/push, invalid or unavailable — and is searchable, filterable and auditable.
+- **Markets workspace:** pair explorer, dependency-free candlestick charts with recorded signal markers, and per-pair regime/agent/strategy analysis built only from the engine's own candles.
+- **System health & settings:** one operational matrix (relay, session, database, feed, settlement, engines, Telegram, worker, quota, training) plus a configuration catalogue that names the owner of every value, and a **Branding Studio** (wordmark, four logo variants, favicon, app icon, loader, wallpaper, accent, glass intensity, optional creator card).
 - **PUBLIC stream:** quality-only signal per minute; skips when no setup qualifies.
 - **VIP stream:** best qualifying setup every 10 minutes; skips rather than lowering the quality floor.
 - **Premium lists:** scheduled unique-pair windows, with a conviction floor that is never silently relaxed.
@@ -84,14 +90,16 @@ Simulated performance shown anywhere is a signal-quality metric, never realized 
 
 ## Repo map
 
-- `index.html` — browser UI, engines, local strategy state, and authenticated relay client
+- `index.html` — browser UI (feature registry, Liquid Glass design system, engine views), engines, local strategy state, and authenticated relay client
+- `docs/MODULES.md` — every module: purpose, route, API dependency, configuration, permissions, extension points
+- `docs/REDESIGN.md` — pre-redesign audit, feature-preservation checklist, API→UI map, verification results
 - `server/src/api.js` — authenticated HTTP relay; Twelve Data/Telegram secrets stay server-side
 - `server/src/` — worker, provider budget, Telegram transport, ingestion/evaluation/risk/alerts
 - `server/.env.example` — server-only settings template
 - `trainer/` — Python training and promotion pipeline
 - `supabase/migrations/` — versioned database schema and policy/credit-budget updates
 - `tools/check-public.cjs` — static deployment credential guard
-- `tests/smoke.cjs` / `server/test/` — local regression and unit tests
+- `tests/smoke.cjs` / `server/test/` — local regression and unit tests (the browser suite covers the redesign: registry navigation, themes, signal registry states, charts, health truthfulness, branding isolation, responsive markup and a full entry-point chaos pass)
 - `SUPABASE_SETUP.md` — detailed setup and verification checklist
 
 ## Scheduled jobs and deployment approval
