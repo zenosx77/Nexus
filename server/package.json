@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "description": "NEXUS server-side worker and authenticated HTTP relay for market data and Telegram. Provider, bot, and Supabase service-role secrets stay in the host environment.",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node src/index.js loop",
     "once": "node src/index.js once",

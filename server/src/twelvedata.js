@@ -72,7 +72,7 @@ function scrubProviderData(value) {
  * browser or worker request pool; api_usage is free and reserves no credits.
  * Returns { data, keyIndex } without ever returning the selected key.
  */
-export async function requestTwelveData(endpoint, params = {}, scope = 'worker', budgetOptions = {}) {
+export async function requestTwelveData(endpoint, params = {}, scope = 'worker', budgetOptions = {}, dependencies = {}) {
   if (!['time_series', 'quote', 'price', 'exchange_rate', 'api_usage'].includes(endpoint)) {
     throw new Error('Twelve Data operation is not allowed');
   }
@@ -85,8 +85,8 @@ export async function requestTwelveData(endpoint, params = {}, scope = 'worker',
     if (!key) throw new Error(`all ${config.twelveDataKeys.length} provider keys are cooling down`);
     const keyIndex = config.twelveDataKeys.indexOf(key);
     if (endpoint !== 'api_usage') {
-      if (scope === 'browser') await reserveTwelveDataBrowserCredit(budgetOptions.category, budgetOptions.scanReserve);
-      else if (scope === 'worker') await reserveTwelveDataCredit();
+      if (scope === 'browser') await reserveTwelveDataBrowserCredit(budgetOptions.category, budgetOptions.scanReserve, dependencies);
+      else if (scope === 'worker') await reserveTwelveDataCredit(dependencies);
       else throw new Error('invalid Twelve Data budget scope');
     }
 
@@ -97,7 +97,7 @@ export async function requestTwelveData(endpoint, params = {}, scope = 'worker',
     query.set('apikey', key);
     const url = `${API_BASE}${endpoint}?${query.toString()}`;
     try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+      const response = await (dependencies.fetch ?? fetch)(url, { signal: AbortSignal.timeout(20_000) });
       const body = await response.json().catch(() => ({}));
       if (!response.ok || body.status === 'error') {
         const err = safeProviderError(response.status, body);

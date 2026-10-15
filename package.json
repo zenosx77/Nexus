@@ -1,9 +1,19 @@
 {
   "private": true,
   "scripts": {
-    "test": "node tests/smoke.cjs"
+    "test": "npm run test:browser && npm run test:server && npm run test:trainer && npm run test:security && npm run check:public",
+    "test:browser": "node tests/smoke.cjs",
+    "test:server": "npm --prefix server test",
+    "test:trainer": "python3 -m unittest discover -s trainer -p \"test_*.py\"",
+    "test:security": "node --test tests/migrations.test.cjs tests/public-guard.test.cjs tests/config-contract.test.cjs",
+    "build:public": "node tools/build-public.cjs",
+    "check:public": "npm run build:public && node tools/check-public.cjs .cache/public"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
     "jsdom": "26.1.0"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

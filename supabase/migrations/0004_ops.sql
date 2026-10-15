@@ -8,7 +8,7 @@
 create table if not exists risk_snapshots (
   id                  uuid primary key default gen_random_uuid(),
   scope               text not null,                     -- 'global' | 'pair:EUR/USD' | 'model:<id>' | 'strategy:<v>'
-  window              text not null check (window in ('w20','w100','all')),
+  "window"            text not null check ("window" in ('w20','w100','all')),
   as_of               timestamptz not null,
   sample_size         int not null default 0,
   wins                int not null default 0,
@@ -23,7 +23,7 @@ create table if not exists risk_snapshots (
   current_losing_streak int not null default 0,
   max_losing_streak   int not null default 0,
   created_at          timestamptz not null default now(),
-  unique (scope, window, as_of)
+  unique (scope, "window", as_of)
 );
 create index if not exists idx_risk_latest on risk_snapshots (scope, created_at desc);
 

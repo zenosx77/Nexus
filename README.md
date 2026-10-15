@@ -28,15 +28,17 @@ The browser receives only provider data and server-configured channel aliases. I
 ## Local checks
 
 ```bash
-npm install       # test-only dependency (jsdom)
-npm test          # browser smoke/regression suite
-cd server && npm install && npm test
-cd ../trainer && python3 -m unittest
+npm ci --ignore-scripts             # Node 22+; local test dependencies
+npm --prefix server ci --ignore-scripts
+npm test                            # browser + server + trainer + security + artifact scan
+npm run test:browser                 # browser suite only
 ```
 
 The static UI has no bundler/CDN. Serve the repository root over HTTP for local development; HTTPS is required for a non-local relay URL. The Pages workflow publishes `index.html` and fonts and runs `tools/check-public.cjs` before upload. It does not publish `keys.js` or server environment files.
 
 ## Setup
+
+**Deployment preparation:** use [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the staging-first hosting, environment, verification and rollback checklist. GitHub Pages alone does not host a backend. The commands below describe runtime modes, not authorization to start a continuous worker.
 
 1. Review `SUPABASE_SETUP.md`; manually apply migrations `0001`–`0008` in order to a safe Supabase project and verify the resulting grants, policies, views, and functions. Create the private `models` Storage bucket only if using those workflows. **The migration files are not evidence that a hosted database has applied them.**
 2. Enable anonymous sign-ins in Supabase Auth for the browser relay.

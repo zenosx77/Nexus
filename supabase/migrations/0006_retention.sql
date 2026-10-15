@@ -54,7 +54,7 @@ declare
 begin
   delete from risk_snapshots a
   using risk_snapshots b
-  where a.scope = b.scope and a.window = b.window
+  where a.scope = b.scope and a."window" = b."window"
     and a.created_at < b.created_at
     and date_trunc('hour', a.as_of) = date_trunc('hour', b.as_of)
     and a.id <> b.id;
