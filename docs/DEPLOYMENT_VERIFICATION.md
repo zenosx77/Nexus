@@ -9,7 +9,7 @@ Continuation inspection found the prior turn's files restored as uncommitted cha
 - `8cbbb61` — preserve the restored scheduled jobs/trainer integrity implementation.
 - `1c23103` — atomic account-wide quota, server integration, regression/concurrency tests and verification CI.
 - `31fc256` — deployment report, PR draft and setup/cutover guides.
-- A final documentation-only follow-up records confirmed GitHub evidence below; its hash is in `git log`.
+- `9f2539f` — confirmed publication/CI evidence; clean local and remote HEAD at continuation inspection.
 
 Only the session branch is used. PR creation and merging require separate approval. The current user instruction conditionally permits a normal branch push after access and verification checks; push success must be confirmed from GitHub, not inferred from local commits. **Confirmed publication:** normal push exited 0; `git ls-remote` matched `31fc25652b12cbdfc3da103c76b0ce0ef841bd01` on the session branch. No PR was opened. [GitHub offline verification run 38709335739](https://github.com/zenosx77/Nexus/actions/runs/38709335739) completed successfully at that commit; `gh run watch --exit-status` exited 0. The final execution response reports the documentation follow-up state.
 
@@ -30,7 +30,7 @@ Only the session branch is used. PR creation and merging require separate approv
 
 ### Server/browser integration
 
-`server/src/credit-budget.js` uses only the versioned shared RPC, with no fallback to the old independent guards. It rejects malformed/version-mismatched responses, invalid counters and stale permits; errors do not echo database response bodies. The provider transport rechecks freshness at dispatch and stops failover on a quota failure.
+`server/src/credit-budget.js` uses only the versioned shared RPC, with no fallback to the old independent guards. It rejects malformed/version-mismatched responses, invalid counters and stale permits; errors do not echo database response bodies. The provider transport rechecks freshness at dispatch and stops failover on a quota failure. Paid provider calls and free usage lookups explicitly reject HTTP redirects: following one automatically could issue another request without a fresh reservation.
 
 The per-job six-attempt counter is claimed synchronously **before awaiting** the DB, fixing a local concurrency race. Browser/worker config is clamped to 700/day and six/minute; the browser secondary default and explanatory UI now match six. Existing diagnostics/ticker tests explicitly cover deferral when the stricter limit leaves no headroom.
 
@@ -49,7 +49,7 @@ Environment: Node 22.22.3, Python 3.11.2, disposable **PostgreSQL 17.6** (Unix s
 | Clean root and server `npm ci --ignore-scripts` | Passed | 0 |
 | Complete root `npm test` | Passed all component checks below | 0 |
 | Browser smoke | Passed one unnumbered assertion suite | 0 |
-| Server tests | **83 passed**, 0 failed/skipped | 0 |
+| Server tests | **84 passed**, 0 failed/skipped | 0 |
 | Python trainer | **35 passed** | 0 |
 | Security/migration/public-guard/config tests | **25 passed**, 0 failed/skipped | 0 |
 | Workflow contracts | **2 passed**, 0 failed/skipped | 0 |
@@ -130,3 +130,16 @@ Phone work: review/approve PRs, configure settings with approval, inspect Supaba
 **Verified GitHub CI (not production):** offline verification, including real disposable PostgreSQL, completed successfully at `31fc256`. Non-failing runner warnings: pinned checkout/setup actions still declare Node 20 and GitHub ran them under Node 24; `ubuntu-latest` is scheduled to change images. Review action runtime/runner upgrades before longer-term activation. No errors were suppressed.
 
 **Unverified/blocked:** hosted migration application and all-consumer cutover, real provider latency/account behavior, Supabase schema/policies/private Storage, secret/schedule/protection configuration and production data/training workflow executions. PR opening/merge, production settings/resources, activation, model swaps and live messaging/trading remain approval-gated. No production behavior was certified by local tests.
+
+
+## 9. Continuation revalidation and redirect hardening (2026-10-15)
+
+The current continuation started clean at `9f2539f`, with all four previous commits present and local/remote HEAD identical. No duplicate quota migration or replacement engine was added. Read-only GitHub inspection confirmed [run 38709558742](https://github.com/zenosx77/Nexus/actions/runs/38709558742) succeeded at that exact commit; no open PR exists. Existing Pages and offline-verification workflows were listed active. Secret/variable/Actions-settings/branch-protection metadata still returned HTTP 403. Supabase connector remained unsupported; hosted migration, private Storage and production behavior remain unverified.
+
+Review found a transport-level quota gap: native `fetch` followed HTTP redirects implicitly. Provider requests now use `redirect: 'error'`, including free `api_usage` lookups so a free request cannot redirect into a paid endpoint. Any explicit key failover still requires its own reservation. Regression coverage uses native fetch against a local-only HTTP fixture for 301/302/303/307/308 across both scopes, verifies one reservation per explicit attempt, zero redirected requests, and no invented usage figures. The regression failed before the fix (exit 1: missing expected rejection) and passed afterward. The first extended test expected an HTTP-error message instead of the existing network-error result; its assertion was corrected to require null counters and the actual redacted network-error response. No existing test was weakened.
+
+Fresh final execution: `npm test` exit **0** (84 server, 35 trainer, 25 security/migration, 2 workflow, 13 PGlite quota tests, browser smoke, public build/scan, source scan and actionlint); real PostgreSQL 17.6 suite **17 passed**, exit **0**. Both npm audits exit **0**, no vulnerabilities. Four YAML files, 41 JavaScript syntax checks, two Python compile checks and cumulative Git whitespace checks passed. Missing-config preflight still exits **1** as expected. No tests skipped; external shellcheck/pyflakes and hosted integrations were not executed. The disposable PostgreSQL server uses only a local Unix socket and is stopped after testing.
+
+This follow-up changes only the provider redirect policy, its regression test and these two review documents. Migration 0009, hard quota limits, schedule gates, shadow training, engines, weight merging, canonical model validation, mirroring, Telegram behavior, outcomes and manual-only backfill are unchanged. Redirecting provider responses now fail closed; investigate the canonical provider URL rather than re-enable automatic redirects. Existing conservative quota/cutover rollback instructions above remain mandatory.
+
+The follow-up is eligible for a normal, authorized session-branch push after checks. Its exact commit, remote confirmation and any new GitHub CI outcome are reported by the final execution response; no production or PR operation is implied.

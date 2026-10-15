@@ -110,7 +110,9 @@ export async function requestTwelveData(endpoint, params = {}, scope = 'worker',
       const send = dependencies.fetch ?? fetch;
       const signal = AbortSignal.timeout(20_000);
       reservation?.assertFresh(); // final check after every await, immediately before dispatch
-      const response = await send(url, { signal });
+      // Automatic redirects would send another request without a fresh quota
+      // reservation (and could expose provider credentials). Fail closed instead.
+      const response = await send(url, { signal, redirect: 'error' });
       const body = await response.json().catch(() => ({}));
       if (!response.ok || body.status === 'error') {
         const err = safeProviderError(response.status, body);
@@ -135,7 +137,7 @@ export async function getTwelveDataUsage() {
   return Promise.all(config.twelveDataKeys.map(async (key, index) => {
     try {
       const response = await fetch(`${API_BASE}api_usage?apikey=${encodeURIComponent(key)}`, {
-        signal: AbortSignal.timeout(12_000),
+        signal: AbortSignal.timeout(12_000), redirect: 'error',
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok || body.status === 'error') {

@@ -132,3 +132,61 @@ test('permit freshness is rechecked at dispatch after promise continuation delay
   }),e=>e.reason==='guard-unavailable');
   assert.equal(times.length,0);
 });
+
+test('provider redirects cannot cause unreserved requests across scopes or key failovers', async t => {
+  const { createServer } = await import('node:http');
+  const nativeFetch = globalThis.fetch;
+  let status = 302, initialRequests = 0, redirectedRequests = 0, reservations = 0;
+  const server = createServer((req, res) => {
+    if (req.url === '/start') {
+      initialRequests++;
+      res.writeHead(status, { location: '/unexpected-paid-request' });
+      res.end();
+    } else {
+      redirectedRequests++;
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ price: '1.1' }));
+    }
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise(resolve => {
+    server.close(resolve);
+    server.closeAllConnections();
+  }));
+  const localUrl = `http://127.0.0.1:${server.address().port}/start`;
+  const deps = {
+    db: async () => ({ rpc: async () => {
+      reservations++;
+      return { data: { allowed: true, guard_version: 1, account: 'twelvedata',
+        daily_limit: 700, minute_limit: 6, valid_for_ms: 1000,
+        daily_calls: 1, minute_calls: 1, reason: 'reserved' } };
+    } }),
+    // Keep the native fetch redirect behavior; map only the origin to a local fixture.
+    fetch: (_url, options) => nativeFetch(localUrl, options),
+  };
+  for (const scope of ['worker', 'browser']) {
+    for (status of [301, 302, 303, 307, 308]) {
+      reset(); initialRequests = redirectedRequests = reservations = 0;
+      await assert.rejects(requestTwelveData('price', { symbol: 'EUR/USD' }, scope, {}, deps), /provider unavailable/);
+      assert.equal(initialRequests, config.twelveDataKeys.length, 'each explicit failover is bounded');
+      assert.equal(reservations, initialRequests, 'every dispatched attempt has its own reservation');
+      assert.equal(redirectedRequests, 0, 'fetch must never follow an unreserved redirect');
+    }
+  }
+  // Free usage checks must not redirect into a paid endpoint either.
+  const { getTwelveDataUsage } = await import('../src/twelvedata.js');
+  initialRequests = redirectedRequests = 0;
+  const priorReservations = reservations;
+  try {
+    globalThis.fetch = deps.fetch;
+    const usage = await getTwelveDataUsage();
+    assert.deepEqual(usage.map(row => [row.used, row.limit, row.error]),
+      config.twelveDataKeys.map(() => [null, null, 'network error']),
+      'redirect rejection reports unavailable usage, never fabricated counters');
+    assert.equal(initialRequests, config.twelveDataKeys.length);
+    assert.equal(redirectedRequests, 0);
+    assert.equal(reservations, priorReservations, 'free usage check reserves no paid credit');
+  } finally {
+    globalThis.fetch = nativeFetch;
+  }
+});
