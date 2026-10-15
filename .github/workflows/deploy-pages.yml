@@ -35,9 +35,12 @@ jobs:
         run: |
           mkdir -p public/assets/fonts
           cp index.html public/index.html
-          # Self-hosted font + its OFL license ship with the site.
+          # Self-hosted fonts + their OFL licenses ship with the site.
           cp assets/fonts/inter-latin-wght-normal.woff2 public/assets/fonts/
           cp assets/fonts/INTER-OFL-LICENSE.txt public/assets/fonts/
+          cp assets/fonts/cinzel-latin-400-normal.woff2 public/assets/fonts/
+          cp assets/fonts/cinzel-latin-600-normal.woff2 public/assets/fonts/
+          cp assets/fonts/CINZEL-OFL-LICENSE.txt public/assets/fonts/
       - name: Credential guard (no keys.js, no embedded keys/tokens)
         run: node tools/check-public.cjs public
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
