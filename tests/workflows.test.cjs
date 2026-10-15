@@ -18,3 +18,11 @@ test('scheduled workflow safety contracts', () => {
   const scheduled = s.split('if [ "$EVENT" = schedule ]; then')[1].split('else')[0];
   assert.doesNotMatch(scheduled, /backfill/);
 });
+
+test('verification CI runs real PostgreSQL without production secrets',()=>{
+  const s=fs.readFileSync('.github/workflows/verify.yml','utf8');
+  assert.match(s,/npm run test:postgres/);assert.match(s,/npm test/);
+  assert.match(s,/image: postgres:17\.6/);assert.match(s,/contents: read/);
+  assert.doesNotMatch(s,/secrets\.|pull_request_target|SUPABASE|TWELVEDATA_KEYS|TELEGRAM/);
+  for(const [,ref] of s.matchAll(/uses: ([^\s]+)/g)) assert.match(ref,/@[a-f0-9]{40}$/);
+});

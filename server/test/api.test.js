@@ -49,7 +49,7 @@ test('health is public liveness only; secrets absent and no Auth/provider call',
   const r = await f.get('/api/v1/health', { origin: '', authorization: '' });
   assert.equal(r.status, 200);
   assert.equal(r.data.browserBudget.dailyLimit, 700);
-  assert.equal(r.data.browserBudget.perMinuteLimit, 7);
+  assert.equal(r.data.browserBudget.perMinuteLimit, 6);
   assert.equal(r.headers.get('cache-control'), 'no-store');
   assert.equal(r.headers.get('x-content-type-options'), 'nosniff');
   assert.equal(r.headers.get('access-control-allow-origin'), null);

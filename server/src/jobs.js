@@ -4,6 +4,7 @@ import { db } from './db.js';
 import { config, requireSupabase } from './config.js';
 import { runIngest, backfillLocked } from './ingest.js';
 import { evaluateLocked } from './evaluate.js';
+import { sharedQuotaContract } from './credit-budget.js';
 import { limitJobCredits } from './twelvedata.js';
 
 export function verdict(locked, mode) {
@@ -31,7 +32,7 @@ export async function preflight(client) {
     currency_pairs: 'code,is_active', market_candles: 'pair_code,timeframe,ts',
     predictions: 'id,source,is_shadow', trade_outcomes: 'prediction_id,outcome,is_valid',
     model_versions: 'id,artifact_sha256,artifact_payload', training_runs: 'id,status',
-    ingestion_runs: 'id,status', feature_snapshots: 'pair_code,ts',
+    ingestion_runs: 'id,status', market_features: 'pair_code,ts',
     job_locks: 'name', system_settings: 'key,value',
     twelvedata_credit_budget: 'scope,daily_calls,minute_calls',
     twelvedata_browser_credit_budget: 'scope,daily_calls,minute_calls',
@@ -40,10 +41,12 @@ export async function preflight(client) {
     const { error } = await c.from(table).select(columns).limit(1);
     if (error) throw new Error('required schema read failed');
   }
+  const { data: quota, error: quotaError } = await c.rpc('twelvedata_quota_status');
+  if (quotaError || !sharedQuotaContract(quota) || quota.initialized !== true || quota.rolling_window_seconds !== 61) throw new Error('shared quota verification failed');
   const { data: bucket, error } = await c.storage.getBucket('models');
   if (error || !bucket || bucket.public !== false) throw new Error('private model bucket verification failed');
-  return { verdict: 'verified', scope: 'schema-read-and-private-bucket-only',
-    productionReady: false, reason: 'SQL-policy-and-shared-account-budget-review-required' };
+  return { verdict: 'verified', scope: 'schema-private-bucket-and-shared-quota-contract',
+    productionReady: false, reason: 'hosted-policy-cutover-and-account-consumer-verification-required' };
 }
 
 export async function runJob(mode) {

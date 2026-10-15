@@ -85,7 +85,7 @@ function enableRelay(E, options={}) {
     nexusApiSession={access_token:'test-session-token',refresh_token:'test-refresh-token',expires_at:Date.now()+3600000};
     nexusSessionInfo={ok:true,userId:'00000000-0000-4000-8000-000000000001',telegramAdmin:${admin},telegramConfigured:true,
       telegramChannels:${JSON.stringify(channels)},cloudSyncEnabled:true,modelSyncEnabled:true};
-    nexusRelayHealth={provider:{configured:true,keyCount:2},browserBudget:{dailyLimit:700,perMinuteLimit:7}};`);
+    nexusRelayHealth={provider:{configured:true,keyCount:2},browserBudget:{dailyLimit:700,perMinuteLimit:6}};`);
 }
 const M = 60000;
 
@@ -194,11 +194,11 @@ async function main() {
   assert.equal(E('nonstopOn()'), false, 'NONSTOP defaults to OFF — quality only (no low-grade signals)');
   assert.equal(E('budgetLevel()'), 0);
   assert.equal(E('budgetScanStep()'), 1);
-  assert.equal(E('perMinCap()'), 7, 'conservative per-minute default is fixed, not multiplied by key count');
+  assert.equal(E('perMinCap()'), 6, 'conservative per-minute default is fixed, not multiplied by key count');
   assert.equal(E('perDayCap()'), 700, 'conservative daily default is fixed, not multiplied by key count');
   assert.ok($id('creditDailyLimit') && $id('creditMinuteLimit') && $id('saveCreditLimits'), 'editable daily and minute hard caps render');
   assert.equal(+$id('creditDailyLimit').value, 700);
-  assert.equal(+$id('creditMinuteLimit').value, 7);
+  assert.equal(+$id('creditMinuteLimit').value, 6);
   assert.match($id('noteList').textContent, /Live feed/, 'notification centre never says "no trades" when empty');
 
   /* ── 6. server-only provider keys + API CREDIT USAGE ─────────── */
@@ -220,7 +220,7 @@ async function main() {
   assert.equal(E('perMinCap()'), 5);
   assert.equal(JSON.parse(w.localStorage.getItem('nx_credit_limits')).daily, 900, 'limits persist in this browser');
   E('resetCreditLimits()');
-  assert.equal(E('perDayCap()'), 700); assert.equal(E('perMinCap()'), 7);
+  assert.equal(E('perDayCap()'), 700); assert.equal(E('perMinCap()'), 6);
   // Relay configuration enables a sentinel server pool only; no provider key enters the browser.
   enableRelay(E);
   assert.equal(E('keyPool().length'), 1, 'configured server relay exposes one availability sentinel');
@@ -241,7 +241,7 @@ async function main() {
   enableRelay(E);
   assert.equal(E('keyPool().length'), 1, 'server key availability does not reveal configured key count here');
   assert.deepEqual(E('JSON.stringify(keyPool()[0])'), '{"src":"server"}', 'browser receives no key value or rotation state');
-  assert.equal(E('perMinCap()'), 7, 'server key count does not multiply the safe minute cap');
+  assert.equal(E('perMinCap()'), 6, 'server key count does not multiply the safe minute cap');
   assert.equal(E('perDayCap()'), 700, 'server key count does not multiply the safe daily cap');
   E('sbClear()');
 
@@ -587,7 +587,7 @@ async function main() {
   assert.equal(E('openSigs.every(s=>s.targetT>Date.now())'), true, 'targets point at the NEXT candle');
   assert.ok($id('pairGrid').querySelectorAll('.pcard').length >= 3, 'live pair grid renders every ticked pair');
   // M5 on → one extra candle request per pair, still candle-only
-  E(`$('m5conf').checked=true; cache={}; budget.min=[]`); // simulate the next minute, preserving the 7/min hard cap
+  E(`$('m5conf').checked=true; cache={}; budget.min=[]`); // simulate the next minute, preserving the 6/min hard cap
   const u2 = [];
   w.fetch = async (url, opts) => { const req=bodyObject(opts&&opts.body); if(String(url).endsWith('/api/v1/market')) u2.push(req); return jsonResponse({data:candlePayload()}); };
   await E('runScan(true)');
@@ -672,6 +672,11 @@ async function main() {
         ?{price:'1.10000'}:{exchange_rate:'1.10000'};
     return jsonResponse({data});
   };
+  // Diagnostics must defer under the new six-call account ceiling too.
+  E('budget.min=Array.from({length:6},()=>Date.now())');
+  await E('verifyFeeds()');
+  assert.equal(durls.length, 0, 'exhausted minute budget blocks every paid diagnostic');
+  E('budget.min=[]'); // simulate a fresh minute for this independent diagnostic fixture
   await E('verifyFeeds()');
   for (const ep of ['time_series', 'quote', 'price', 'exchange_rate'])
     assert.ok(durls.includes(ep), `diagnostics still verify ${ep} on demand`);
@@ -711,10 +716,13 @@ async function main() {
   E('cache={}; budget.calls=perDayCap(); budget.min=[]');
   await assert.rejects(E('apiTimeSeries("EUR/USD",{maxAge:0})'), /NEXUS API budget/, 'request is blocked before provider fetch');
   assert.equal(blockedFetches.length, 0, 'hard cap prevents any paid Twelve Data request');
-  E('creditLimits.minute=7; budget.calls=0; budget.min=[]; $("m5conf").checked=true');
-  assert.equal(E('budgetCheck("ticker").ok'), true, 'one background ticker request may use spare minute headroom');
-  assert.equal(E('budgetReserve("ticker")'), true);
-  assert.equal(E('budgetCheck("ticker").reason'), 'scan-reserve', 'ticker leaves room for a three-pair M1+M5 scan');
+  E('creditLimits.minute=6; budget.calls=0; budget.min=[]; $("m5conf").checked=true');
+  assert.equal(E('budgetCheck("ticker").reason'), 'scan-reserve', 'six-call ceiling reserves all capacity for a three-pair M1+M5 scan');
+  assert.equal(E('budgetReserve("ticker")'), false);
+  E('$("m5conf").checked=false');
+  assert.equal(E('budgetCheck("ticker").ok'), true, 'M1-only scan leaves genuine spare minute capacity');
+  for(let i=0;i<3;i++) assert.equal(E('budgetReserve("ticker")'), true);
+  assert.equal(E('budgetCheck("ticker").reason'), 'scan-reserve', 'ticker preserves the three remaining M1 calls');
   assert.equal(E('budgetCheck("scan").ok'), true, 'reserved scan capacity stays available');
   E('creditLimits.minute=2; budget.calls=0; budget.min=[Date.now(),Date.now()];');
   assert.equal(E('budgetCheck("scan").reason'), 'minute-cap', 'per-minute hard cap is enforced');
@@ -1191,7 +1199,7 @@ async function main() {
           ?{price:'1.1'}:{exchange_rate:'1.1'};
       return jsonResponse({data});
     }
-    if(u.endsWith('/api/v1/health')) return jsonResponse({ok:true,provider:{configured:true,keyCount:2},browserBudget:{dailyLimit:700,perMinuteLimit:7}});
+    if(u.endsWith('/api/v1/health')) return jsonResponse({ok:true,provider:{configured:true,keyCount:2},browserBudget:{dailyLimit:700,perMinuteLimit:6}});
     if(u.endsWith('/api/v1/usage')) return jsonResponse({keys:[{key:'server key 1',used:1,limit:700}]});
     if(u.endsWith('/api/v1/session')) return jsonResponse({ok:true,userId:'00000000-0000-4000-8000-000000000001',telegramAdmin:true,telegramConfigured:true,telegramChannels:{main:true,public:true,vip:true,list:true,admin:true}});
     if(u.includes('/auth/v1/')) return jsonResponse({access_token:'test-session-token',refresh_token:'test-refresh-token',expires_in:3600});

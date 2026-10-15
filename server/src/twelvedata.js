@@ -69,7 +69,7 @@ function scrubProviderData(value) {
 
 /**
  * Call an allowlisted Twelve Data endpoint. `scope` selects the persistent
- * browser or worker request pool; api_usage is free and reserves no credits.
+ * shared account guard; api_usage is free and reserves no credits.
  * Returns { data, keyIndex } without ever returning the selected key.
  */
 let jobCreditsRemaining = Infinity;
@@ -89,14 +89,17 @@ export async function requestTwelveData(endpoint, params = {}, scope = 'worker',
     const key = availableKey();
     if (!key) throw new Error(`all ${config.twelveDataKeys.length} provider keys are cooling down`);
     const keyIndex = config.twelveDataKeys.indexOf(key);
+    let reservation;
     if (endpoint !== 'api_usage') {
-      if (scope === 'worker' && jobCreditsRemaining <= 0) throw new TwelveDataBudgetError('job-limit', 'Job paid-call cap reached');
-      if (scope === 'browser') await reserveTwelveDataBrowserCredit(budgetOptions.category, budgetOptions.scanReserve, dependencies);
-      else if (scope === 'worker') await reserveTwelveDataCredit(dependencies);
+      if (scope === 'worker') {
+        if (jobCreditsRemaining <= 0) throw new TwelveDataBudgetError('job-limit', 'Job paid-call cap reached');
+        jobCreditsRemaining--; // synchronous claim BEFORE awaiting the shared DB guard
+      }
+      if (scope === 'browser') reservation = await reserveTwelveDataBrowserCredit(budgetOptions.category, budgetOptions.scanReserve, dependencies);
+      else if (scope === 'worker') reservation = await reserveTwelveDataCredit(dependencies);
       else throw new Error('invalid Twelve Data budget scope');
     }
 
-    if (endpoint !== 'api_usage' && scope === 'worker') jobCreditsRemaining--;
     const query = new URLSearchParams();
     for (const [name, value] of Object.entries(params)) {
       if (value !== undefined && value !== null && value !== '') query.set(name, String(value));
@@ -104,7 +107,10 @@ export async function requestTwelveData(endpoint, params = {}, scope = 'worker',
     query.set('apikey', key);
     const url = `${API_BASE}${endpoint}?${query.toString()}`;
     try {
-      const response = await (dependencies.fetch ?? fetch)(url, { signal: AbortSignal.timeout(20_000) });
+      const send = dependencies.fetch ?? fetch;
+      const signal = AbortSignal.timeout(20_000);
+      reservation?.assertFresh(); // final check after every await, immediately before dispatch
+      const response = await send(url, { signal });
       const body = await response.json().catch(() => ({}));
       if (!response.ok || body.status === 'error') {
         const err = safeProviderError(response.status, body);

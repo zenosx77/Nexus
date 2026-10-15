@@ -17,7 +17,7 @@ test('migrations 0001–0008 and security/budget behavior in disposable PostgreS
     revoke create on schema public from public;
     alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
     alter default privileges in schema public grant all on sequences to service_role;`);
-  const migrations = fs.readdirSync(migrationDir).filter(f => f.endsWith('.sql')).sort();
+  const migrations = fs.readdirSync(migrationDir).filter(f => f.endsWith('.sql') && f.slice(0,4) <= '0008').sort();
   assert.equal(migrations.length, 8);
   for (const name of migrations) await db.exec(fs.readFileSync(`${migrationDir}/${name}`, 'utf8'));
   await t.test('0008 reapplies without relaxing grants and read-only verifier passes', async () => {

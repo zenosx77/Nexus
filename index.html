@@ -867,7 +867,7 @@
         <button class="b-ghost" style="padding:9px" onclick="resetCreditLimits()">↺ SAFE DEFAULTS</button>
       </div>
       <div class="mini" id="creditLimitMsg" style="margin-top:6px;text-align:left">Loading local credit limits…</div>
-      <div class="mini" style="text-align:left">The meter above is a local secondary guard. CHECK asks the server to read each provider account's <b>api_usage</b> endpoint (0 credits); aliases are masked. The authoritative shared browser-relay guard defaults to <b>700 paid calls/day + 7/min</b>, not multiplied by key count. At 60% scans slow; at 80% routine scans stop and the reserve is for settlements; at 100% all browser-relay paid calls stop until UTC midnight. The worker keeps its separate <b>700/day + 6/min</b> limit.</div>
+      <div class="mini" style="text-align:left">The meter above is a local secondary guard. CHECK asks the server to read each provider account's <b>api_usage</b> endpoint (0 credits); aliases are masked. The authoritative shared account guard caps <b>all workers and browser relays together at 700 paid calls/UTC day + 6/min</b>, not multiplied by key count. At 60% scans slow; at 80% routine scans stop and the reserve is for settlements; at 100% all browser-relay paid calls stop until UTC midnight. The database uses a rolling window with a dispatch safety margin; retries and key failovers consume the same account quota. Local counters do not show other clients' usage.</div>
     </div>
 
     <div class="glass" id="sec-feeds">
@@ -1359,7 +1359,7 @@ function renderPerf(){ /* win rate, EV after costs, drawdown, attribution */
    Provider key count never changes the authoritative server cap.
    20% of the daily cap is reserved for pending settlements.
    ═══════════════════════════════════════════════════════════════════ */
-const DEFAULT_CREDIT_LIMITS={daily:700,minute:7};
+const DEFAULT_CREDIT_LIMITS={daily:700,minute:6};
 function readCreditLimits(){
   const raw=loadJSON('nx_credit_limits',null)||{};
   const n=(v,def,max)=>Number.isFinite(+v)?Math.min(max,Math.max(0,Math.floor(+v))):def;

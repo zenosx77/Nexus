@@ -79,11 +79,20 @@ begin
     if not exists (select 1 from pg_class where oid = ('public.' || v_table)::regclass and relrowsecurity) then
       raise exception 'RLS disabled: %', v_table;
     end if;
-    if not has_table_privilege('service_role', 'public.' || v_table, 'SELECT')
-        or not has_table_privilege('service_role', 'public.' || v_table, 'INSERT')
+    if not has_table_privilege('service_role', 'public.' || v_table, 'SELECT') then
+      raise exception 'Missing service-role read access: %', v_table;
+    end if;
+    if to_regclass('public.twelvedata_account_budget') is not null
+       and v_table in ('twelvedata_credit_budget','twelvedata_browser_credit_budget') then
+      -- After 0009 the definer RPC alone may mutate counters. Never restore
+      -- broad 0008 grants to make this verifier pass.
+      if has_table_privilege('service_role','public.'||v_table,'INSERT,UPDATE,DELETE,TRUNCATE') then
+        raise exception 'Unsafe direct quota mutation after 0009: %',v_table;
+      end if;
+    elsif not has_table_privilege('service_role', 'public.' || v_table, 'INSERT')
         or not has_table_privilege('service_role', 'public.' || v_table, 'UPDATE')
         or not has_table_privilege('service_role', 'public.' || v_table, 'DELETE') then
-      raise exception 'Missing service-role access: %', v_table;
+      raise exception 'Missing service-role write access: %', v_table;
     end if;
   end loop;
 

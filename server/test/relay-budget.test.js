@@ -11,14 +11,14 @@ const { reserveTwelveDataCredit, reserveTwelveDataBrowserCredit } = await import
 const { requestTwelveData, providerHealth } = await import('../src/twelvedata.js');
 
 const reset = () => { for (const key of Object.keys(providerHealth)) delete providerHealth[key]; };
-test('real reservation functions use independent RPCs and preserve 700/6 and 700/7', async () => {
+test('both scopes call shared account RPC with hard-capped configuration', async () => {
   const calls = [];
-  const deps = { db: async () => ({ rpc: async (...args) => { calls.push(args); return { data: { allowed: true } }; } }) };
+  const deps = { db: async () => ({ rpc: async (...args) => { calls.push(args); return { data: { guard_version:1, account:'twelvedata', daily_limit:700, minute_limit:6, valid_for_ms:1000, daily_calls:1, minute_calls:1, reason:'reserved', allowed: true } }; } }) };
   await reserveTwelveDataCredit(deps);
   await reserveTwelveDataBrowserCredit('ticker', 999, deps);
   assert.deepEqual(calls, [
-    ['reserve_twelvedata_credit', { p_daily_limit: 700, p_minute_limit: 6 }],
-    ['reserve_twelvedata_browser_credit', { p_daily_limit: 700, p_minute_limit: 7, p_category: 'ticker', p_scan_reserve: 7 }],
+    ['reserve_twelvedata_account_credit', { p_scope: 'worker', p_daily_limit: 700, p_minute_limit: 6 }],
+    ['reserve_twelvedata_account_credit', { p_scope: 'browser', p_daily_limit: 700, p_minute_limit: 6, p_category: 'ticker', p_scan_reserve: 6 }],
   ]);
 });
 
@@ -44,7 +44,7 @@ test('reservation precedes provider call, responses scrub credential fields and 
   reset();
   const order = [];
   const result = await requestTwelveData('price', { symbol: 'EUR/USD' }, 'browser', {}, {
-    db: async () => ({ rpc: async () => { order.push('reserve'); return { data: [{ allowed: true }] }; } }),
+    db: async () => ({ rpc: async () => { order.push('reserve'); return { data: [{ guard_version:1, account:'twelvedata', daily_limit:700, minute_limit:6, valid_for_ms:1000, daily_calls:1, minute_calls:1, reason:'reserved', allowed: true }] }; } }),
     fetch: async url => {
       order.push('fetch');
       assert.equal(new URL(url).searchParams.get('apikey'), config.twelveDataKeys[0]);
@@ -77,7 +77,7 @@ test('provider failover reserves a new credit before every paid attempt; api_usa
   const order = [];
   let attempts = 0;
   const deps = {
-    db: async () => ({ rpc: async () => { order.push('reserve'); return { data: { allowed: true } }; } }),
+    db: async () => ({ rpc: async () => { order.push('reserve'); return { data: { guard_version:1, account:'twelvedata', daily_limit:700, minute_limit:6, valid_for_ms:1000, daily_calls:1, minute_calls:1, reason:'reserved', allowed: true } }; } }),
     fetch: async () => {
       order.push('fetch'); attempts++;
       return attempts === 1
@@ -90,4 +90,45 @@ test('provider failover reserves a new credit before every paid attempt; api_usa
   order.length = 0; reset();
   await requestTwelveData('api_usage', {}, 'worker', {}, deps);
   assert.deepEqual(order, ['fetch']);
+});
+
+test('old guard, malformed replies, thrown RPC and ambiguous slow commits never reach provider', async () => {
+  const good = {guard_version:1, account:'twelvedata', daily_limit:700, minute_limit:6, valid_for_ms:1000, daily_calls:1, minute_calls:1, reason:'reserved', allowed:true};
+  for (const response of [{allowed:true}, {...good, guard_version:0}, {...good, daily_limit:1400},
+    {...good, valid_for_ms:0}, {...good, valid_for_ms:1001}, [good,good], {...good,account:'key-2'}]) {
+    reset();
+    await assert.rejects(requestTwelveData('price', {symbol:'EUR/USD'}, 'browser', {}, {
+      db:async()=>({rpc:async()=>({data:response})}),
+      fetch:async()=>assert.fail('must not fetch'),
+    }), e=>e.reason==='guard-unavailable');
+  }
+  reset();let tick=0;
+  await assert.rejects(requestTwelveData('price', {symbol:'EUR/USD'}, 'worker', {}, {
+    db:async()=>({rpc:async()=>({data:good})}), monotonicNow:()=>tick++*1000,
+    fetch:async()=>assert.fail('expired permit must not dispatch'),
+  }), e=>e.reason==='guard-unavailable');
+  reset();
+  await assert.rejects(requestTwelveData('price', {symbol:'EUR/USD'}, 'browser', {}, {
+    db:async()=>({rpc:async()=>{throw new Error('sensitive database response');}}),
+    fetch:async()=>assert.fail('must not fetch'),
+  }), e=>e.reason==='guard-unavailable' && !e.message.includes('sensitive'));
+});
+
+test('quota denial during key failover stops additional paid calls', async () => {
+  reset();let reservations=0, fetches=0;
+  const contract={guard_version:1,account:'twelvedata',daily_limit:700,minute_limit:6,valid_for_ms:1000, daily_calls:1, minute_calls:1, reason:'reserved'};
+  await assert.rejects(requestTwelveData('price', {symbol:'EUR/USD'}, 'worker', {}, {
+    db:async()=>({rpc:async()=>({data:++reservations===1 ? {...contract,allowed:true} : {...contract,allowed:false,reason:'minute-limit'}})}),
+    fetch:async()=>{fetches++;return {ok:false,status:503,json:async()=>({})};},
+  }), e=>e.reason==='minute-limit');
+  assert.equal(fetches,1);assert.equal(reservations,2);
+});
+
+test('permit freshness is rechecked at dispatch after promise continuation delay',async()=>{
+  reset();const times=[0,0,1001];
+  await assert.rejects(requestTwelveData('price',{symbol:'EUR/USD'},'browser',{}, {
+    db:async()=>({rpc:async()=>({data:{allowed:true,guard_version:1,account:'twelvedata',daily_limit:700,minute_limit:6,valid_for_ms:1000,daily_calls:1,minute_calls:1,reason:'reserved'}})}),
+    monotonicNow:()=>times.shift(),fetch:async()=>assert.fail('late dispatch must fail closed'),
+  }),e=>e.reason==='guard-unavailable');
+  assert.equal(times.length,0);
 });
