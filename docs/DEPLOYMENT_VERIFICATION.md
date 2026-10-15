@@ -8,9 +8,10 @@ Continuation inspection found the prior turn's files restored as uncommitted cha
 
 - `8cbbb61` — preserve the restored scheduled jobs/trainer integrity implementation.
 - `1c23103` — atomic account-wide quota, server integration, regression/concurrency tests and verification CI.
-- A subsequent documentation commit updates this report, the PR draft and setup guides. See `git log` for its final hash.
+- `31fc256` — deployment report, PR draft and setup/cutover guides.
+- A final documentation-only follow-up records confirmed GitHub evidence below; its hash is in `git log`.
 
-Only the session branch is used. PR creation and merging require separate approval. The current user instruction conditionally permits a normal branch push after access and verification checks; push success must be confirmed from GitHub, not inferred from local commits. This document is prepared before that operation; the final execution response records the actual push/CI state.
+Only the session branch is used. PR creation and merging require separate approval. The current user instruction conditionally permits a normal branch push after access and verification checks; push success must be confirmed from GitHub, not inferred from local commits. **Confirmed publication:** normal push exited 0; `git ls-remote` matched `31fc25652b12cbdfc3da103c76b0ce0ef841bd01` on the session branch. No PR was opened. [GitHub offline verification run 38709335739](https://github.com/zenosx77/Nexus/actions/runs/38709335739) completed successfully at that commit; `gh run watch --exit-status` exited 0. The final execution response reports the documentation follow-up state.
 
 ## 2. Atomic shared quota implementation
 
@@ -126,4 +127,6 @@ Phone work: review/approve PRs, configure settings with approval, inspect Supaba
 
 **Completed:** preserved inherited work, shared quota implementation, real/offline concurrency and failure tests, regression/security scans, public build, workflow validation, read-only GitHub inspection, migration/verifier/runbook/PR preparation.
 
-**Unverified/blocked:** hosted migration application and all-consumer cutover, real provider latency/account behavior, Supabase schema/policies/private Storage, secret/schedule/protection configuration and new hosted workflow executions. PR opening/merge, production settings/resources, activation, model swaps and live messaging/trading remain approval-gated. No production behavior was certified by local tests.
+**Verified GitHub CI (not production):** offline verification, including real disposable PostgreSQL, completed successfully at `31fc256`. Non-failing runner warnings: pinned checkout/setup actions still declare Node 20 and GitHub ran them under Node 24; `ubuntu-latest` is scheduled to change images. Review action runtime/runner upgrades before longer-term activation. No errors were suppressed.
+
+**Unverified/blocked:** hosted migration application and all-consumer cutover, real provider latency/account behavior, Supabase schema/policies/private Storage, secret/schedule/protection configuration and production data/training workflow executions. PR opening/merge, production settings/resources, activation, model swaps and live messaging/trading remain approval-gated. No production behavior was certified by local tests.

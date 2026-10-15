@@ -12,12 +12,12 @@ Base: `main` · Head: `arena/262a1d23-nexus` · **PR NOT opened; separate approv
 - Add offline-only verification CI with real PostgreSQL concurrency tests, pinned actions, read-only permissions and no production secrets.
 
 ## Commits / state
-`8cbbb61` preserves prior files restored without the previously reported commit objects; `1c23103` implements shared quotas/tests. A following documentation commit records the current audit. No history rewrite, forced push, PR creation or merge is part of this work.
+`8cbbb61` preserves prior files restored without the previously reported commit objects; `1c23103` implements shared quotas/tests. `31fc256` records deployment/cutover documentation. Normal branch push was confirmed, and [offline verification run 38709335739](https://github.com/zenosx77/Nexus/actions/runs/38709335739) succeeded at `31fc256`; a final documentation-only follow-up records that evidence. No history rewrite, forced push, PR creation or merge is part of this work.
 
 ## Tests
 Clean installs and `npm test` exit 0: browser smoke; **83 server**, **35 trainer**, **25 security/migration**, **2 workflow**, **13 PGlite quota** tests; public artifact and source secret scans; actionlint. Separate real PostgreSQL 17.6 suite: **17 passed**. Forty simultaneous calls admit six; 30 competitors for the last daily permit admit one. YAML (4), JS syntax (41), Python compile (2), `git diff --check` and both npm audits pass; audits report 0 vulnerabilities. Missing-config preflight correctly exits 1. Tests use fake provider/Bot transports, not production traffic.
 
-Actionlint uses exact-pinned `@kjanat/actionlint` 1.17.0 fork because official binary access is blocked; shellcheck/pyflakes not run. PostgreSQL CI service is version-pinned, not digest-pinned. Full evidence and failed intermediate checks: `docs/DEPLOYMENT_VERIFICATION.md`.
+Actionlint uses exact-pinned `@kjanat/actionlint` 1.17.0 fork because official binary access is blocked; shellcheck/pyflakes not run. PostgreSQL CI service is version-pinned, not digest-pinned. Hosted CI emitted non-failing Node 20 action-runtime and upcoming runner-image warnings; no production job was run. Full evidence and failed intermediate checks: `docs/DEPLOYMENT_VERIFICATION.md`.
 
 ## Deployment / security gates
 **DO NOT ACTIVATE FROM THIS PR ALONE.** Migration 0009 is prepared, not applied to production. GitHub confirms push permission and existing Pages metadata, but secret/variable/protection/Actions-settings inspection returns 403. Hosted Supabase is inaccessible; applied migrations, policies and private `models` bucket remain unknown.
