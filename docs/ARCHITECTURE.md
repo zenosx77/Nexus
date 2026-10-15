@@ -1,75 +1,71 @@
-# NEXUS × Supabase — Architecture Report & Integration Plan
+# NEXUS · Current Architecture & Security Boundaries
 
-**Date:** 2026-10-14 · **Repo state inspected:** `arena/9af041a8-nexus` @ v5.1 Meridian
-**Scope:** inspect the existing system, then integrate Supabase as the persistence + monitoring layer without replacing working logic.
+**Updated:** 2026-10-15 · **Working branch:** `arena/c7c0db30-nexus`
 
----
+## 1. Components and data flow
 
-## 1. Current architecture (inspection findings)
-
-| Layer | Today | Notes |
+| Layer | Responsibility | Security boundary |
 |---|---|---|
-| **App shell** | One self-contained `index.html` (~4,100 lines) — HTML + CSS + one inline script. No build step, no CDN, strict CSP (`connect-src` = `api.twelvedata.com` + `api.telegram.org`). Optional gitignored `keys.js` for private credentials. | Deployed via GitHub Pages (`public/` copy + credential guard `tools/check-public.cjs`). |
-| **Prediction engine** | 26 strategies + 6 agents → fusion → validation → risk gates → `emitSignal()`. Runs **fully in the browser**. Signal targets the next candle open keyed to the **feed clock** (`nextTargetFromFeed`). | Pure functions with a shared context object (`makeCtx` → `x.e9/x.rs/x.bb/…`). |
-| **Streams** | 4 Telegram channels (MAIN / PUBLIC / VIP / LIST) driven from the browser via `tgCall()` → Bot API. Public stream = 1 quality signal/min before the open; VIP = best shot every 10 min. | Delivery authorization is explicit (`tg.auth`); token changes revoke it. |
-| **Self-learning** | In-browser walk-forward training (`train`, `deepTrainSeries`) producing per-strategy/per-regime win-rate weights persisted to `localStorage` (`nx_deep`, `nx_mem`, `nx_memR`). `finalWeights()` blends live + deep + regime memory. | This is the interface a promoted cloud model must feed — **weights, not logic**. |
-| **Outcome settlement** | `candleOutcome()` + `resolveSignal()` settle from confirmed candle closes (fast settle). Stats in `localStorage` (`nx_stats2`, `nx_hist`), capped at 200 rows, single-browser only. | **Key gap this integration fixes:** outcomes/accuracy are not durable, not multi-device, not queryable. |
-| **Market data** | Twelve Data `time_series` (1min candles), 10 rotating key slots, quota cooldown, budget throttling. Cache is per-page-load. | No server-side history — every reload re-fetches; no gap accounting. |
-| **Storage** | 100% browser `localStorage`. | No retention/backup story. |
+| **Browser app (`index.html`)** | Existing 26-strategy/6-agent signal engine, session/VIP/premium logic, paper state, local learning, settlement, UI, and safe Supabase mirror. | Contains no Twelve Data key, Telegram bot token, private chat destination, or service-role credential. Browser-visible Supabase anon key is public. Predictions/deliveries remain in the existing shared/anonymous schema, not per-user-owned. |
+| **Authenticated API relay (`server/src/api.js`)** | Supabase Auth bearer validation, exact-origin CORS, per-user rate limits, allowlisted market-data and Telegram operations, response filtering. | Binds on the server host; HTTPS terminates at the hosting proxy. All secrets read from server environment only. Telegram send/poll additionally requires an allowlisted Auth user UUID. |
+| **Provider/Telegram transport** | `server/src/twelvedata.js` rotates provider keys and redacts provider data; `server/src/telegram.js` sends/retries and resolves destinations. | Provider API keys, Telegram bot token and destination IDs never go to browser responses. Client receives only safe data and channel aliases. |
+| **Worker (`server/src/index.js`)** | Candle ingestion, backfill, outcome evaluation, risk snapshots, delivery retries, alerts, retention, settings sync. | Separate process/command from the HTTP relay. Worker retains its independent 700/day and 6/min budget. |
+| **Supabase** | Existing shared tables/views and operations; atomic worker and browser-relay credit reservations; anonymous Auth session validation. | Migration 0008 removes public grants on operational/admin tables and maintenance SECURITY DEFINER functions while retaining the documented shared read/insert paths. Hosted state is not verified from this checkout. |
+| **Trainer (`trainer/train.py`)** | Leakage-aware training, promotion gates, artifact integrity, rollback. | Uses service-role credentials from trainer host environment only. No background trainer was started. |
 
-**Integration risks identified**
-1. CSP must allow the Supabase project domain, or every cloud call fails silently.
-2. The public repo deploys to Pages — **no secret may ever reach `index.html`** (service-role key, bot token for retries, market-data keys must stay server-side).
-3. The app must keep working with **no Supabase configuration** (backward compatibility, public demo).
-4. Browser predictions must be recorded **idempotently** (page reloads, duplicate scans).
-5. The self-learning artifact must stay **compatible with `finalWeights()`** so promotion is a weight merge, never a logic swap.
+### Request flow
 
----
+```text
+Browser engine ── bearer Auth + exact Origin ──► NEXUS API relay
+                                                   ├─ reserve shared browser credit in Supabase
+                                                   ├─ Twelve Data (server-only API key)
+                                                   └─ Telegram Bot API (server-only token + destination)
 
-## 2. Target architecture
-
-```
-┌──────────────────────── browser (existing app, unchanged engine) ───────────────────────┐
-│  prediction engine (26 strats + agents)  →  emitSignal() ──┐                             │
-│  telegram send (existing tgCall)          →  tgSendTo() ──┤─► SB mirror (fetch/REST,     │
-│  local paper stats (unchanged)                                  │   anon key only, RLS-    │
-└─────────────────────────────────────────────────────────────────┘   guarded, optional)   │
-                                                                     │
-                                        https://<project>.supabase.co│
-┌─────────────────────────────────────────────────────────────────────▼──────────────────┐
-│  Supabase PostgreSQL — 10 spec tables + system_settings/job_locks/alert_log              │
-│  Supabase Storage (private bucket "models") — training artifacts + dataset snapshots     │
-│  RLS: anon = INSERT predictions/deliveries only; SELECT monitoring; service = full       │
-└───────────────▲─────────────────────────▲──────────────────────────▲────────────────────┘
-                │                         │                          │
-┌───────────────┴────────┐  ┌─────────────┴───────────┐  ┌───────────┴──────────────┐
-│ Node worker (server/)  │  │ Python trainer (trainer/)│  │ Dashboard panels        │
-│ • ingest candles       │  │ • scheduled training     │  │ (new CLOUD page + chips │
-│ • validate/dedupe/gaps │  │ • walk-forward + holdout │  │  on existing pages;     │
-│ • evaluate outcomes    │  │ • shadow-mode candidates │  │  read-only, polling)    │
-│ • risk snapshots       │  │ • gated promotion +      │  └─────────────────────────┘
-│ • telegram retries     │  │   rollback               │
-│ • alerts + retention   │  │ • artifacts → Storage    │
-└────────────────────────┘  └─────────────────────────┘
+Browser ── Supabase anon key ──► shared prediction inserts + public-safe views
+Relay ── service-role key ──► shared delivery records/retry queue (private payloads)
+Worker ── service-role key ──► ingest/evaluate/risk/retries/alerts/retention
 ```
 
-**Division of responsibility (principle: never move working logic)**
-- The **browser remains the source of live predictions**. It *mirrors* each signal and each Telegram delivery into Supabase (anon key, insert-only, RLS-guarded, dedup key).
-- The **Node worker** owns everything the browser cannot do reliably: server-side candle ingestion with gap/duplicate/stale detection, outcome evaluation from confirmed candles, rolling risk metrics, delivery retries, operational alerts, retention.
-- The **Python trainer** owns model training (never in the browser / DB triggers / edge functions): reproducible datasets from point-in-time features, chronological walk-forward + holdout, shadow-mode replay against recorded production outcomes, gated promotion with checksum-verified artifacts and rollback.
-- **Promoted models feed the existing engine as weights** — `model_versions.artifact_payload` (verified by `artifact_sha256`) maps onto the existing `deep[tf].strats[s].vwr/vtrades` interface consumed by `finalWeights()`. No logic swap, always reversible.
+The market-data/Telegram relay does not move or rewrite the browser’s signal engine. The browser still requires an open tab for its strategies, signals, and paper workflow; the worker handles separate cloud operations.
 
-## 3. Implementation plan (executed in this change set)
+## 2. API and credential rules
 
-| # | Step | Files |
-|---|---|---|
-| 1 | Architecture report (this file) | `docs/ARCHITECTURE.md` |
-| 2 | Versioned SQL migrations: 10 spec tables + support tables, FKs, checks, indexes, triggers, views, RLS, retention functions, seed pairs | `supabase/migrations/0001…0006` |
-| 3 | Node worker: config, db, ingestion, validation, features, outcome evaluator, risk monitor, telegram retry, alerts, scheduler with job locks | `server/**` |
-| 4 | Python trainer: dataset builder (leakage-safe), walk-forward validation, promotion gates, artifact + checksum, shadow/rollback CLIs | `trainer/**` |
-| 5 | Frontend: REST-only Supabase client (no CDN/library), prediction + delivery mirroring, CLOUD dashboard page, deployed-model apply, CSP update | `index.html` |
-| 6 | Security: credential guard extended for service-role patterns, `.gitignore` for env files | `tools/check-public.cjs`, `.gitignore` |
-| 7 | Tests: jsdom suite extensions + worker unit tests (`node --test`) + trainer unit tests (`unittest`) | `tests/smoke.cjs`, `server/test/*`, `trainer/test_trainer.py` |
-| 8 | Setup docs: end-to-end Supabase setup, env vars, migrations, deployment | `SUPABASE_SETUP.md`, `README.md`, `keys.example.js`, `server/.env.example`, `trainer/.env.example` |
+- Public health: `GET /api/v1/health` (safe booleans, key count, and configured browser budget only).
+- Authenticated routes: `GET /api/v1/session`, `GET /api/v1/usage`, `POST /api/v1/market`, and `POST /api/v1/telegram`.
+- Market operations are restricted to `time_series`, `quote`, `price`, `exchange_rate`, with per-operation parameter allowlists. API keys are added only server-side. Provider responses are scrubbed for key/token/secret fields.
+- `api_usage` is free and returns aliases (`Server key 1`, …) with usage numbers only.
+- Telegram accepts only `sendMessage`, `sendSticker`, `getUpdates`, and `setMyCommands`. Outbound sends resolve a channel alias on the server. Incoming updates are limited to configured chats and replace actual chat IDs with aliases before reaching the browser.
+- Every non-health API route validates a Supabase Auth bearer token and checks the exact request origin against `NEXUS_ALLOWED_ORIGINS`. Production deployment requires HTTPS and a host proxy. A browser-generated anonymous Auth session is not an ownership model; it only identifies/rate-limits relay requests.
+- Telegram operations additionally require the user UUID in `NEXUS_TELEGRAM_ADMIN_USER_IDS`. The allowlist and channel destinations are host settings, never browser input.
+- Request/response errors and logs are redacted. No token or API key is included in browser storage, output, errors, or public responses.
 
-**Backward compatibility contract:** with no Supabase URL/anon key configured, the app behaves exactly as v5.1 (all local features intact). All migrations are additive. No existing localStorage key changes meaning. No existing engine function is removed.
+### CORS and Auth setup
+
+Set `NEXUS_ALLOWED_ORIGINS` to exact origins only (e.g. `https://your-account.github.io`, with no repository path; never `*`). Enable Supabase anonymous sign-ins for the app’s session flow. The API process binds to `0.0.0.0:NEXUS_API_PORT` (default 8787); terminate TLS at the hosting proxy and forward to this process. Keep relay and worker as separate supervised services.
+
+## 3. Credit budgets
+
+Migration `0007_twelvedata_credit_budget.sql` retains the worker pool. Migration `0008_cloud_security_and_browser_budget.sql` adds the browser-relay pool and hardens SQL permissions.
+
+| Pool | Defaults | Uses | Persistence |
+|---|---:|---|---|
+| Worker | 700 paid requests / UTC day · 6/min | ingestion, backfill | atomic shared Supabase reservation |
+| Browser relay | 700 paid requests / UTC day · 7/min | scans, ticker, settlements | separate atomic shared Supabase reservation |
+
+The counters are per pool, shared across processes using that Supabase project, and not multiplied by configured key count. Both fail closed if Supabase reservation is unavailable. Worker ingestion uses at most 80% of its pool. Routine browser work stops at 80%, reserving the remainder for settlements, while the 700/day and 7/min caps are absolute. `api_usage` is a free request. The browser’s local counter remains a secondary UI guard only.
+
+## 4. Database access semantics
+
+This work intentionally preserves the current shared/anonymous database model:
+
+- `predictions` and `trade_outcomes` remain shared records under the existing policies; no `user_id` ownership or per-user row partitioning is introduced.
+- Anonymous/browser roles retain intended public reads, shared prediction inserts, and safe view reads. Delivery records and retryable payloads are written only by the authenticated server relay; anonymous delivery inserts and direct operational/admin table access are revoked by migration 0008.
+- The restricted delivery view exposes status/metadata only; raw chat destinations and payloads are not public. Retryable rows are marked server-managed and created by the authenticated relay only.
+- Worker tables and private credit budgets remain service-role-only.
+- `try_job_lock`, `release_job_lock`, pruning functions, and credit reservations are explicitly restricted to `service_role`.
+
+## 5. Validation and unverified deployment state
+
+Local code/tests can validate syntax, request validation, budget math, secret-scrubbing behavior, and public artifact checks. They cannot prove the hosted Supabase project has applied migrations or has correct Auth/CORS/Storage/proxy settings.
+
+At this update, no live Supabase migration ledger, real staging rows, storage bucket, Auth setting, or production API proxy has been verified. Migration 0008 is a file only until an operator applies and verifies it in a safe staging project. Do not claim staging or production is operational, do not apply production migrations, deploy, or start a continuous worker without explicit approval.

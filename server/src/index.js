@@ -11,15 +11,17 @@
 //   alerts        one alert-check pass
 //   housekeeping  prune logs/snapshots/candles (+ archive first when enabled)
 //   settings-sync write effective non-secret settings to system_settings
+//   api           run the authenticated browser relay (separate process)
 import './env.js';
 import { config, log } from './config.js';
 import { db } from './db.js';
-import { runIngest, backfillRecent } from './ingest.js';
+import { runIngest, backfillLocked } from './ingest.js';
 import { evaluateLocked } from './evaluate.js';
 import { riskLocked } from './risk.js';
 import { telegramLocked } from './telegram.js';
 import { runAlertChecks } from './alerts.js';
 import { housekeepingLocked } from './housekeeping.js';
+import { createNexusApiServer } from './api.js';
 
 /** Run a job, never let one failure kill the loop. */
 async function safe(name, fn) {
@@ -43,29 +45,44 @@ async function once() {
   await safe('settings-sync', settingsSync);
   await cycle();
   await safe('risk', riskLocked);
-  await safe('backfill', () => backfillRecent());
+  await safe('backfill', () => backfillLocked());
   await safe('housekeeping', housekeepingLocked);
 }
 
 async function loop() {
   log('info', `nexus worker ${config.workerId} starting — poll ${config.pollSeconds}s, ${config.twelveDataKeys.length} API key(s)`);
   await once();
-  let riskAt = 0, backfillAt = 0, housekeepAt = 0;
+  // `once()` already ran each maintenance task; schedule the next run relative
+  // to now instead of repeating backfill/housekeeping on the very first poll.
+  let riskAt = Date.now(), backfillAt = riskAt, housekeepAt = riskAt;
   const minute = 60_000;
   // istanbul ignore next
   setInterval(async () => {
     const now = Date.now();
     await cycle();
     if (now - riskAt > 5 * minute) { riskAt = now; await safe('risk', riskLocked); }
-    if (now - backfillAt > 6 * 60 * minute) { backfillAt = now; await safe('backfill', () => backfillRecent()); }
+    if (now - backfillAt > 6 * 60 * minute) { backfillAt = now; await safe('backfill', () => backfillLocked()); }
     if (now - housekeepAt > 24 * 60 * minute) { housekeepAt = now; await safe('housekeeping', housekeepingLocked); }
   }, config.pollSeconds * 1000).unref();
   // keep the process alive (setInterval is unref'd for clean testability)
   setInterval(() => {}, 1 << 30);
 }
 
+/** Run the HTTP relay separately from the scheduled worker. */
+function apiServer() {
+  const server = createNexusApiServer();
+  return new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(config.apiPort, '0.0.0.0', () => {
+      log('info', `nexus API relay listening on 0.0.0.0:${config.apiPort}`);
+    });
+    server.once('close', resolve);
+  });
+}
+
 /** Write effective NON-SECRET settings to system_settings (dashboard-visible). */
 async function settingsSync() {
+  const DBC = await db();
   const rows = [
     ['evaluation.horizon_candles', config.evaluationHorizon],
     ['evaluation.grace_seconds', config.evaluationGraceSeconds],
@@ -78,6 +95,9 @@ async function settingsSync() {
     ['alerts.failed_deliveries', config.alerts.failedDeliveries],
     ['retention.candles_days', config.retentionDays],
     ['worker.poll_seconds', config.pollSeconds],
+    ['worker.ingest_min_interval_seconds', config.ingestMinIntervalSeconds],
+    ['worker.twelvedata_daily_credit_limit', config.twelveDataDailyCreditLimit],
+    ['worker.twelvedata_per_minute_limit', config.twelveDataMinuteCreditLimit],
     ['worker.archive_before_prune', config.archiveBeforePrune],
   ].map(([key, value]) => ({ key, value, updated_by: 'worker' }));
   const { error } = await DBC.from('system_settings').upsert(rows, { onConflict: 'key' });
@@ -89,13 +109,14 @@ const command = process.argv[2] || 'loop';
 const commands = {
   loop, once,
   ingest: () => runIngest('live'),
-  backfill: () => backfillRecent(),
+  backfill: () => backfillLocked(),
   evaluate: () => evaluateLocked(),
   risk: () => riskLocked(),
   telegram: () => telegramLocked(),
   alerts: () => runAlertChecks(),
   housekeeping: () => housekeepingLocked(),
   'settings-sync': settingsSync,
+  api: apiServer,
 };
 
 if (!commands[command]) {

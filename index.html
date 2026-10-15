@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="NEXUS Glass v5.2 Meridian — multi-pair, multi-agent M1 + M3 signal engine with 4 Telegram channels (PUBLIC 1-min stream · VIP 10-min shots · LIST · MAIN), bot-configured message formats, per-event sticker bank, revision-safe confirmed settlement, quality-first signals, paper trading and deep backtesting. Signal-only; no live execution.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.twelvedata.com https://api.telegram.org https://*.supabase.co; img-src data: https:; font-src 'self'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; img-src data: https:; font-src 'self'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
 <title>NEXUS Glass v5.2 — Meridian · Multi-Pair Signal & Channel Engine</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2300e5ff'/><stop offset='.55' stop-color='%233d7bff'/><stop offset='1' stop-color='%23a06bff'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='%23070c18'/><g stroke='url(%23g)' stroke-width='5' stroke-linecap='round'><path d='M26 72V52'/><path d='M46 72V40'/><path d='M66 72V30'/></g><g fill='url(%23g)'><rect x='20' y='55' width='12' height='13' rx='3'/><rect x='40' y='44' width='12' height='20' rx='3'/><rect x='60' y='34' width='12' height='26' rx='3'/></g><path d='M22 44 L42 32 L58 38 L80 16' fill='none' stroke='%23ffffff' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/><path d='M70 16 H80 V26' fill='none' stroke='%23ffffff' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 <style>
@@ -552,7 +552,7 @@
     <div class="glass batch" id="sec-vip">
       <div class="batch-head">
         <div class="nm">💎 NEXUS VIP SHOTS</div>
-        <div class="mini" id="vipChatLine">VIP channel: not set (falls back to MAIN) — set it on the TELEGRAM page</div>
+        <div class="mini" id="vipChatLine">VIP channel: server-configured, falling back to MAIN when unset</div>
       </div>
       <span class="t" style="margin-top:10px"><span class="num">1</span> VIP ENGINE <span class="tail"><span class="chip" id="vipChip">off</span></span></span>
       <div class="mini" style="text-align:left;line-height:1.55">One <b>best-available shot every 10 minutes</b>: every pair is scanned, the highest-scoring setup wins the window and is posted to the <b>VIP channel</b> seconds before the candle opens. The grade is always shown honestly (A+/A/B). Verdicts settle automatically from the confirmed candle close.</div>
@@ -621,24 +621,16 @@
       <span class="t"><span class="num">📨</span> TELEGRAM DELIVERY <span class="tail"><span class="chip" id="tgStatChip">bot: not configured</span></span></span>
 
       <div class="tg-block">
-        <div class="tg-h"><span class="num">1</span> CONNECTION &amp; 4 CHANNELS</div>
-        <input type="password" id="tgToken" placeholder="Bot token (from @BotFather)" autocomplete="off">
+        <div class="tg-h"><span class="num">1</span> SERVER CONNECTION &amp; 4 CHANNELS</div>
+        <div class="mini" id="tgServerCfg" style="margin-top:8px;text-align:left">Telegram bot token and channel destinations are server-only environment settings. Connect on the CLOUD page.</div>
         <input type="text" id="tgBrand" placeholder="Brand name (NEXUS)" autocomplete="off" style="margin-top:8px">
-        <div class="mini" style="margin-top:8px;text-align:left">MAIN — session show + bot stream + replies:</div>
-        <input type="text" id="tgChat" placeholder="MAIN: @yourchannel or chat id" autocomplete="off" style="margin:4px 0 0 0">
-        <div class="mini" style="margin-top:8px;text-align:left">PUBLIC — normal 1-min signals (quality only) + announcements:</div>
-        <input type="text" id="pubChat" placeholder="PUBLIC: @yourpublicchannel" autocomplete="off" style="margin:4px 0 0 0">
-        <div class="mini" style="margin-top:8px;text-align:left">VIP — one high-grade shot every 10 min:</div>
-        <input type="text" id="vipChat" placeholder="VIP: @yourvipchannel" autocomplete="off" style="margin:4px 0 0 0">
-        <div class="mini" style="margin-top:8px;text-align:left">LIST — premium lists + results:</div>
-        <input type="text" id="listChat" placeholder="LIST: @yourlistchannel (empty = MAIN)" autocomplete="off" style="margin:4px 0 0 0">
-        <button class="b-gen" style="width:100%;margin-top:10px" onclick="tgSaveSettings()">💾 SAVE TELEGRAM SETTINGS (one click)</button>
+        <button class="b-gen" style="width:100%;margin-top:10px" onclick="tgSaveSettings()">💾 SAVE DISPLAY SETTINGS</button>
         <div class="toggle" style="margin-top:8px;margin-bottom:0">
-          <span>🔐 AUTHORIZED TO SEND <span class="mini">(required for every Telegram message)</span></span>
+          <span>🔐 AUTHORIZE THIS SESSION TO SEND <span class="mini">(requires server admin allowlist)</span></span>
           <label class="switch"><input type="checkbox" id="tgAuth"><span class="slider"></span></label>
         </div>
-        <div class="mini" id="tgVault" style="margin-top:8px;text-align:left">🔐 token: none — paste here, or set window.NEXUS_TG_TOKEN in keys.js (private)</div>
-        <div class="mini" style="margin-top:4px;text-align:left">Changing the <b>token</b> or <b>MAIN chat</b> revokes authorization — re-enable it to resume. Empty PUBLIC / VIP / LIST fall back to MAIN. Add the bot as <b>admin</b> in every channel.</div>
+        <div class="mini" id="tgVault" style="margin-top:8px;text-align:left">🔐 token and chat IDs are never stored in this browser.</div>
+        <div class="mini" style="margin-top:4px;text-align:left">Set <b>TELEGRAM_BOT_TOKEN</b> and chat IDs in <b>server/.env</b>, and allow this Supabase Auth user UUID with <b>NEXUS_TELEGRAM_ADMIN_USER_IDS</b>. Empty PUBLIC / VIP / LIST destinations fall back to MAIN. Add the bot as <b>admin</b> in every channel.</div>
       </div>
 
       <div class="tg-block">
@@ -846,28 +838,36 @@
   <div class="page" id="page-data">
 
     <div class="glass" id="sec-keys">
-      <span class="t"><span class="num">1</span> TWELVE DATA KEYS — 10 SLOTS <span class="tail">
-        <button class="b-ghost" id="keyShow" type="button" style="padding:3px 9px;font-size:10px">👁 SHOW</button></span></span>
-      <div class="kslots" id="keySlots"></div>
-      <button class="b-gen" style="width:100%;margin-top:10px" onclick="saveKeys()">💾 SAVE ALL KEYS (one click · browser only)</button>
+      <span class="t"><span class="num">1</span> TWELVE DATA — SERVER-SIDE RELAY <span class="tail"><span class="chip warn" id="relayChip">relay: not connected</span></span></span>
+      <div class="mini" id="vaultInfo" style="margin-top:8px;text-align:left">Provider keys are held by the server only. Configure the API relay and Supabase public anon key on the CLOUD page, then connect.</div>
       <div class="mini" id="vaultMsg" role="status" style="margin-top:6px"></div>
-      <div class="mini" id="vaultInfo" style="margin-top:8px;text-align:left">🔐 loading key vault…</div>
-      <div class="mini" style="text-align:left">Keys rotate automatically; a key that hits its quota cools down for 60s and the next slot takes over. More keys = faster live refresh + more pairs. Saved keys live <b>only in this browser</b> (localStorage) and are <b>never committed or uploaded</b>. Optional permanent sources: <b>PERMANENT_KEYS</b> at the top of the script or the private, gitignored <b>keys.js</b>. Free key at <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener">twelvedata.com</a></div>
+      <div class="mini" style="text-align:left">This browser never receives Twelve Data keys. Paid requests go through the authenticated server relay, which rotates server keys and enforces the shared daily and per-minute budget. Get provider access from <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener">Twelve Data</a>; set credentials only in <b>server/.env</b> on the host.</div>
     </div>
 
     <!-- API CREDIT USAGE — live per-key spend; checking costs 0 credits -->
     <div class="glass" id="sec-usage">
       <span class="t"><span class="num">2</span> API CREDIT USAGE <span class="tail">
         <button class="b-ghost" type="button" style="padding:3px 9px;font-size:10px" onclick="apiUsageCheck()">🔎 CHECK NOW (free)</button></span></span>
-      <div class="usage-sum" id="usageSum">press CHECK NOW — reads each key's real credit spend from Twelve Data (0 credits)</div>
+      <div class="usage-sum" id="usageSum">press CHECK NOW — the server returns masked provider-key aliases and live usage (api_usage costs 0 credits)</div>
       <div id="usageRows"><div class="mini" style="text-align:center;padding:8px">No usage data yet — press CHECK NOW.</div></div>
       <div class="feed4" style="margin-top:8px">
-        <div class="f4">this session <span style="opacity:.7">(all keys)</span><b id="u_sess">0</b></div>
+        <div class="f4">this session <span style="opacity:.7">(relay)</span><b id="u_sess">0</b></div>
         <div class="f4">today · tracked<b id="u_day">0</b></div>
         <div class="f4">per-minute cap<b id="u_min">0</b></div>
-        <div class="f4">keys active<b id="u_keys">0</b></div>
+        <div class="f4">server keys configured<b id="u_keys">0</b></div>
       </div>
-      <div class="mini" style="text-align:left">The meter above counts every call NEXUS makes. CHECK reads the real per-key spend from the <b>api_usage</b> endpoint (costs 0 credits). Free keys reset daily at <b>00:00 UTC</b>.</div>
+      <div class="two" style="margin-top:10px">
+        <div><span class="mini" style="display:block;text-align:left">DAILY HARD CAP · PAID CALLS / UTC DAY</span>
+          <input type="number" id="creditDailyLimit" min="0" max="100000" step="50" inputmode="numeric" aria-label="Daily Twelve Data credit cap"></div>
+        <div><span class="mini" style="display:block;text-align:left">MAX PAID CALLS / MINUTE</span>
+          <input type="number" id="creditMinuteLimit" min="0" max="1000" step="1" inputmode="numeric" aria-label="Per-minute Twelve Data request cap"></div>
+      </div>
+      <div class="two" style="margin-top:8px">
+        <button class="b-gen" id="saveCreditLimits" style="padding:9px" onclick="saveCreditLimits()">💾 SAVE CREDIT LIMITS</button>
+        <button class="b-ghost" style="padding:9px" onclick="resetCreditLimits()">↺ SAFE DEFAULTS</button>
+      </div>
+      <div class="mini" id="creditLimitMsg" style="margin-top:6px;text-align:left">Loading local credit limits…</div>
+      <div class="mini" style="text-align:left">The meter above is a local secondary guard. CHECK asks the server to read each provider account's <b>api_usage</b> endpoint (0 credits); aliases are masked. The authoritative shared browser-relay guard defaults to <b>700 paid calls/day + 7/min</b>, not multiplied by key count. At 60% scans slow; at 80% routine scans stop and the reserve is for settlements; at 100% all browser-relay paid calls stop until UTC midnight. The worker keeps its separate <b>700/day + 6/min</b> limit.</div>
     </div>
 
     <div class="glass" id="sec-feeds">
@@ -887,7 +887,7 @@
     <div class="glass" id="sec-pub">
       <span class="t"><span class="num">4</span> COMMUNITY ANNOUNCEMENTS — PUBLIC CHANNEL</span>
       <div class="chips"><span class="chip warn">🛡 privacy filter ON — tokens, keys, ids &amp; emails are stripped before posting</span></div>
-      <div class="mini" style="text-align:left">Channel is set on the <b>TELEGRAM page → block 1 (PUBLIC chat)</b>. Auto-posts carry <b>aggregate stats only</b> — never keys, tokens, private chats or balances.</div>
+      <div class="mini" style="text-align:left">The PUBLIC destination is configured in the server host environment and shown on the TELEGRAM page. Auto-posts carry <b>aggregate stats only</b> — never keys, tokens, private chat IDs or balances.</div>
       <textarea id="pubMsg" rows="3" placeholder="Announcement: new features, news, reminders for your community…" style="width:100%;background:rgba(5,10,20,.55);color:var(--txt);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:10px;font-size:13px;margin-top:8px;outline:none;resize:vertical"></textarea>
       <button class="b-gen" style="width:100%;margin-top:8px" onclick="pubPost()">📢 POST TO PUBLIC CHANNEL</button>
       <div class="toggle" style="margin-top:8px;margin-bottom:0">
@@ -904,28 +904,32 @@
     <div class="glass" id="sec-sbcfg">
       <span class="t"><span class="num">1</span> CLOUD SYNC — SUPABASE <span class="tail"><span class="chip" id="sbChip">☁ OFFLINE</span></span></span>
       <div class="chips" style="margin-top:6px">
-        <span class="chip">mirror only — the live engine stays in this browser</span>
-        <span class="chip warn">anon key only — the service key never touches this page</span>
+        <span class="chip">shared cloud mirror — prediction ownership is unchanged</span>
+        <span class="chip warn">browser uses the public anon key only; service key stays server-side</span>
       </div>
       <div class="two" style="margin-top:10px">
-        <div><span class="mini" style="display:block;text-align:left">☁ PROJECT URL</span>
-          <input type="text" id="sbUrl" placeholder="https://yourproject.supabase.co" autocomplete="off" spellcheck="false"></div>
-        <div><span class="mini" style="display:block;text-align:left">🔑 ANON PUBLIC KEY</span>
-          <input type="password" id="sbAnon" placeholder="anon key (never the service-role key)" autocomplete="off" spellcheck="false"></div>
+        <div><span class="mini" style="display:block;text-align:left">🔒 NEXUS API RELAY URL (PUBLIC ADDRESS)</span>
+          <input type="url" id="nexusApiUrl" placeholder="https://your-nexus-api.example.com" autocomplete="url" spellcheck="false"></div>
+        <div><span class="mini" style="display:block;text-align:left">☁ SUPABASE PROJECT URL</span>
+          <input type="url" id="sbUrl" placeholder="https://yourproject.supabase.co" autocomplete="url" spellcheck="false"></div>
       </div>
+      <div style="margin-top:8px"><span class="mini" style="display:block;text-align:left">🔑 SUPABASE ANON PUBLIC KEY — not the service-role key</span>
+        <input type="password" id="sbAnon" placeholder="anon public key" autocomplete="off" spellcheck="false"></div>
       <div class="two" style="margin-top:8px">
         <button class="b-gen" style="padding:10px" onclick="sbSave()">💾 SAVE &amp; CONNECT</button>
         <button class="b-ghost" style="padding:10px" onclick="sbTest()">🔎 TEST CONNECTION</button>
       </div>
+      <div class="mini" id="apiRelayMsg" style="margin-top:6px;text-align:left">The relay is HTTPS-only in production. Anonymous sign-in must be enabled in Supabase Auth; the API uses the resulting session for per-user rate limits.</div>
+      <div class="mini" id="apiSessionInfo" style="margin-top:4px;text-align:left">No authenticated relay session yet.</div>
       <div style="display:flex;gap:8px;margin-top:8px">
         <button class="b-ghost" style="flex:1" onclick="sbClear()">🧹 CLEAR CLOUD CONFIG</button>
       </div>
       <div class="toggle" style="margin-top:8px;margin-bottom:0">
-        <span>📡 record predictions + delivery results <span class="mini">(insert-only — the cloud can never edit this engine)</span></span>
+        <span>📡 record predictions <span class="mini">(shared insert-only mirror; delivery audit/retries are server-managed)</span></span>
         <label class="switch"><input type="checkbox" id="sbRecord"><span class="slider"></span></label>
       </div>
-      <div class="mini" id="sbMsg" style="margin-top:6px;text-align:left">Cloud sync is optional — with no config, NEXUS runs exactly as before (fully offline, nothing leaves this browser).</div>
-      <div class="mini" style="text-align:left">The browser mirrors signals to your Supabase project with the <b>anon key</b> (read + insert-only, enforced by row-level security). Ingestion, outcome evaluation, retries, alerts and model training run in your <b>server worker</b> — see <b>SUPABASE_SETUP.md</b>. Keys live in this browser (localStorage <b>nx_sb</b>) or the gitignored <b>keys.js</b> — never in the repo.</div>
+      <div class="mini" id="sbMsg" style="margin-top:6px;text-align:left">Set the public relay address and Supabase project config to connect. Without a configured relay, paid market data and Telegram remain unavailable; local strategy and paper state are preserved.</div>
+      <div class="mini" style="text-align:left">The browser mirrors shared signals with the <b>Supabase anon key</b> under the existing shared/anonymous schema. Twelve Data and Telegram calls use the authenticated <b>server relay</b>; provider keys, the bot token, chat destinations and service-role key stay in the host environment. Delivery payloads/retryable attempts are written by the relay and only safe status metadata is public. Anonymous Auth provides a short-lived user session for API rate limits and the Telegram admin allowlist; it does not make prediction or delivery rows user-owned. See <b>SUPABASE_SETUP.md</b> and <b>server/README.md</b>.</div>
     </div>
 
     <div class="glass" id="sec-sbmodel">
@@ -988,7 +992,6 @@
 </div>
 <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
 
-<script src="keys.js"></script>
 <script>
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════
@@ -996,32 +999,11 @@ NEXUS Glass v5.2 · MERIDIAN — multi-pair · M1+M3 · 4 channels
 (PUBLIC 1-min stream · VIP 10-min shots · LIST · MAIN) · bot-configured
 formats · per-event sticker bank · revision-safe confirmed settlement (ties =
 push) · quality-first signals · deep training · paper-first.
-🔑 PERMANENT API KEYS — optional; the normal path is the 10 key slots
-   in the UI (one-click save to this browser's localStorage — never
-   committed, never uploaded).
-   1) IN-FILE: paste one or more Twelve Data keys between the quotes.
-   2) PRIVATE FILE: create keys.js (gitignored) with
-      window.NEXUS_KEYS = ["your_key"]; — safer while this repo is PUBLIC.
-   All sources merge into one pool: keys rotate automatically and spread
-   the rate limit; a key that hits its quota cools down (60s) and the
-   next one takes over.
-   ⚠ SECURITY: this repository is PUBLIC — any key written into this
-   file (or keys.js that gets committed) is visible to the world and
-   WILL be stolen/abused. Prefer the browser slots, make the repo
-   private, or keep keys only in keys.js (gitignored).
-   ═══════════════════════════════════════════════════════════════════ */
-const PERMANENT_KEYS=[
-  "", /* key 1 — paste here */
-  "", /* key 2 — optional */
-  "", /* key 3 — optional */
-  "", /* key 4 — optional */
-  "", /* key 5 — optional */
-  "", /* key 6 — optional */
-  "", /* key 7 — optional */
-  "", /* key 8 — optional */
-  "", /* key 9 — optional */
-  "", /* key 10 — optional */
-];
+Provider credentials and Telegram secrets are server-only. Browser requests
+use the authenticated relay configured on the CLOUD page; public Supabase
+anon credentials may be entered there for the intentionally shared schema.
+The strategies, signals, paper state, and credit guards remain in this app.
+═══════════════════════════════════════════════════════════════════ */
 
 const $=id=>document.getElementById(id), pad=n=>String(n).padStart(2,'0');
 /* ---------- multi-pair watchlist (Ten liquid retail FX pairs) ---------- */
@@ -1047,6 +1029,116 @@ const store={ get:k=>{try{return localStorage.getItem(k);}catch(e){return null;}
 function loadJSON(k,fb){ const v=store.get(k); if(v==null) return fb;
   try{ return JSON.parse(v); }catch(e){ return fb; } }
 const dayKeyNow=()=>new Date().toISOString().slice(0,10);
+
+/* Authenticated relay client. Provider and Telegram secrets never enter this page. */
+const NEXUS_SESSION_KEY='nx_relay_session';
+let nexusApiEndpoint=String((loadJSON('nx_sb',null)||{}).api||'');
+let nexusApiSession=null, nexusSessionInfo=null, nexusRelayHealth=null, nexusSessionPromise=null;
+function nexusApiBase(){ return String(nexusApiEndpoint||'').trim().replace(/\/+$/,''); }
+function validNexusApiBase(value){
+  try{ const u=new URL(value), local=u.hostname==='localhost'||u.hostname==='127.0.0.1';
+    return (u.protocol==='https:'||(u.protocol==='http:'&&local))&&u.pathname==='/'&&!u.username&&!u.password&&!u.search&&!u.hash; }
+  catch(_){ return false; }
+}
+function nexusSessionStorageGet(){ try{ return JSON.parse(sessionStorage.getItem(NEXUS_SESSION_KEY)||'null'); }catch(_){ return null; } }
+function nexusSessionStorageSet(session){ try{ sessionStorage.setItem(NEXUS_SESSION_KEY,JSON.stringify(session)); }catch(_){} }
+function nexusSessionStorageClear(){ try{ sessionStorage.removeItem(NEXUS_SESSION_KEY); }catch(_){} nexusApiSession=null; nexusSessionInfo=null; }
+function nexusApiConfigured(){ return validNexusApiBase(nexusApiBase())&&typeof sbReady==='function'&&sbReady(); }
+async function authJson(path,body){
+  const r=await fetch(sbUrl()+path,{method:'POST',headers:{apikey:sbAnon(),'content-type':'application/json'},body:JSON.stringify(body||{})});
+  let j={}; try{ j=await r.json(); }catch(_){}
+  return {ok:r.ok,status:r.status,data:j};
+}
+async function ensureNexusSession(){
+  if(nexusSessionPromise) return nexusSessionPromise;
+  nexusSessionPromise=(async()=>{
+    if(!validNexusApiBase(nexusApiBase())) throw new Error('Set a valid HTTPS NEXUS API relay URL on the CLOUD page.');
+    if(!sbReady()) throw new Error('Set the Supabase project URL and public anon key on the CLOUD page.');
+    let session=nexusApiSession||nexusSessionStorageGet();
+    if(session&&session.access_token&&Number(session.expires_at)>Date.now()+30_000&&nexusSessionInfo){
+      nexusApiSession=session;
+      return session.access_token;
+    }
+    if(session&&session.access_token&&Number(session.expires_at)>Date.now()+30_000){ nexusApiSession=session; }
+    else if(session&&session.refresh_token){
+      const refreshed=await authJson('/auth/v1/token?grant_type=refresh_token',{refresh_token:session.refresh_token});
+      session=refreshed.ok?refreshed.data:null;
+      if(!session||!session.access_token){ nexusSessionStorageClear(); session=null; }
+    }
+    if(!session||!session.access_token){
+      const created=await authJson('/auth/v1/signup',{});
+      session=created.ok?created.data:null;
+      if(!session||!session.access_token) throw new Error('Supabase anonymous sign-in failed. Verify the project URL/anon key and enable anonymous sign-ins in Supabase Auth.');
+    }
+    session.expires_at=Date.now()+Math.max(60,Number(session.expires_in)||3600)*1000;
+    nexusApiSession=session; nexusSessionStorageSet(session);
+    const r=await fetch(nexusApiBase()+'/api/v1/session',{headers:{authorization:'Bearer '+session.access_token}});
+    let info={}; try{ info=await r.json(); }catch(_){}
+    if(!r.ok) throw new Error(String(info.error||'NEXUS relay session check failed').slice(0,180));
+    nexusSessionInfo=info;
+    const infoEl=$('apiSessionInfo');
+    if(infoEl) infoEl.textContent='Authenticated Supabase session: '+String(info.userId||'').slice(0,8)+'…'+(info.telegramAdmin?' · Telegram admin authorized':' · Telegram admin allowlist not configured for this session');
+    updateTelegramServerStatus(); tgRender();
+    return session.access_token;
+  })();
+  try{ return await nexusSessionPromise; }
+  finally{ nexusSessionPromise=null; }
+}
+async function nexusApiRequest(path,options){
+  options=options||{};
+  if(path==='/api/v1/session'&&nexusSessionInfo&&nexusApiSession&&Number(nexusApiSession.expires_at)>Date.now()+30_000) return nexusSessionInfo;
+  const token=await ensureNexusSession();
+  if(path==='/api/v1/session'&&nexusSessionInfo) return nexusSessionInfo;
+  const headers=Object.assign({'authorization':'Bearer '+token},options.headers||{});
+  if(options.body!=null&&!headers['content-type']) headers['content-type']='application/json';
+  const r=await fetch(nexusApiBase()+path,Object.assign({},options,{headers,body:options.body==null?undefined:(typeof options.body==='string'?options.body:JSON.stringify(options.body))}));
+  let data={}; try{ data=await r.json(); }catch(_){}
+  if(!r.ok) throw new Error(String(data.error||('NEXUS relay HTTP '+r.status)).slice(0,220));
+  return data;
+}
+async function checkNexusRelay(){
+  const chip=$('relayChip'), info=$('vaultInfo'), status=$('apiRelayMsg');
+  if(!validNexusApiBase(nexusApiBase())){
+    nexusRelayHealth=null;
+    if(chip){chip.textContent='relay: not configured';chip.className='chip warn';}
+    if(info) info.textContent='Provider keys are held by the server only. Add the API relay URL and Supabase public anon key on the CLOUD page, then connect.';
+    return null;
+  }
+  try{
+    const r=await fetch(nexusApiBase()+'/api/v1/health');
+    const data=await r.json();
+    if(!r.ok||!data.ok) throw new Error('HTTP '+r.status);
+    nexusRelayHealth=data;
+    if(chip){chip.textContent=data.provider&&data.provider.configured?'relay: connected':'relay: provider not configured';chip.className='chip '+(data.provider&&data.provider.configured?'ok':'warn');}
+    if(info) info.textContent='Server relay connected · provider '+(data.provider&&data.provider.configured?'configured':'not configured')+' · server keys '+String(data.provider&&data.provider.keyCount||0)+' · browser cap '+String(data.browserBudget&&data.browserBudget.dailyLimit||0)+'/day, '+String(data.browserBudget&&data.browserBudget.perMinuteLimit||0)+'/min. Credentials remain server-only.';
+    if(status) status.textContent='Relay health check succeeded. Supabase authentication is required for market-data and Telegram operations.';
+    updateTelegramServerStatus(); renderBudget(true); renderUsageMeter();
+    return data;
+  }catch(e){
+    nexusRelayHealth=null;
+    if(chip){chip.textContent='relay: unreachable';chip.className='chip warn';}
+    if(info) info.textContent='Relay connection failed: '+String(e.message||e).slice(0,120);
+    if(status) status.textContent='Relay health check failed. Check the API URL, HTTPS, and server CORS allowlist.';
+    updateTelegramServerStatus();
+    return null;
+  }
+}
+async function connectNexus(){
+  const status=$('apiRelayMsg');
+  if(status) status.textContent='Connecting to the NEXUS relay and creating/restoring an anonymous Supabase Auth session…';
+  try{
+    await checkNexusRelay();
+    const info=await nexusApiRequest('/api/v1/session');
+    nexusSessionInfo=info;
+    updateTelegramServerStatus();
+    if(status) status.textContent='✅ Relay session connected. The displayed user UUID is needed only if enabling Telegram administration.';
+    renderVault(); tgRender(); renderUsage();
+    return true;
+  }catch(e){
+    if(status) status.textContent='❌ '+String(e.message||e).slice(0,200);
+    return false;
+  }
+}
 
 /* ---------- persisted stats + memory + streak (per timeframe, pushes tracked) ---------- */
 function emptyMem(){ const m={}; for(const s in FAM) m[s]={w:0,l:0}; return m; }
@@ -1263,26 +1355,94 @@ function renderPerf(){ /* win rate, EV after costs, drawdown, attribution */
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   CREDIT BUDGET — Twelve Data free keys: ~8 calls/min, ~800/day.
-   The engine throttles itself so multi-pair live refresh never dies
-   into 429s; more keys = faster refresh.
+   CREDIT BUDGET — configurable local guard plus the shared server budget.
+   Provider key count never changes the authoritative server cap.
+   20% of the daily cap is reserved for pending settlements.
    ═══════════════════════════════════════════════════════════════════ */
+const DEFAULT_CREDIT_LIMITS={daily:700,minute:7};
+function readCreditLimits(){
+  const raw=loadJSON('nx_credit_limits',null)||{};
+  const n=(v,def,max)=>Number.isFinite(+v)?Math.min(max,Math.max(0,Math.floor(+v))):def;
+  return {daily:n(raw.daily,DEFAULT_CREDIT_LIMITS.daily,100000),
+    minute:n(raw.minute,DEFAULT_CREDIT_LIMITS.minute,1000)};
+}
+let creditLimits=readCreditLimits();
 let budget=loadJSON('nx_budget',null);
 if(!budget||typeof budget!=='object') budget={day:'',calls:0,min:[]};
 if(!Array.isArray(budget.min)) budget.min=[];
+if(!Number.isFinite(+budget.calls)||+budget.calls<0) budget.calls=0;
+let budgetBlockReason='';
 function budgetRoll(){
   const k=dayKeyNow();
-  if(budget.day!==k){ budget.day=k; budget.calls=0; budget.min=[]; }
+  if(budget.day!==k){ budget.day=k; budget.calls=0; budget.min=[]; store.set('nx_budget',JSON.stringify(budget)); }
   const now=Date.now(); budget.min=budget.min.filter(t=>now-t<60000);
 }
-function budgetNote(){ budgetRoll(); budget.calls++; budget.min.push(Date.now());
-  if(budget.calls%5===0) store.set('nx_budget',JSON.stringify(budget)); }
-function perMinCap(){ return Math.max(6,7*(keyPool().length||1)); }
-function perDayCap(){ return Math.max(700,760*(keyPool().length||1)); }
-function budgetLevel(){ budgetRoll(); const d=budget.calls/perDayCap();
-  return d>=1?3:d>=0.8?2:d>=0.6?1:0; }
-function budgetScanStep(){ const lvl=budgetLevel(); return lvl>=3?0:lvl===2?5:lvl===1?2:1; }
-function budgetAllows(){ budgetRoll(); return budget.min.length<perMinCap(); }
+function serverBudgetLimit(name,fallback){
+  const value=nexusRelayHealth&&nexusRelayHealth.browserBudget&&Number(nexusRelayHealth.browserBudget[name]);
+  return Number.isFinite(value)&&value>=0?Math.floor(value):fallback;
+}
+function perMinCap(){ return Math.min(creditLimits.minute,serverBudgetLimit('perMinuteLimit',DEFAULT_CREDIT_LIMITS.minute)); }
+function perDayCap(){ return Math.min(creditLimits.daily,serverBudgetLimit('dailyLimit',DEFAULT_CREDIT_LIMITS.daily)); }
+function settlementReserveStart(){ return Math.max(1,Math.floor(perDayCap()*0.8)); }
+function budgetLevel(){
+  budgetRoll();
+  if(perDayCap()===0||budget.calls>=perDayCap()) return 3;
+  const d=budget.calls/perDayCap();
+  return budget.calls>=settlementReserveStart()?2:d>=0.6?1:0;
+}
+function budgetScanStep(){ const lvl=budgetLevel(); return lvl>=2?0:lvl===1?2:1; }
+function budgetCheck(category){
+  budgetRoll(); category=category||'scan';
+  if(perDayCap()===0||budget.calls>=perDayCap()) return {ok:false,reason:'daily-cap'};
+  if(category!=='settlement'&&budget.calls>=settlementReserveStart()) return {ok:false,reason:'settlement-reserve'};
+  if(category==='ticker'){
+    const scanReserve=Math.min(perMinCap(),Math.max(1,watch().length*(($('m5conf')&&$('m5conf').checked)?2:1)));
+    if(budget.min.length>=perMinCap()-scanReserve) return {ok:false,reason:'scan-reserve'};
+  }
+  if(perMinCap()===0||budget.min.length>=perMinCap()) return {ok:false,reason:'minute-cap'};
+  return {ok:true,reason:''};
+}
+function budgetAllows(category){ return budgetCheck(category).ok; }
+function budgetReserve(category){
+  const check=budgetCheck(category);
+  if(!check.ok){ budgetBlockReason=check.reason; renderBudget(true); return false; }
+  const now=Date.now(); budget.calls++; budget.min.push(now);
+  budgetBlockReason='';
+  /* Persist every reservation: a reload must not refund already-started requests. */
+  store.set('nx_budget',JSON.stringify(budget));
+  renderUsageMeter(); renderBudget(true);
+  return true;
+}
+function syncCreditLimitInputs(){
+  const daily=$('creditDailyLimit'), minute=$('creditMinuteLimit');
+  if(daily) daily.value=String(creditLimits.daily);
+  if(minute) minute.value=String(creditLimits.minute);
+}
+function saveCreditLimits(){
+  const daily=Number($('creditDailyLimit')&&$('creditDailyLimit').value);
+  const minute=Number($('creditMinuteLimit')&&$('creditMinuteLimit').value);
+  const msg=$('creditLimitMsg');
+  if(!Number.isInteger(daily)||daily<0||daily>100000||!Number.isInteger(minute)||minute<0||minute>1000){
+    if(msg) msg.textContent='⚠ Enter whole numbers: daily 0–100,000; per-minute 0–1,000. Zero pauses that request class.';
+    return false;
+  }
+  creditLimits={daily,minute};
+  store.set('nx_credit_limits',JSON.stringify(creditLimits));
+  budgetWarnedLvl=-1;
+  syncCreditLimitInputs();
+  if(msg) msg.textContent='✅ Saved for this browser: '+daily+' paid calls per UTC day, '+minute+' per minute. Current tracked spend: '+budget.calls+'.';
+  renderUsageMeter(); renderBudget(true);
+  return true;
+}
+function resetCreditLimits(){
+  creditLimits=Object.assign({},DEFAULT_CREDIT_LIMITS);
+  store.set('nx_credit_limits',JSON.stringify(creditLimits));
+  syncCreditLimitInputs();
+  const msg=$('creditLimitMsg');
+  if(msg) msg.textContent='✅ Safe defaults restored: '+creditLimits.daily+' paid calls/day and '+creditLimits.minute+' per minute. Current tracked spend: '+budget.calls+'.';
+  renderUsageMeter(); renderBudget(true);
+  return true;
+}
 let lastBudgetRender=0, budgetWarnedLvl=-1;
 function renderBudget(force){
   const now=Date.now();
@@ -1290,18 +1450,21 @@ function renderBudget(force){
   lastBudgetRender=now; budgetRoll();
   const lvl=budgetLevel();
   const chip=$('budgetChip'), info=$('budgetInfo');
-  const txt='⚡ '+budget.min.length+'/'+perMinCap()+' per min · '+budget.calls+'/'+perDayCap()+' today · '+Math.max(1,keyPool().length)+' key(s)';
-  if(chip) chip.textContent = lvl===0?'⚡ budget: healthy':lvl===3?'⛔ budget: exhausted':lvl===2?'⚠ budget: 80% used':'⚠ budget: 60% used';
+  const txt='⚡ '+budget.min.length+'/'+perMinCap()+' per min · '+budget.calls+'/'+perDayCap()+' this browser · shared server budget enforced across clients';
+  if(chip) chip.textContent = lvl===0?'⚡ budget: healthy':lvl===3?'⛔ budget: hard stop':lvl===2?'⚠ budget: reserve only':'⚠ budget: 60% used';
   if(chip) chip.className='chip '+(lvl===0?'ok':lvl>=2?'bad':'warn');
-  if(info) info.textContent=txt+(lvl>=3?' — daily credit budget reached: auto scans paused (settlements still fetch). Add more keys or wait for UTC midnight.'
-    :lvl>=1?' — auto-scan cadence throttled to protect the daily budget':'');
+  if(info) info.textContent=txt+(lvl===3?' — hard stop: all paid data calls, including settlements, are blocked until UTC midnight or you raise the cap.'
+    :lvl===2?' — new scans/ticker calls paused at 80%; pending settlements may use the reserved headroom.'
+    :lvl===1?' — scan cadence throttled to protect the daily reserve':'');
   if(lvl!==budgetWarnedLvl&&lvl>=2){ budgetWarnedLvl=lvl;
-    pushNote('sys',lvl===3?'⛔ Daily API budget exhausted — auto scanning paused until UTC midnight (settlements unaffected)':'⚠ API budget '+Math.round(budget.calls/perDayCap()*100)+'% used — throttling scan cadence'); }
+    pushNote('sys',lvl===3?'⛔ Daily API hard cap reached — all paid data calls paused until UTC midnight or a limit change':'⚠ API spend reached 80% — new scans paused; remaining headroom reserved for settlements'); }
+  const msg=$('creditLimitMsg');
+  if(msg&&!msg.textContent.trim()) msg.textContent='This browser guard is secondary to the shared server budget. Free api_usage checks do not spend paid credits. Current effective cap: '+perDayCap()+'/day and '+perMinCap()+'/minute.';
 }
 
 /* ---------- API CREDIT USAGE — per-key spend straight from Twelve Data (0 credits) ---------- */
-let usageRows=loadJSON('nx_usage',null);
-if(!Array.isArray(usageRows)) usageRows=[];
+let usageRows=[];
+store.set('nx_usage','');
 let usageBusy=false;
 function parseUsage(j){ /* tolerant parser — Twelve Data api_usage shapes vary by plan */
   const u=j&&j.usage;
@@ -1311,12 +1474,11 @@ function parseUsage(j){ /* tolerant parser — Twelve Data api_usage shapes vary
   return {used:isFinite(used)?used:null,limit:isFinite(limit)?limit:null};
 }
 function renderUsageMeter(){
-  const pool=keyPool();
   const set=(id,v)=>{ const el=$(id); if(el) el.textContent=String(v); };
   set('u_sess',credits);
   set('u_day',budget.calls);
   set('u_min',perMinCap());
-  set('u_keys',pool.length||'0');
+  set('u_keys',nexusRelayHealth&&nexusRelayHealth.provider?Number(nexusRelayHealth.provider.keyCount)||0:0);
 }
 function renderUsage(){
   renderUsageMeter();
@@ -1337,23 +1499,18 @@ function renderUsage(){
 }
 async function apiUsageCheck(){
   if(usageBusy) return;
-  const pool=keyPool();
-  if(!pool.length){ setVaultMsg('⚠ save at least one API key first'); return; }
+  if(!nexusApiConfigured()){ setVaultMsg('⚠ connect the server relay and Supabase session on the CLOUD page first'); return; }
   usageBusy=true;
-  const sum=$('usageSum'); if(sum) sum.textContent='checking every key against Twelve Data (0 credits)…';
-  const out=[];
-  await Promise.all(pool.map(async k=>{
-    try{
-      const r=await fetch(BASE+'api_usage?apikey='+encodeURIComponent(k.v));
-      const j=await r.json();
-      if(j.status==='error') out.push({key:maskKey(k.v),used:null,limit:null,err:String(j.message||'error').slice(0,30)});
-      else { const p=parseUsage(j); out.push({key:maskKey(k.v),used:p.used,limit:p.limit}); }
-    }catch(e){ out.push({key:maskKey(k.v),used:null,limit:null,err:'network'}); }
-  }));
-  usageRows=out;
-  store.set('nx_usage',JSON.stringify(usageRows));
-  renderUsage();
-  usageBusy=false;
+  const sum=$('usageSum'); if(sum) sum.textContent='checking server-managed provider keys via api_usage (0 credits)…';
+  try{
+    const response=await nexusApiRequest('/api/v1/usage');
+    usageRows=(response.keys||[]).map(row=>({key:row.key,used:row.used,limit:row.limit,err:row.error||''}));
+    if(!usageRows.length) usageRows=[{key:'server provider',used:null,limit:null,err:'no provider keys configured'}];
+    renderUsage();
+  }catch(e){
+    usageRows=[{key:'server provider',used:null,limit:null,err:String(e.message||'usage lookup failed').slice(0,100)}];
+    renderUsage();
+  }finally{ usageBusy=false; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1470,64 +1627,12 @@ function saveTfs(){ store.set('nx_tfs',JSON.stringify(tfs())); }
 document.querySelectorAll('#tfsel input').forEach(i=>i.addEventListener('change',saveTfs));
 saveTfs();
 
-/* ---------- 4 Twelve Data key slots (browser storage · one-click save · never committed) ---------- */
-const KEY_SLOTS=10;                     /* up to 10 rotating API key slots */
-const KEY_SLOTS_KEY='nx_keys10';
-function loadKeySlots(){
-  const v=loadJSON(KEY_SLOTS_KEY,null);
-  const old=loadJSON('nx_keys4',null);          /* v5 migration: 4-slot vault → 10 */
-  let src=Array.isArray(v)?v:(Array.isArray(old)?old:[]);
-  const a=src.slice(0,KEY_SLOTS).map(x=>String(x||'').trim());
-  while(a.length<KEY_SLOTS) a.push('');
-  return a; }
-let keySlots=loadKeySlots();
-(function migrateLegacyKey(){                    /* old single key field → first free slot */
-  const legacy=String(store.get('td_key')||'').trim();
-  if(legacy){
-    if(!keySlots.some(k=>k===legacy)){
-      const i=keySlots.indexOf('');
-      if(i>=0){ keySlots[i]=legacy; store.set(KEY_SLOTS_KEY,JSON.stringify(keySlots)); }
-    }
-    store.set('td_key','');                          /* retire the legacy store key */
-  }
-  if(loadJSON('nx_keys4',null)) store.set('nx_keys4','');   /* retire the 4-slot vault */
-})();
-function renderKeyInputs(){                       /* the 10 slot inputs are generated, not hardcoded */
-  const el=$('keySlots'); if(!el) return;
-  el.innerHTML='';
-  for(let i=0;i<KEY_SLOTS;i++){
-    const row=document.createElement('div'); row.className='kslot-row';
-    const tag=document.createElement('span'); tag.className='tag'; tag.textContent='K'+(i+1);
-    const inp=document.createElement('input'); inp.type='password'; inp.id='key'+(i+1);
-    inp.className='kslot'; inp.autocomplete='off'; inp.spellcheck=false;
-    inp.placeholder='API key slot '+(i+1)+(i===0?'':' (optional)');
-    row.appendChild(tag); row.appendChild(inp); el.appendChild(row);
-  }
-  const show=$('keyShow');
-  if(show&&!show.dataset.wired){
-    show.dataset.wired='1';
-    show.addEventListener('click',()=>{
-      const on=show.textContent.trim()!=='👁 HIDE';
-      show.textContent=on?'👁 HIDE':'👁 SHOW';
-      for(let i=1;i<=KEY_SLOTS;i++){ const e=$('key'+i); if(e) e.type=on?'text':'password'; }
-    });
-  }
-  syncKeyInputs();
-}
-function syncKeyInputs(){ for(let i=0;i<KEY_SLOTS;i++){ const el=$('key'+(i+1)); if(el) el.value=keySlots[i]||''; } }
-function setVaultMsg(m){ const el=$('vaultMsg'); if(el) el.textContent=m; }
-function saveKeys(){ /* one-click save of all ten slots to this browser only */
-  const vals=[],seen=new Set(); let dup=false;
-  for(let i=0;i<KEY_SLOTS;i++){ const el=$('key'+(i+1)); const v=el?String(el.value).trim():'';
-    if(v){ if(seen.has(v)) dup=true; seen.add(v); }
-    vals.push(v); }
-  if(dup){ setVaultMsg('⚠ not saved — duplicate key across slots; each slot needs a distinct key'); return false; }
-  keySlots=vals; store.set(KEY_SLOTS_KEY,JSON.stringify(keySlots));
-  renderVault(); renderBudget(true); renderUsageMeter();
-  const n=keySlots.filter(Boolean).length;
-  setVaultMsg(n?('✅ saved '+n+' key'+(n===1?'':'s')+' to this browser (never committed) · rotation '+(n>1?'ACTIVE':'off (single key)'))
-               :'✅ slots cleared — no browser keys saved');
-  return true; }
+/* ---------- server-only provider credentials; purge legacy browser copies ---------- */
+for(const legacyKey of ['nx_keys10','nx_keys4','td_key','nx_usage']) store.set(legacyKey,'');
+function setVaultMsg(message){ const el=$('vaultMsg'); if(el) el.textContent=message; }
+function saveKeys(){ setVaultMsg('Twelve Data keys cannot be stored in this browser. Configure TWELVEDATA_KEYS in the server host environment.'); return false; }
+function renderKeyInputs(){ renderVault(); }
+function syncKeyInputs(){}
 
 /* ---------- clock + countdown + engines heartbeat (fires every second) ---------- */
 const tzLabel=()=>{const v=parseFloat($('tzoff').value),abs=Math.abs(v),h=Math.floor(abs),m=Math.round((abs-h)*60);
@@ -1588,7 +1693,7 @@ setInterval(()=>{
 /* ---------- live ticker: second-by-second freshness within the API budget ---------- */
 let tickIdx=0, lastTick=0, tickBusy=false;
 function tickerInterval(){
-  const pool=Math.max(1,keyPool().length), lvl=budgetLevel();
+  const pool=Math.max(1,Number(nexusRelayHealth&&nexusRelayHealth.provider&&nexusRelayHealth.provider.keyCount)||1), lvl=budgetLevel();
   if(lvl>=2) return Infinity;
   let iv=Math.max(6000,Math.min(24000,Math.round(45000/(pool*(lvl?1.5:3)))));
   return iv;
@@ -1603,10 +1708,10 @@ function tickerTick(){
   const wl=watch();
   if(!wl.length||!keyPool().length) return;
   if(isWeekendWindow()) return;
-  if(!budgetAllows()) return;                       /* keep headroom for the aligned scan burst */
+  if(!budgetAllows('ticker')) return;                /* preserve enough headroom for one aligned scan */
   const pair=wl[tickIdx%wl.length]; tickIdx++;
   lastTick=now; tickBusy=true;
-  apiTimeSeries(pair,{maxAge:0,quiet:true})
+  apiTimeSeries(pair,{maxAge:0,quiet:true,budgetClass:'ticker'})
     .then(()=>{ livePairsRender(); settleAll(); settlePrem(); })
     .catch(()=>{ livePairsRender(); })
     .finally(()=>{ tickBusy=false; });
@@ -1684,10 +1789,16 @@ function famCount(votes,dir){ /* distinct strategy families voting for dir */
   for(const s in votes) if(votes[s]===dir&&FAM[s]) set.add(FAM[s]);
   return set.size;
 }
-function sanitizePublic(s){ /* strip anything sensitive before a public post */
+function scrubSensitiveText(s){
   return String(s||'')
-    .replace(/\d{6,}:[A-Za-z0-9_-]{25,}/g,'[redacted-token]')          /* tg bot tokens */
-    .replace(/\b[0-9a-f]{32}\b/gi,'[redacted-key]')                    /* twelvedata-style keys */
+    .replace(/\d{6,}:[A-Za-z0-9_-]{20,}/g,'[redacted-token]')
+    .replace(/\b(?:eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}(?:\.[A-Za-z0-9_-]{10,})?|sb_secret_[A-Za-z0-9_-]+)\b/gi,'[redacted-secret]')
+    .replace(/\b[A-Za-z0-9_-]{32,128}\b/g,'[redacted-key]')
+    .replace(/(apikey=)[^&\s]+/gi,'$1[redacted]')
+    .slice(0,4096);
+}
+function sanitizePublic(s){ /* strip anything sensitive before a public post */
+  return scrubSensitiveText(s)
     .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,'[redacted-email]')
     .replace(/(^|[^\w.])-?\d{12,}(?!\w)/g,'$1[redacted-id]')          /* numeric chat ids (no lookbehind — old Safari safe) */
     .replace(/\bNX_[A-Z0-9_]+\b/gi,'[redacted]')
@@ -1717,62 +1828,35 @@ function candleGate(m1,d){
   return {ok:true,reason:'fresh',ageMs:age};
 }
 
-/* ---------- key vault + auto-rotation + quota cooldown ---------- */
-function maskKey(v){ v=String(v||''); return v.length<9?'••••••':v.slice(0,4)+'••••'+v.slice(-4); }
-function keyPool(){
-  const pool=[];
-  const push=(src,v0)=>{ const v=String(v0||'').trim(); if(v&&!pool.some(p=>p.v===v)) pool.push({src,v}); };
-  for(let i=0;i<KEY_SLOTS;i++) push('slot'+(i+1),keySlots[i]);/* saved browser slots (SAVE ALL KEYS) */
-  for(const k of PERMANENT_KEYS) push('vault',k);           /* in-file (empty in public build) */
-  for(const k of (window.NEXUS_KEYS||[])) push('keys.js',k);/* private gitignored file */
-  return pool;
-}
-const keyHealth={}; /* v -> {calls, until} */
-let keyIdx=0;
-function markKeyUsed(v){ const h=keyHealth[v]||(keyHealth[v]={calls:0,until:0}); h.calls++; }
-function markKeyLimited(v){ const h=keyHealth[v]||(keyHealth[v]={calls:0,until:0}); h.until=Date.now()+60000; }
-function nextKey(){
-  const pool=keyPool();
-  if(!pool.length) return null;
-  for(let n=0;n<pool.length;n++){
-    const idx=(keyIdx+n)%pool.length, k=pool[idx];
-    const h=keyHealth[k.v];
-    if(!h||Date.now()>=h.until){ keyIdx=(idx+1)%pool.length; return k; }
-  }
-  keyIdx=(keyIdx+1)%pool.length;
-  return pool[keyIdx]; /* all cooling down — try next anyway */
-}
-function requireKey(){
-  const k=nextKey();
-  if(!k) throw new Error('No API key — fill a slot and press SAVE ALL KEYS (browser only), or use keys.js / PERMANENT_KEYS');
-  return k;
-}
+/* ---------- server relay state; provider credentials never exist in browser memory ---------- */
+function keyPool(){ return nexusApiConfigured()?[{src:'server'}]:[]; }
 function renderVault(){
   const el=$('vaultInfo'); if(!el) return;
-  const pool=keyPool();
-  if(!pool.length){ el.innerHTML='🔐 no API key yet — fill a slot above and press <b>SAVE ALL KEYS</b> (stored in this browser only)'; return; }
-  const nS=pool.filter(k=>k.src.startsWith('slot')).length, nP=pool.length-nS;
-  const cooling=pool.filter(k=>{const h=keyHealth[k.v];return h&&Date.now()<h.until;}).length;
-  el.innerHTML='🔐 <b>'+nS+'</b> browser slot'+(nS===1?'':'s')+(nP?' + <b>'+nP+'</b> permanent':'')
-    +' · rotation '+(pool.length>1?'ACTIVE':'off (single key)')+(cooling?' · <span style="color:var(--warn)">'+cooling+' cooling (quota)</span>':'')
-    +'<br><span style="opacity:.75">'+pool.map(k=>{
-      const h=keyHealth[k.v];
-      return esc(maskKey(k.v))+' ('+esc(k.src)+(h?' · '+h.calls+' calls':'')+(h&&Date.now()<h.until?' · COOLING':'')+')';
-    }).join(' · ')+'</span>';
+  if(!validNexusApiBase(nexusApiBase())) el.textContent='Provider keys are server-only. Configure the NEXUS API relay on the CLOUD page.';
+  else if(nexusRelayHealth) el.textContent='Relay '+(nexusRelayHealth.provider&&nexusRelayHealth.provider.configured?'connected':'connected, but no provider keys are configured')+' · '+String(nexusRelayHealth.provider&&nexusRelayHealth.provider.keyCount||0)+' server key(s) · credentials never enter this browser.';
+  else el.textContent='Relay URL saved. Press CONNECT on the CLOUD page to verify the server and authenticate.';
 }
 
-/* ---------- Twelve Data APIs (candle-feed first; diagnostics on demand) ---------- */
-const BASE='https://api.twelvedata.com/';
-async function jget(url,k){ credits++; $('credits').textContent='API credits this session: '+credits;
-  budgetNote();
-  const r=await fetch(url); let j;
-  try{ j=await r.json(); }catch(e){ throw new Error('HTTP '+r.status+' — non-JSON response'); }
-  if(k) markKeyUsed(k.v);
-  if(j.status==='error'){
-    if(k&&/limit|maximum|credits|quota|rate/i.test(j.message||'')) markKeyLimited(k.v);
-    throw new Error(j.message);
+/* ---------- Twelve Data relay calls (server-only provider keys) ---------- */
+const BASE='https://relay.invalid/';
+async function jget(url,k,category){
+  category=category||'scan';
+  if(!nexusApiConfigured()) throw new Error('Connect the NEXUS API relay on the CLOUD page before requesting market data.');
+  if(!budgetReserve(category)){
+    const why=budgetBlockReason==='daily-cap'?'daily hard cap reached':budgetBlockReason==='settlement-reserve'
+      ?'80% soft cap reached; only pending settlements may use the reserve':'per-minute hard cap reached';
+    throw new Error('NEXUS API budget: '+why+' ('+budget.calls+'/'+perDayCap()+' today, '+budget.min.length+'/'+perMinCap()+' this minute)');
   }
-  return j; }
+  let target;
+  try{ target=new URL(url,BASE); }catch(_){ throw new Error('Invalid provider request'); }
+  const operation=target.pathname.split('/').filter(Boolean).pop();
+  const params=Object.fromEntries(target.searchParams.entries());
+  delete params.apikey;
+  const scanReserve=category==='ticker'?Math.min(perMinCap(),Math.max(1,watch().length*(($('m5conf')&&$('m5conf').checked)?2:1))):0;
+  credits++; $('credits').textContent='API credits this session: '+credits;
+  const result=await nexusApiRequest('/api/v1/market',{method:'POST',body:{operation,params,category,scanReserve}});
+  return result.data;
+}
 function buildM3(m1,fetchedAt){ /* aggregate 3×M1 → M3; keep only groups that already closed */
   const g=new Map();
   for(const b of m1){
@@ -1787,32 +1871,29 @@ async function apiTimeSeries(pair,opt){
   const maxAge=opt.maxAge==null?25000:opt.maxAge;
   const ck=cache[pair];
   if(ck && maxAge>0 && Date.now()-ck.t<maxAge) return ck;
-  const k=requireKey();
   const t0=Date.now();
-  const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=1min&outputsize=360&apikey=${encodeURIComponent(k.v)}`,k);
-  setFeedTz(resolveFeedTz(j)); /* infer from candle clock before parsing; meta is fallback */
+  const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=1min&outputsize=360`,null,opt.budgetClass||'scan');
+  setFeedTz(resolveFeedTz(j));
   if(!Array.isArray(j.values)||!j.values.length) throw new Error('unexpected time_series shape');
   const m1=j.values.map(v=>({t:v.datetime,ts:parseCandleUTC(v.datetime).getTime(),o:+v.open,h:+v.high,l:+v.low,c:+v.close})).reverse();
   if(m1.length<40) throw new Error('too few candles');
   const out={t:Date.now(),latencyMs:Date.now()-t0,m1,m3:buildM3(m1,Date.now())}; cache[pair]=out;
-  if(!opt.quiet){ credits; }
   return out;
 }
-async function apiQuote(pair){ const k=requireKey();
-  const j=await jget(`${BASE}quote?symbol=${encodeURIComponent(pair)}&apikey=${encodeURIComponent(k.v)}`,k);
+async function apiQuote(pair){
+  const j=await jget(`${BASE}quote?symbol=${encodeURIComponent(pair)}`,null,'scan');
   return {price:+j.close, chg:(+j.percent_change||0), open:j.is_market_open!==undefined?!!j.is_market_open:null}; }
-async function apiPrice(pair){ const k=requireKey();
-  const j=await jget(`${BASE}price?symbol=${encodeURIComponent(pair)}&apikey=${encodeURIComponent(k.v)}`,k);
+async function apiPrice(pair){
+  const j=await jget(`${BASE}price?symbol=${encodeURIComponent(pair)}`,null,'scan');
   return +j.price; }
-async function apiRate(from,to){ const k=requireKey();
-  const j=await jget(`${BASE}exchange_rate?symbol=${from}/${to}&apikey=${encodeURIComponent(k.v)}`,k);
+async function apiRate(from,to){
+  const j=await jget(`${BASE}exchange_rate?symbol=${encodeURIComponent(from+'/'+to)}`,null,'scan');
   return +j.exchange_rate; }
 async function apiM5Bias(pair){ /* candle-feed only (time_series 5min) — higher-TF direction filter */
   const ck=cache['m5:'+pair];
   if(ck&&Date.now()-ck.t<50000) return ck.bias;
-  const k=requireKey();
-  const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=5min&outputsize=80&apikey=${encodeURIComponent(k.v)}`,k);
-  setFeedTz(resolveFeedTz(j)); /* same feed, same clock — keep the correction current */
+  const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=5min&outputsize=80`,null,'scan');
+  setFeedTz(resolveFeedTz(j));
   if(!Array.isArray(j.values)||j.values.length<40) throw new Error('m5: too few candles');
   const cl=j.values.map(v=>+v.close).reverse();
   const e9=ema(cl,9), e21=ema(cl,21);
@@ -1822,7 +1903,7 @@ async function apiM5Bias(pair){ /* candle-feed only (time_series 5min) — highe
 }
 
 async function verifyFeeds(){ /* OPTIONAL diagnostic — normal scans never call quote/price/exchange_rate */
-  if(!keyPool().length){ setStatus('err','Save an API key slot first (or use keys.js / PERMANENT_KEYS)'); return; }
+  if(!nexusApiConfigured()){ setStatus('err','Connect the server relay and Supabase session on the CLOUD page first'); return; }
   setStatus('wait','Running optional feed diagnostics (4 credits — time_series + quote + price + exchange_rate)...');
   const p0=(watch()[0]||'EUR/USD');
   const [ts,q,pr,er]=await Promise.allSettled([apiTimeSeries(p0,{maxAge:0}),apiQuote(p0),apiPrice(p0),apiRate(...p0.split('/'))]);
@@ -2319,7 +2400,7 @@ function settlementFetches(){
   }
   if(!due.size) return;
   settleFetchBusy=true;
-  Promise.all([...due.values()].slice(0,10).map(p=>apiTimeSeries(p.pair,{maxAge:0,quiet:true}).catch(()=>null)))
+  Promise.all([...due.values()].slice(0,10).map(p=>apiTimeSeries(p.pair,{maxAge:0,quiet:true,budgetClass:'settlement'}).catch(()=>null)))
     .then(()=>{ settleAll(); settlePrem(); settleVip(); livePairsRender(); })
     .finally(()=>{ settleFetchBusy=false; });
 }
@@ -2774,17 +2855,30 @@ function renderPred(){
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   📨 TELEGRAM DELIVERY — 4 channels · bot-configured formats · full
-   sticker control. Sends via api.telegram.org form-encoded POST.
-   A bot can never start chats — users must /start the bot first.
+   📨 TELEGRAM DELIVERY — all messages, polling, destinations and bot
+   credentials pass through the authenticated server relay. No bot token
+   or chat ID is stored in browser memory or localStorage.
    ═══════════════════════════════════════════════════════════════════ */
-const DEF_TG={token:'',chatId:'',brand:'NEXUS',vipChat:'',listChat:'',
+const DEF_TG={brand:'NEXUS',
   stk:{session:'',win:[],loss:'',push:'',vip:'',list:'',result:'',outro1:'',outro2:''},
   fmts:{},
   auth:false,auto:false,protect:true,listen:false,lastUpd:0,log:[],
-  botAuto:false,botVerify:true,pubChat:'',pubAuto:false,pubStream:false,vipStream:false};
+  botAuto:false,botVerify:true,pubAuto:false,pubStream:false,vipStream:false};
 let tg=Object.assign({},DEF_TG,loadJSON('nx_tg',null)||{});
 if(!Array.isArray(tg.log)) tg.log=[];
+let purgedTelegramSecrets=false;
+for(const field of ['token','chatId','mainChat','pubChat','vipChat','listChat']){
+  if(Object.prototype.hasOwnProperty.call(tg,field)){ delete tg[field]; purgedTelegramSecrets=true; }
+}
+if(Array.isArray(tg.log)){
+  const cleanLog=tg.log.map(line=>scrubSensitiveText(line));
+  if(JSON.stringify(cleanLog)!==JSON.stringify(tg.log)){ tg.log=cleanLog; purgedTelegramSecrets=true; }
+}
+if(tg.fmts&&typeof tg.fmts==='object') for(const kind of Object.keys(tg.fmts)){
+  const clean=scrubSensitiveText(tg.fmts[kind]).slice(0,2000);
+  if(clean!==tg.fmts[kind]){ tg.fmts[kind]=clean; purgedTelegramSecrets=true; }
+}
+if(purgedTelegramSecrets){ tg.auth=false; store.set('nx_tg',JSON.stringify(tg)); }
 /* --- sticker bank migration: v5 intro/win/outro → per-event roles --- */
 (function migrateStk(){
   if(!tg.stk||typeof tg.stk!=='object') tg.stk=Object.assign({},DEF_TG.stk);
@@ -2804,52 +2898,57 @@ if(!Array.isArray(tg.log)) tg.log=[];
   if(!tg.fmts||typeof tg.fmts!=='object') tg.fmts={};
 })();
 function saveTg(){ store.set('nx_tg',JSON.stringify(tg)); }
-function tgToken(){ const v=String(window.NEXUS_TG_TOKEN||'').trim(); return v||String(tg.token||'').trim(); }
-function tgChat(){ const v=String(window.NEXUS_TG_CHAT||'').trim(); return v||String(tg.chatId||'').trim(); }
-function tgReady(){ return !!(tgToken()&&tgChat()&&tg.auth); }
+function tgToken(){ return nexusSessionInfo&&nexusSessionInfo.telegramConfigured?'server-managed':''; }
+function tgChat(){ return nexusSessionInfo&&nexusSessionInfo.telegramChannels&&nexusSessionInfo.telegramChannels.main?'main':''; }
+function tgReady(){ return !!(tg.auth&&nexusApiConfigured()&&nexusSessionInfo&&nexusSessionInfo.telegramAdmin&&tgChat()); }
 function tgBrandName(){ return (String(tg.brand||'NEXUS').trim().slice(0,24))||'NEXUS'; }
-function chatFor(kind){ /* main · pub · vip · list — empty extras fall back to MAIN */
-  if(kind==='pub'){ const v=String(tg.pubChat||'').trim(); return v||tgChat(); }
-  if(kind==='vip'){ const v=String(tg.vipChat||'').trim(); return v||tgChat(); }
-  if(kind==='list'){ const v=String(tg.listChat||'').trim(); return v||tgChat(); }
-  return tgChat();
+function channelAlias(kind){ return kind==='pub'?'public':kind==='ops'?'admin':kind; }
+function chatFor(kind){
+  const alias=channelAlias(kind);
+  return nexusSessionInfo&&nexusSessionInfo.telegramChannels&&nexusSessionInfo.telegramChannels[alias]?alias:'';
 }
-function chatLabel(kind){ const c=chatFor(kind); const own=(kind==='pub'?tg.pubChat:kind==='vip'?tg.vipChat:kind==='list'?tg.listChat:'')||'';
-  return kind.toUpperCase()+(own?'':'→MAIN')+': '+(c||'none'); }
-function sanitizeErr(m){ const t=tgToken(); let s=String(m||'unknown error');
-  if(t&&t.length>5) s=s.split(t).join('[token]'); return s.slice(0,150); }
+function chatLabel(kind){ const alias=channelAlias(kind), configured=!!chatFor(kind);
+  return String(alias||'main').toUpperCase()+': '+(configured?'server configured':'not configured'); }
+function sanitizeErr(m){ return String(m||'unknown error').replace(/\b\d{6,}:[A-Za-z0-9_-]{20,}\b/g,'[redacted token]').slice(0,150); }
 function tgLog(msg){ tg.log.unshift('['+new Date().toTimeString().slice(0,8)+'] '+msg);
   if(tg.log.length>30) tg.log.length=30;
   const el=$('tgLog'); if(el) el.innerHTML=tg.log.map(l=>'<div>'+esc(l)+'</div>').join(''); }
 let tgChain=Promise.resolve();
 function tgCall(method,params,retries){
-  retries=retries||0;
-  const runRetry=async(attempt)=>{
-    const token=tgToken();
-    if(!token) throw new Error('no bot token configured');
-    if(method!=='getUpdates'&&!tgReady()) throw new Error('Telegram output not authorized');
-    const body=new URLSearchParams();
-    for(const k in params) body.append(k,params[k]);
-    const r=await fetch('https://api.telegram.org/bot'+token+'/'+method,{
-      method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
-    let j; try{ j=await r.json(); }catch(e){ throw new Error('telegram HTTP '+r.status); }
-    if(!j.ok){
-      if(j.error_code===429&&attempt<2){
-        const wait=((j.parameters&&j.parameters.retry_after)||2)+1;
-        await new Promise(res=>setTimeout(res,wait*1000));
-        return runRetry(attempt+1);
+  const run=async()=>{
+    if(!tgReady()) throw new Error('Telegram relay is not authorized for this Supabase session');
+    params=params||{};
+    const body={method};
+    if(method==='sendMessage'||method==='sendSticker'){
+      const channel=channelAlias(String(params.chat_id||'main'));
+      body.channel=channel;
+      if(method==='sendMessage'){
+        body.text=scrubSensitiveText(String(params.text||''));
+        body.record_delivery=sbRecording();
+        body.parse_mode=params.parse_mode;
+        body.protect_content=params.protect_content===true||params.protect_content==='true';
+      }else{
+        body.sticker=String(params.sticker||'');
+        body.protect_content=params.protect_content===true||params.protect_content==='true';
       }
-      throw new Error(j.description||('telegram error '+j.error_code));
-    }
-    return j.result;
+    }else if(method==='getUpdates'){
+      for(const key of ['offset','limit','timeout']) if(params[key]!=null) body[key]=Number(params[key]);
+      try{ body.allowed_updates=Array.isArray(params.allowed_updates)?params.allowed_updates:JSON.parse(params.allowed_updates||'[]'); }
+      catch(_){ body.allowed_updates=['message','channel_post']; }
+    }else if(method==='setMyCommands'){
+      try{ body.commands=Array.isArray(params.commands)?params.commands:JSON.parse(params.commands||'[]'); }
+      catch(_){ throw new Error('Telegram command list is invalid'); }
+    }else throw new Error('Telegram method is not allowed');
+    const response=await nexusApiRequest('/api/v1/telegram',{method:'POST',body});
+    return response.result;
   };
-  const p=tgChain.then(()=>runRetry(retries),()=>runRetry(retries));
+  const p=tgChain.then(run,run);
   tgChain=p.then(()=>new Promise(res=>setTimeout(res,350)),()=>new Promise(res=>setTimeout(res,350)));
   return p;
 }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 async function tgSend(text,extra){ /* MAIN chat */
-  if(!tgReady()) throw new Error('Telegram not authorized — set token + chat id and enable AUTHORIZED');
+  if(!tgReady()) throw new Error('Telegram is not authorized for this allowlisted server session');
   const params=Object.assign({chat_id:tgChat(),text,parse_mode:'HTML'},extra||{});
   if(tg.protect) params.protect_content='true';
   try{
@@ -2892,7 +2991,7 @@ const DEF_FMTS={
 function fmtGet(kind){ return (tg.fmts&&tg.fmts[kind]!=null&&String(tg.fmts[kind]).length)?String(tg.fmts[kind]):DEF_FMTS[kind]; }
 function fmtSet(kind,tpl){
   if(!FMT_KINDS.includes(kind)) return false;
-  tg.fmts[kind]=String(tpl).slice(0,2000); saveTg(); fmtRenderList();
+  tg.fmts[kind]=scrubSensitiveText(String(tpl)).slice(0,2000); saveTg(); fmtRenderList();
   return true;
 }
 function fmtReset(kind){
@@ -2995,8 +3094,8 @@ async function tgSticker(role,chatKind,onceKey){
 let stPending=[];
 function stickerLabel(st){ return (st.emoji?st.emoji+' ':'')+(st.is_animated?'animated':st.is_video?'video':'static')+' · '+String(st.set_name||'custom'); }
 async function pullStickers(){
-  if(!tgToken()){ tgLog('❌ no bot token configured'); return; }
-  tgLog('pulling stickers from the bot inbox… (send them to your bot first — private chat works)');
+  if(!tgReady()){ tgLog('❌ connect the relay and authorize an allowlisted session first'); return; }
+  tgLog('pulling stickers from the server-approved bot inbox… send stickers to the configured Telegram admin chat first.');
   try{
     const res=await tgCall('getUpdates',{offset:tg.lastUpd+1,limit:100,timeout:0,allowed_updates:JSON.stringify(['message','channel_post'])});
     let n=0;
@@ -3027,7 +3126,7 @@ function stClear(role){
   saveTg(); renderStickers(); tgLog('🧹 sticker slot cleared: '+role);
 }
 async function stTest(role){
-  if(!tgReady()){ tgLog('❌ authorize Telegram first (token + MAIN chat + AUTHORIZED)'); return; }
+  if(!tgReady()){ tgLog('❌ authorize an allowlisted server-relay session first'); return; }
   const ok=await tgSticker(role,'main','test-'+Date.now());
   if(!ok&&tgReady()) tgLog('⚠ no sticker assigned to '+role.toUpperCase()+' — assign one below (unassigned = never sent)');
 }
@@ -3256,7 +3355,7 @@ function vxFire(manual){
   vx.firing=true;
   return (async()=>{
     try{
-      if(!tgReady()){ vipLog('⚠ authorize Telegram (token + MAIN chat + AUTHORIZED) — VIP falls back to MAIN'); }
+      if(!tgReady()){ vipLog('⚠ authorize an allowlisted Telegram relay session — VIP falls back to the server-configured MAIN channel'); }
       if(isWeekendWindow()){ vipLog('⛔ weekend — market closed, shot skipped'); return; }
       const wl=watch();
       if(!wl.length){ vipLog('⚠ tick at least one pair on the SIGNALS page'); return; }
@@ -3384,10 +3483,10 @@ function pubLogMsg(m){
   if(pubLogArr.length>20) pubLogArr.length=20;
   const el=$('pubLog'); if(el) el.innerHTML=pubLogArr.map(l=>'<div>'+esc(l)+'</div>').join('');
 }
-function pubChatOf(){ return String(tg.pubChat||'').trim(); }
+function pubChatOf(){ return chatFor('pub'); }
 async function pubPost(custom){
   const raw=custom!=null?custom:(($('pubMsg')?$('pubMsg').value:''));
-  const txt=sanitizePublic(raw).trim();
+  const txt=scrubSensitiveText(raw).trim();
   if(!txt||!txt.replace(/\[redacted[a-z-]*\]/g,'').trim()){ pubLogMsg('⚠ nothing safe to post'); return false; }
   if(!tgReady()){ pubLogMsg('❌ authorize Telegram first'); return false; }
   const dest=pubChatOf(); if(!dest){ pubLogMsg('❌ set the PUBLIC channel first (TELEGRAM page → block 1)'); return false; }
@@ -3406,11 +3505,10 @@ function pubSummary(){ /* aggregate stats ONLY — never keys, chats, balances *
 }
 
 /* ---------- 🎧 bot commands + listener ---------- */
-function tgMatchesChat(chat){ /* configured MAIN channel OR any private chat with the owner bot */
+function tgMatchesChat(chat){ /* only server-approved channel aliases reach the browser */
   if(!chat) return false;
-  if(chat.type==='private') return true;
-  const id=tgChat();
-  return !!(id&&(String(chat.id)===id||(id.startsWith('@')&&('@'+String(chat.username||'').toLowerCase())===id.toLowerCase())));
+  const allowed=['main','public','vip','list','admin'];
+  return allowed.includes(String(chat.id||''))&&!!chatFor(String(chat.id||''));
 }
 function fmtHelpText(){
   return '<b>FORMATS</b> — text /setformat &lt;kind&gt; then your layout. Kinds: signal · vip · row · list · result · verdict\n'
@@ -3420,9 +3518,10 @@ function fmtHelpText(){
     +FMT_KINDS.map(k=>'<b>'+k+'</b>:\n<code>'+esc(fmtGet(k)).replace(/\n/g,'⏎')+'</code>').join('\n\n');
 }
 async function tgTest(){
-  if(!tgToken()||!tgChat()){ tgLog('❌ configure token + MAIN chat first'); return; }
-  if(!tg.auth){ tgLog('⚠ AUTHORIZED toggle is OFF — enable it to send'); return; }
-  tgLog('sending test message…');
+  if(!nexusApiConfigured()){ tgLog('❌ connect the server relay on the CLOUD page first'); return; }
+  if(!nexusSessionInfo||!nexusSessionInfo.telegramAdmin){ tgLog('⚠ this Supabase Auth user is not on the server Telegram admin allowlist'); return; }
+  if(!tg.auth){ tgLog('⚠ authorize this session using the toggle above'); return; }
+  tgLog('sending test message through the server relay…');
   try{
     await tgSend('✅ <b>'+esc(tgBrandName())+'</b> test — Telegram delivery is live.\nChannels: '+esc(chatLabel('main'))+' · '+esc(chatLabel('pub'))+' · '+esc(chatLabel('vip'))+' · '+esc(chatLabel('list')));
     tgLog('✅ test message delivered');
@@ -3516,14 +3615,21 @@ function latestSignalText(){
   return '⚡ <b>'+esc(tgBrandName())+' LIVE</b>\n\n'+(rows.length?rows.join('\n'):'No open signals right now — engines on standby.')
     +(lastS?('\nLast verdict: <b>'+lastS.tf+' '+esc(PAIRCODE(lastS.pair))+' '+esc(lastS.dir)+' → '+String(lastS.res).toUpperCase()+'</b>'):'');
 };
+function updateTelegramServerStatus(){
+  const el=$('tgServerCfg'); if(!el) return;
+  if(!nexusSessionInfo){ el.textContent=nexusRelayHealth?'Relay reachable; connect a Supabase Auth session to inspect server-configured Telegram channels.':'Telegram is unavailable until the NEXUS relay is configured.'; return; }
+  const channels=nexusSessionInfo.telegramChannels||{};
+  el.textContent='Server bot '+(nexusSessionInfo.telegramConfigured?'configured':'not configured')+' · '
+    +['main','public','vip','list'].map(name=>name.toUpperCase()+': '+(channels[name]?'ready':'off')).join(' · ')
+    +' · '+(nexusSessionInfo.telegramAdmin?'this session is allowlisted':'this session is not allowlisted');
+}
 function tgRender(){
-  const tok=tgToken();
+  const configured=!!(nexusSessionInfo&&nexusSessionInfo.telegramConfigured);
   const chip=$('tgStatChip');
-  if(chip) chip.textContent = !tok?'bot: not configured':(tg.auth?'bot: AUTHORIZED':'bot: configured (not authorized)');
+  if(chip) chip.textContent=!configured?'server bot: not configured':(tgReady()?'server bot: AUTHORIZED':'server bot: admin approval required');
   const v=$('tgVault');
-  if(v) v.innerHTML='🔐 token: <b>'+(tok?esc(maskKey(tok)):'none')+'</b><br>'
-    +esc(chatLabel('main'))+' · '+esc(chatLabel('pub'))+' · '+esc(chatLabel('vip'))+' · '+esc(chatLabel('list'))
-    +(window.NEXUS_TG_TOKEN?' · source: keys.js':'');
+  if(v) v.textContent='🔐 token and destination IDs are server-only. '+chatLabel('main')+' · '+chatLabel('pub')+' · '+chatLabel('vip')+' · '+chatLabel('list');
+  updateTelegramServerStatus();
   renderStickers(); renderStPending(); fmtRenderList(); renderPubInfo();
 }
 
@@ -3560,9 +3666,17 @@ function emitSignal(o){
 async function runScan(manual,opt){
   opt=opt||{};
   if(busy) return;
-  if(!keyPool().length){ setStatus('err','No API key — fill a slot and press SAVE ALL KEYS (browser only), or use keys.js / PERMANENT_KEYS'); return; }
+  if(!nexusApiConfigured()){ setStatus('err','Connect the server relay and Supabase session on the CLOUD page before scanning'); return; }
   if(isWeekendWindow()){
     setStatus('wait','📅 Weekend — forex market closed. Engines paused to save quota; open verdicts still settle from cached candles.');
+    return; }
+  const spendCheck=budgetCheck('scan');
+  if(!spendCheck.ok){
+    renderBudget(true);
+    setStatus('wait',spendCheck.reason==='settlement-reserve'
+      ?'⏸ API soft cap reached — new scans paused; pending settlements keep the reserved credits.'
+      :spendCheck.reason==='minute-cap'?'⏱ API per-minute cap reached — wait for the next minute.'
+      :'⛔ API daily hard cap reached — paid requests resume at 00:00 UTC or after you raise the cap.');
     return; }
   busy=true; $('btnRun').disabled=true;
   const active=tfs();
@@ -3578,7 +3692,7 @@ async function runScan(manual,opt){
     +(blackout?' · 📵 NEWS BLACKOUT (analysis only)':'')+' ...');
   settleAll(); settlePrem();
   try{
-    /* parallel fetch — every ticked pair at once; keys rotate automatically */
+    /* parallel fetch — every ticked pair at once; the relay rotates server-side keys */
     const cds=await Promise.all(wl.map(p=>apiTimeSeries(p,{maxAge:hunting?6000:8000,quiet:true}).catch(e=>({err:String(e.message||e)}))));
     const sess=sessionGate(new Date());
     const m5On=$('m5conf')&&$('m5conf').checked;
@@ -3667,7 +3781,7 @@ async function runScan(manual,opt){
   }catch(e){
     const msg=String(e.message||e);
     setStatus('err', /limit|maximum|credits/i.test(msg)
-      ? '⛔ Twelve Data quota: '+msg+' — keys rotate automatically; add more keys or wait for the reset'
+      ? '⛔ Twelve Data budget: '+msg+' — requests resume when the server budget permits'
       : 'Error: '+msg.slice(0,90));
   }
   busy=false; $('btnRun').disabled=false;
@@ -3791,12 +3905,11 @@ let btBusy=false;
 async function deepBacktest(){
   if(btBusy||busy) return;
   const pair=$('btPair').value;
-  if(!keyPool().length){ setStatus('err','No API key — fill a slot and press SAVE ALL KEYS (or use keys.js / PERMANENT_KEYS)'); return; }
+  if(!nexusApiConfigured()){ setStatus('err','Connect the server relay and Supabase session on the CLOUD page before backtesting'); return; }
   btBusy=true;
   $('btResults').textContent='⏳ Fetching up to 5,000 real M1 candles for '+pair+' …';
   try{
-    const k=requireKey();
-    const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=1min&outputsize=5000&apikey=${encodeURIComponent(k.v)}`,k);
+    const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=1min&outputsize=5000`,null,'scan');
     setFeedTz(resolveFeedTz(j)); /* backtest candles obey the same feed clock */
     if(!Array.isArray(j.values)||j.values.length<200) throw new Error('not enough history returned');
     const fetchedAt=Date.now();
@@ -3920,12 +4033,11 @@ let deepBusy=false;
 async function trainDeep(){
   if(deepBusy||btBusy) return;
   const pair=$('btPair').value;
-  if(!keyPool().length){ setStatus('err','No API key — add one first (DATA page)'); return; }
+  if(!nexusApiConfigured()){ setStatus('err','Connect the server relay and Supabase session on the CLOUD page before training'); return; }
   deepBusy=true; $('deepTrainBtn').disabled=true;
   $('deepInfo').textContent='⏳ fetching 5,000 real M1 candles for '+pair+' …';
   try{
-    const k=requireKey();
-    const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=1min&outputsize=5000&apikey=${encodeURIComponent(k.v)}`,k);
+    const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=1min&outputsize=5000`,null,'scan');
     setFeedTz(resolveFeedTz(j));
     if(!Array.isArray(j.values)||j.values.length<500) throw new Error('not enough history returned');
     const fetchedAt=Date.now();
@@ -4057,70 +4169,35 @@ $('coolMin').addEventListener('change',e=>{ risk.cooldownMin=Math.min(120,Math.m
 $('minScore').addEventListener('change',e=>{ risk.minScore=Math.min(95,Math.max(40,+e.target.value||62)); saveRisk(); });
 $('premiumMin').addEventListener('change',e=>{ risk.premiumMin=Math.min(95,Math.max(60,+e.target.value||78)); saveRisk(); renderPred(); });
 
-/* ---------- telegram wiring (4 channels; token/MAIN changes revoke authorization) ---------- */
-$('tgToken').value=tgToken();
-$('tgChat').value=tg.chatId||'';
+/* ---------- Telegram preferences; secrets/destinations are host-managed ---------- */
 $('tgBrand').value=tg.brand||'NEXUS';
-$('pubChat').value=tg.pubChat||'';
-$('vipChat').value=tg.vipChat||'';
-$('listChat').value=tg.listChat||'';
 $('tgAuth').checked=!!tg.auth; $('tgAuto').checked=!!tg.auto;
 $('tgProtect').checked=tg.protect!==false; $('tgListen').checked=!!tg.listen;
-function tgApplyCreds(mutate){ /* token / MAIN chat change revokes send authorization */
-  const before=tgToken()+'\u0000'+tgChat();
-  mutate();
-  const after=tgToken()+'\u0000'+tgChat();
-  if(before!==after&&tg.auth){
-    tg.auth=false;
-    const cb=$('tgAuth'); if(cb) cb.checked=false;
-    tgLog('🔓 send authorization REVOKED — token/MAIN changed. Re-enable AUTHORIZED to send again.');
-  }
+function tgSaveSettings(){
+  tg.brand=String($('tgBrand').value||'').trim().slice(0,24)||'NEXUS';
   saveTg(); tgRender(); renderPred(); renderVip(); renderPubInfo();
-  return before!==after;
-}
-const TG_CHAT_RE=/^(@?[A-Za-z0-9_+-]{1,64}|-\d{1,20})$/;
-function wireChat(id,key,label){
-  const el=$(id); if(!el) return;
-  el.addEventListener('change',e=>{
-    const v=e.target.value.trim();
-    if(v&&!TG_CHAT_RE.test(v)){ tgLog('⚠ invalid '+label+' channel format — numeric id or @channel'); e.target.value=tg[key]||''; return; }
-    tg[key]=v; saveTg(); tgRender(); renderVip(); renderPubInfo();
-    tgLog(v?('📍 '+label+' channel set: '+v):('📍 '+label+' channel cleared — falls back to MAIN'));
-  });
-}
-wireChat('pubChat','pubChat','PUBLIC');
-wireChat('vipChat','vipChat','VIP');
-wireChat('listChat','listChat','LIST');
-$('tgToken').addEventListener('change',e=>{ tgApplyCreds(()=>{ tg.token=e.target.value.trim(); }); });
-$('tgChat').addEventListener('change',e=>{
-  const v=e.target.value.trim();
-  if(v&&!TG_CHAT_RE.test(v)){ tgLog('⚠ invalid chat id format — use numeric id or @channel'); e.target.value=tg.chatId||''; return; }
-  tgApplyCreds(()=>{ tg.chatId=v; });
-});
-$('tgBrand').addEventListener('change',e=>{ tg.brand=e.target.value.trim()||'NEXUS'; saveTg(); tgRender(); renderPred(); });
-function tgSaveSettings(){ /* one-click save: token + 4 channels + brand persist to this browser */
-  const v=($('tgChat').value||'').trim();
-  if(v&&!TG_CHAT_RE.test(v)){ tgLog('⚠ not saved — invalid MAIN chat id format (numeric id or @channel)'); return false; }
-  const dst={pub:($('pubChat').value||'').trim(),vip:($('vipChat').value||'').trim(),list:($('listChat').value||'').trim()};
-  for(const k in dst) if(dst[k]&&!TG_CHAT_RE.test(dst[k])){ tgLog('⚠ not saved — invalid '+k.toUpperCase()+' channel format'); return false; }
-  tgApplyCreds(()=>{
-    tg.token=($('tgToken').value||'').trim();
-    tg.chatId=v;
-    tg.brand=($('tgBrand').value||'').trim()||'NEXUS';
-    tg.pubChat=dst.pub; tg.vipChat=dst.vip; tg.listChat=dst.list;
-  });
-  tgLog('💾 telegram settings saved — '+chatLabel('main')+' · '+chatLabel('pub')+' · '+chatLabel('vip')+' · '+chatLabel('list'));
-  renderPred(); renderVip(); renderPubInfo();
+  tgLog('💾 display settings saved; Telegram bot and channel configuration remain on the server.');
   return true;
 }
-$('tgAuth').addEventListener('change',e=>{
+$('tgBrand').addEventListener('change',()=>{ tgSaveSettings(); });
+$('tgAuth').addEventListener('change',async e=>{
   if(e.target.checked){
-    if(!tgToken()||!tgChat()){ e.target.checked=false; tgLog('⚠ set bot token + MAIN chat first'); return; }
-    if(!confirm('Authorize Telegram output to '+tgChat()+'?\nMessages go to MAIN, PUBLIC, VIP and LIST channels (empty ones fall back to MAIN).')){ e.target.checked=false; return; }
+    if(!nexusApiConfigured()){
+      e.target.checked=false;
+      tgLog('⚠ configure the relay and Supabase Auth session on the CLOUD page first');
+      return;
+    }
+    const connected=await connectNexus();
+    if(!connected||!nexusSessionInfo||!nexusSessionInfo.telegramAdmin||!nexusSessionInfo.telegramChannels||!nexusSessionInfo.telegramChannels.main){
+      e.target.checked=false;
+      tgLog('⚠ this session is not authorized by NEXUS_TELEGRAM_ADMIN_USER_IDS or MAIN is not configured');
+      return;
+    }
+    if(!confirm('Authorize this authenticated session to send through the server-configured Telegram channels?')){ e.target.checked=false; return; }
   }
   tg.auth=e.target.checked; saveTg(); tgRender();
   if(tg.auth&&tg.listen) tgListenLoop();
-  tgLog(tg.auth?'🔐 AUTHORIZED — Telegram output enabled':'authorization revoked');
+  tgLog(tg.auth?'🔐 session authorized — Telegram output enabled':'authorization revoked');
 });
 
 /* ---------- premium / session / bot / public wiring ---------- */
@@ -4223,12 +4300,11 @@ async function loadLocalArt(){
 /* ---------- boot ---------- */
 /* ═══════════════════════════════════════════════════════════════════
    CLOUD SYNC (Supabase mirror) — raw REST via fetch, NO SDK/CDN.
-   Contract: the browser is the live prediction source and only MIRRORS.
-   It inserts predictions + completed delivery results with the ANON key
-   (row-level security: insert-only, no update/delete) and reads public
-   monitoring data. Service-role key, market keys and the bot token never
-   appear here. With no config every sb* call is a silent no-op and the
-   engine behaves exactly as before.
+   The browser remains the live prediction source and mirrors shared rows
+   with the public anon key; the authenticated relay carries market-data
+   and Telegram requests. Provider, bot and service-role secrets never
+   appear here. No relay means the local engine state remains, but live
+   provider data and Telegram transport are unavailable.
    ═══════════════════════════════════════════════════════════════════ */
 const SB_STORE_KEY='nx_sb';
 const SB_STRAT_VER='nexus-fusion-v1';
@@ -4239,7 +4315,7 @@ let sbFailT=0;
 function sbUrl(){ return String(sbCfg.url||window.NEXUS_SB_URL||'').trim().replace(/\/+$/,''); }
 function sbAnon(){ return String(sbCfg.anon||window.NEXUS_SB_ANON||'').trim(); }
 function sbReady(){ return /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(sbUrl())&&sbAnon().length>20; }
-function sbRecording(){ return sbReady()&&sbCfg.record!==false; }
+function sbRecording(){ return sbReady()&&sbCfg.record!==false&&(!nexusSessionInfo||nexusSessionInfo.cloudSyncEnabled!==false); }
 function sbRest(path,opts){
   opts=opts||{};
   const headers=Object.assign({'apikey':sbAnon(),'authorization':'Bearer '+sbAnon()},opts.headers||{});
@@ -4281,27 +4357,9 @@ function sbTrackPrediction(sig){
       .catch(e=>{ sbFail(e); return false; });
   }catch(e){ return Promise.resolve(false); }
 }
-/* ---- mirror: delivery results (completed attempts only; worker retries failures) ---- */
-function sbRecordDelivery(channel,kind,status,error,text,chatId){
-  try{
-    if(!sbRecording()) return;
-    const chMap={main:'main',pub:'public',vip:'vip',list:'list',ops:'ops'};
-    const body={
-      channel:chMap[channel]||'main',
-      chat_id:String(chatId||''),
-      message_kind:(['signal','verdict','list','result','alert','sticker'].includes(kind)?kind:'other'),
-      status:(status==='sent'||status==='skipped')?status:'failed',
-      attempts:1,
-      telegram_message_id:null,
-      last_error:error?String(error).slice(0,200):null,
-      payload:String(text||'').slice(0,4096)
-    };
-    if(!body.chat_id) return;
-    sbRest('telegram_deliveries',{method:'POST',headers:{'content-type':'application/json','prefer':'resolution=ignore-duplicates'},body:JSON.stringify(body)})
-      .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); })
-      .catch(sbFail);
-  }catch(e){ /* delivery recording must never break a send */ }
-}
+/* ---- mirror: delivery results are logged server-side by the relay ---- */
+function sbRecordDelivery(){ /* delivery records/retries are written by the authenticated relay only */ }
+
 /* ---- canonical JSON + SHA-256: exactly what the trainer hashes ---- */
 function sbCanonicalStr(s){
   let out='"';
@@ -4352,34 +4410,49 @@ function sbChipRender(){
   else if(sbCfg.record===false){ chip.textContent='☁ CONNECTED · recording off'; chip.className='chip warn'; }
   else { chip.textContent='☁ SYNC ON'; chip.className='chip'; }
 }
-function sbSave(){
+async function sbSave(){
+  const api=String($('nexusApiUrl')?$('nexusApiUrl').value:'').trim().replace(/\/+$/,'');
   const u=String($('sbUrl')?$('sbUrl').value:'').trim().replace(/\/+$/,'');
   const a=String($('sbAnon')?$('sbAnon').value:'').trim();
   const rec=$('sbRecord')?$('sbRecord').checked:true;
   const msg=$('sbMsg');
   if(/service[_-]?role|SUPABASE_SERVICE/i.test(u+a)){
-    if(msg) msg.innerHTML='🚨 that looks like a <b>service-role key</b> — never paste it here. Use the <b>anon public</b> key (Settings → API).';
+    if(msg) msg.textContent='That looks like a service-role key. Never enter it here; use the public anon key only.';
     return;
   }
+  if(api&&!validNexusApiBase(api)){ if(msg) msg.textContent='❌ API URL must be HTTPS (HTTP is allowed only for localhost development).'; return; }
   if(u&&a){
     if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(u)){ if(msg) msg.textContent='❌ project URL must look like https://yourproject.supabase.co'; return; }
     if(a.length<20){ if(msg) msg.textContent='❌ anon key looks too short — paste the full anon public key.'; return; }
   }
-  sbCfg={url:u,anon:a,record:rec};
+  const authChanged=sbCfg.url!==u||sbCfg.anon!==a||sbCfg.api!==api;
+  sbCfg={api,url:u,anon:a,record:rec};
+  nexusApiEndpoint=api;
+  if(authChanged) nexusSessionStorageClear();
   store.set(SB_STORE_KEY,JSON.stringify(sbCfg));
   sbChipRender();
-  if(msg) msg.innerHTML=sbReady()?'✅ cloud config saved — mirror '+(sbCfg.record===false?'paused':'active')+'. Testing connection…':'☁ cloud config cleared — NEXUS runs fully offline again.';
-  if(sbReady()) sbTest();
+  if(msg) msg.textContent=sbReady()?'✅ cloud config saved. Testing Supabase and relay…':'Cloud config saved; enter both the Supabase URL and anon key to enable cloud features.';
+  if(sbReady()) await sbTest();
+  if(api){
+    await checkNexusRelay();
+    if(sbReady()&&nexusRelayHealth) await connectNexus();
+  }else{
+    const status=$('apiRelayMsg'); if(status) status.textContent='Set the server API URL to enable authenticated provider and Telegram relays.';
+  }
 }
 function sbClear(){
-  sbCfg={}; store.set(SB_STORE_KEY,'');
-  const u=$('sbUrl'),a=$('sbAnon');
-  if(u) u.value=''; if(a) a.value='';
+  sbCfg={}; nexusApiEndpoint=''; nexusSessionStorageClear(); nexusRelayHealth=null;
+  store.set(SB_STORE_KEY,'');
+  const u=$('sbUrl'),a=$('sbAnon'),api=$('nexusApiUrl');
+  if(u) u.value=''; if(a) a.value=''; if(api) api.value='';
   sbChipRender(); sbDeployed=null;
   ['sbModelInfo','sbPerf','sbFresh','sbDeliv'].forEach(id=>{ const el=$(id); if(el) el.textContent='not loaded — connect on block 1, then press REFRESH.'; });
   const chip=$('sbModelChip'); if(chip) chip.textContent='no deployed model';
   const btn=$('sbApplyBtn'); if(btn) btn.disabled=true;
-  const msg=$('sbMsg'); if(msg) msg.textContent='Cloud sync cleared — the engine keeps running exactly as before.';
+  const msg=$('sbMsg'); if(msg) msg.textContent='Cloud config and this tab’s relay session cleared. Local strategy and paper data are unchanged.';
+  if($('apiSessionInfo')) $('apiSessionInfo').textContent='No authenticated relay session.';
+  if($('apiRelayMsg')) $('apiRelayMsg').textContent='Configure the API URL and public Supabase credentials to connect.';
+  renderVault(); updateTelegramServerStatus();
 }
 async function sbTest(){
   if(!sbReady()){ const msg=$('sbMsg'); if(msg) msg.textContent='cloud sync not configured.'; return; }
@@ -4532,7 +4605,9 @@ async function sbLoadDeliv(){
   }catch(e){ if(el) el.textContent='⚠ delivery log read failed: '+String(e.message||e).slice(0,120); }
 }
 function sbInit(){
-  const u=$('sbUrl'),a=$('sbAnon'),rec=$('sbRecord');
+  const api=$('nexusApiUrl'),u=$('sbUrl'),a=$('sbAnon'),rec=$('sbRecord');
+  nexusApiEndpoint=String(sbCfg.api||nexusApiEndpoint||'');
+  if(api) api.value=nexusApiEndpoint;
   if(u) u.value=sbCfg.url||'';
   if(a) a.value=sbCfg.anon||'';
   if(rec) rec.checked=sbCfg.record!==false;
@@ -4540,6 +4615,13 @@ function sbInit(){
   const applied=loadJSON('nx_sb_applied',null);
   if(applied&&applied.id){ const m=$('sbApplyMsg'); if(m) m.innerHTML='last applied: <b>'+esc(applied.id)+'</b> ('+esc(applied.sha||'')+'…) — re-run TRAIN THE DATA AT MAX on the BRAIN page to return to local weights.'; }
   if(sbReady()){ sbLoadModel(); sbLoadPerf(); sbLoadFresh(); sbLoadDeliv(); }
+  checkNexusRelay().then(()=>{
+    if(nexusApiConfigured()&&nexusSessionStorageGet()) nexusApiRequest('/api/v1/session').then(info=>{
+      nexusSessionInfo=info; updateTelegramServerStatus();
+      if($('apiRelayMsg')) $('apiRelayMsg').textContent='✅ Existing authenticated relay session restored.';
+      renderVault(); tgRender();
+    }).catch(err=>{ if($('apiRelayMsg')) $('apiRelayMsg').textContent='Session needs attention: '+String(err.message||err).slice(0,150); });
+  });
 }
 
 /* ── Figma-style product polish: command palette, motion feedback, network state ── */
@@ -4608,6 +4690,9 @@ initTabs();
 showPage(store.get('nx_page')||'dash');
 renderKeyInputs();
 syncSettings();
+syncCreditLimitInputs();
+const initialCreditMsg=$('creditLimitMsg');
+if(initialCreditMsg) initialCreditMsg.textContent='Browser-side guard is an extra limit; server-authoritative shared cap: '+perDayCap()+' paid calls/UTC day and '+perMinCap()+'/minute. Provider keys never raise the cap.';
 ensureDay();
 setBrainTf(brainTf);
 renderStats(); renderHist(); renderPaper(); renderPerf(); renderVault(); renderBudget(true);

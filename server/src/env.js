@@ -14,8 +14,11 @@ try {
     const m = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
     if (!m) continue;
     let val = m[2].trim();
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
+    const quoted = (val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"));
+    if (quoted) val = val.slice(1, -1);
+    else {
+      const comment = val.search(/\s+#|^#/);
+      if (comment >= 0) val = val.slice(0, comment).trim();
     }
     if (process.env[m[1]] === undefined) process.env[m[1]] = val;
   }

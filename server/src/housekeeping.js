@@ -9,6 +9,7 @@ import { db, withJobLock } from './db.js';
 
 /** Archive candles older than the retention cutoff for one pair → Storage. */
 export async function archivePairCandles(pair, cutoffIso, opts = {}) {
+  const DBC = await db();
   const chunkSize = opts.chunkSize ?? 5000;
   const members = [];
   let archived = 0;
@@ -45,6 +46,7 @@ export async function archivePairCandles(pair, cutoffIso, opts = {}) {
 
 /** Weekly housekeeping: sweep locks, prune logs/snapshots, archive + prune candles. */
 export async function runHousekeeping(opts = {}) {
+  const DBC = await db();
   const days = opts.days ?? config.retentionDays;
   const out = { riskPruned: 0, locksPruned: 0, logsPruned: 0, candlesArchived: 0, candlesPruned: 0, archives: [] };
 

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "NEXUS server-side worker: market-data ingestion, outcome evaluation, risk monitoring, Telegram retries, alerts, retention. Runs with the Supabase SERVICE-ROLE key — never expose it to the browser.",
+  "description": "NEXUS server-side worker and authenticated HTTP relay for market data and Telegram. Provider, bot, and Supabase service-role secrets stay in the host environment.",
   "engines": { "node": ">=18" },
   "scripts": {
     "start": "node src/index.js loop",
@@ -16,6 +16,7 @@
     "alerts": "node src/index.js alerts",
     "housekeeping": "node src/index.js housekeeping",
     "settings-sync": "node src/index.js settings-sync",
+    "api": "node src/index.js api",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {

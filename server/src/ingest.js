@@ -6,79 +6,25 @@
 
 import { config, log } from './config.js';
 import { db, upsertChunked, withJobLock } from './db.js';
+import { TwelveDataBudgetError, ingestBatchSize,
+  recommendedIngestIntervalSeconds, nextUtcMidnightMs } from './credit-budget.js';
+import { requestTwelveData } from './twelvedata.js';
 import { validateCandle, detectGaps, classifyAgainstStored, MINUTE_MS } from './validate.js';
 import { computeFeatures } from './features.js';
 
+export { providerHealth, markKeyFailure, markKeySuccess, providerHealthy } from './twelvedata.js';
+
 const TF = '1m';   // market_candles.timeframe domain (see 0001_core.sql)
 
-// ── provider health (in-memory; persisted per-run in ingestion_runs) ────
-export const providerHealth = {
-  // key → { ok, failures, lastOkAt, cooldownUntil, lastError }
-};
-
-function keyState(key) {
-  if (!providerHealth[key]) {
-    providerHealth[key] = { ok: true, failures: 0, lastOkAt: 0, cooldownUntil: 0, lastError: null };
-  }
-  return providerHealth[key];
-}
-
-function availableKey() {
-  const now = Date.now();
-  for (const key of config.twelveDataKeys) {
-    if (keyState(key).cooldownUntil <= now) return key;
-  }
-  return null;
-}
-
-export function markKeyFailure(key, err) {
-  const st = keyState(key);
-  st.ok = false;
-  st.failures += 1;
-  st.lastError = String(err && err.message || err).slice(0, 300);
-  st.cooldownUntil = Date.now() + Math.min(st.failures * 60_000, 15 * 60_000);  // backoff 1→15 min
-}
-
-export function markKeySuccess(key) {
-  const st = keyState(key);
-  st.ok = true; st.failures = 0; st.lastOkAt = Date.now(); st.cooldownUntil = 0; st.lastError = null;
-}
-
-export function providerHealthy() {
-  const now = Date.now();
-  const seen = Object.keys(providerHealth);
-  if (seen.length) return seen.some(k => providerHealth[k].cooldownUntil <= now);
-  return config.twelveDataKeys.length > 0;   // no failures recorded yet — optimistic
-}
-
-/** Fetch candles from Twelve Data with key rotation. Throws when all keys are cooling down. */
+/** Fetch candles from the shared server-only provider client. */
 export async function fetchCandles(pairCode, outputsize = config.ingestOutputsize) {
-  const symbol = pairCode.replace('/', '');                    // EUR/USD → EURUSD
-  let lastErr = null;
-  for (let attempt = 0; attempt < Math.max(1, config.twelveDataKeys.length); attempt++) {
-    const key = availableKey();
-    if (!key) throw new Error(`all ${config.twelveDataKeys.length} API keys in cooldown (last: ${lastErr})`);
-    const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=1min`
-      + `&outputsize=${outputsize}&apikey=${key}`;
-    try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok || body.status === 'error') {
-        const err = new Error(`twelvedata ${res.status}: ${body.message || 'HTTP error'}`);
-        markKeyFailure(key, err);
-        lastErr = err.message;
-        continue;
-      }
-      const values = Array.isArray(body.values) ? body.values : [];
-      if (!values.length) throw new Error(`twelvedata: no values for ${pairCode}`);
-      markKeySuccess(key);
-      return values;                                            // newest first
-    } catch (err) {
-      markKeyFailure(key, err);
-      lastErr = err.message;
-    }
-  }
-  throw new Error(`twelvedata fetch failed for ${pairCode}: ${lastErr}`);
+  const symbol = pairCode.replace('/', '');
+  const { data } = await requestTwelveData('time_series', {
+    symbol, interval: '1min', outputsize,
+  }, 'worker');
+  const values = Array.isArray(data.values) ? data.values : [];
+  if (!values.length) throw new Error(`Twelve Data returned no candles for ${pairCode}`);
+  return values; // newest first
 }
 
 /** Normalise provider rows → validated candles (order preserved, unsorted). */
@@ -97,13 +43,17 @@ export async function ingestPair(pair, opts = {}) {
   const now = opts.now ?? Date.now();
   const run = {
     pair, fetched: 0, upserted: 0, duplicates: 0, revised: 0, gaps: 0,
-    stale: false, latencyMs: null, error: null, gapList: [],
+    stale: false, latencyMs: null, error: null, gapList: [], budgetLimited: false, budgetReason: null,
   };
   let values;
   try {
     values = await fetchCandles(pair);
   } catch (err) {
     run.error = err.message;
+    if (err instanceof TwelveDataBudgetError) {
+      run.budgetLimited = true;
+      run.budgetReason = err.reason;
+    }
     return run;
   }
   run.fetched = values.length;
@@ -116,6 +66,7 @@ export async function ingestPair(pair, opts = {}) {
   run.stale = run.latencyMs > config.alerts.dataLagSeconds * 1000;
 
   // classify against stored (bounded query: only the window we fetched)
+  const DBC = await db();
   const from = new Date(accepted[0].ts).toISOString();
   const to = new Date(newest.ts).toISOString();
   const { data: stored, error: qErr } = await DBC
@@ -163,16 +114,11 @@ export async function backfillGap(pair, gap, opts = {}) {
   const now = opts.now ?? Date.now();
   const count = Math.min(gap.count, 5000);
   const symbol = pair.replace('/', '');
-  const key = availableKey();
-  if (!key) return { error: 'no API key available' };
   const start = new Date(gap.from).toISOString().replace(/:\d+\.\d+Z$/, '');
-  const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=1min`
-    + `&start_date=${encodeURIComponent(start)}&outputsize=${count}&apikey=${key}`;
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok || body.status === 'error') { markKeyFailure(key, body.message || res.status); return { error: body.message || `HTTP ${res.status}` }; }
-    markKeySuccess(key);
+    const { data: body } = await requestTwelveData('time_series', {
+      symbol, interval: '1min', start_date: start, outputsize: count,
+    }, 'worker'); // backfills share the persistent worker budget
     const { accepted } = normaliseAndValidate(body.values || [], now);
     const rows = accepted.map(c => ({
       pair_code: pair, timeframe: TF, ts: new Date(c.ts).toISOString(),
@@ -182,13 +128,16 @@ export async function backfillGap(pair, gap, opts = {}) {
     const upserted = rows.length ? await upsertChunked('market_candles', rows, 'pair_code,timeframe,ts') : 0;
     return { fetched: (body.values || []).length, upserted };
   } catch (err) {
-    markKeyFailure(key, err);
+    if (err instanceof TwelveDataBudgetError) {
+      return { error: err.message, budgetLimited: true, budgetReason: err.reason };
+    }
     return { error: err.message };
   }
 }
 
 /** Insert one ingestion_runs row (real column names from 0004_ops.sql). */
 async function recordRun(kind, res) {
+  const DBC = await db();
   const { error } = await DBC.from('ingestion_runs').insert({
     kind,
     pair_code: res.pair,
@@ -209,16 +158,77 @@ async function recordRun(kind, res) {
   if (error) log('warn', `ingestion_runs insert failed for ${res.pair}`, error.message);
 }
 
-/** Ingest all active pairs (or the configured subset). Records one ingestion_run row per pair. */
-export async function ingestAll(kind = 'live') {
-  let pairs = config.pairs;
-  if (!pairs) {
-    const { data, error } = await DBC.from('currency_pairs').select('code').eq('is_active', true);
-    if (error) throw new Error(`pairs query: ${error.message}`);
-    pairs = (data || []).map(r => r.code);
+let activePairCache = { at: 0, pairs: null };
+let lastLivePassAt = null;
+let liveScheduleLoaded = false;
+let livePairCursor = 0;
+
+async function activePairs(DBC) {
+  if (config.pairs) return [...config.pairs];
+  if (activePairCache.pairs && Date.now() - activePairCache.at < 5 * 60_000) return [...activePairCache.pairs];
+  const { data, error } = await DBC.from('currency_pairs').select('code').eq('is_active', true);
+  if (error) throw new Error(`pairs query: ${error.message}`);
+  activePairCache = { at: Date.now(), pairs: (data || []).map(r => r.code) };
+  return [...activePairCache.pairs];
+}
+
+async function loadLiveSchedule(DBC, pairs) {
+  if (liveScheduleLoaded) return;
+  const { data, error } = await DBC.from('ingestion_runs')
+    .select('pair_code, started_at').eq('kind', 'live')
+    .order('started_at', { ascending: false }).limit(1);
+  if (error) throw new Error(`latest ingestion run: ${error.message}`);
+  const latest = data && data[0];
+  lastLivePassAt = latest ? Date.parse(latest.started_at) : 0;
+  if (latest && latest.pair_code) {
+    const index = pairs.indexOf(latest.pair_code);
+    if (index >= 0) livePairCursor = (index + 1) % Math.max(1, pairs.length);
   }
+  liveScheduleLoaded = true;
+}
+
+/** Ingest a budget-sized rotating batch of pairs. Records each attempted pair. */
+export async function ingestAll(kind = 'live') {
+  const DBC = await db();
+  const pairs = await activePairs(DBC);
+  if (!pairs.length) return [];
+
+  let batch = pairs;
+  let startIndex = 0;
+  if (kind === 'live') {
+    await loadLiveSchedule(DBC, pairs);
+    const batchSize = ingestBatchSize(pairs.length, config.twelveDataMinuteCreditLimit);
+    const intervalSeconds = recommendedIngestIntervalSeconds(
+      pairs.length, config.twelveDataDailyCreditLimit,
+      config.twelveDataMinuteCreditLimit, config.ingestMinIntervalSeconds,
+    );
+    if (!batchSize || !Number.isFinite(intervalSeconds)) {
+      log('warn', 'live ingestion paused by Twelve Data credit limits', {
+        active_pairs: pairs.length, daily_limit: config.twelveDataDailyCreditLimit,
+        per_minute_limit: config.twelveDataMinuteCreditLimit,
+      });
+      return [];
+    }
+    const now = Date.now();
+    const waitMs = Math.max(0, lastLivePassAt + intervalSeconds * 1000 - now);
+    if (waitMs > 0) {
+      log('debug', `live ingestion deferred for ${Math.ceil(waitMs / 1000)}s to stay inside the daily credit budget`);
+      return [];
+    }
+    startIndex = livePairCursor % pairs.length;
+    batch = Array.from({ length: batchSize }, (_, i) => pairs[(startIndex + i) % pairs.length]);
+    lastLivePassAt = now; // persisted ingestion_runs also restores cadence after a restart
+    log('info', 'live ingestion credit schedule', {
+      pairs_this_pass: batchSize, active_pairs: pairs.length,
+      approximately_every_seconds: intervalSeconds,
+      daily_limit: config.twelveDataDailyCreditLimit,
+      reserved_for_backfill_and_retries_percent: 20,
+    });
+  }
+
   const results = [];
-  for (const pair of pairs) {
+  let completed = 0;
+  for (const pair of batch) {
     const startedAt = new Date().toISOString();
     const res = await ingestPair(pair);
     res.startedAt = startedAt;
@@ -226,17 +236,20 @@ export async function ingestAll(kind = 'live') {
     results.push(res);
     log(res.error ? 'warn' : 'info', `ingest ${pair}`,
       res.error ? res.error : `fetched=${res.fetched} upserted=${res.upserted} dup=${res.duplicates} revised=${res.revised} gaps=${res.gaps} lag=${res.latencyMs == null ? '?' : Math.round(res.latencyMs / 1000) + 's'}`);
+    if (res.budgetLimited) {
+      if (res.budgetReason === 'daily-limit') lastLivePassAt = nextUtcMidnightMs();
+      break; // no paid request was sent; stop this batch instead of probing every remaining pair
+    }
+    completed++;
   }
+  if (kind === 'live') livePairCursor = (startIndex + completed) % pairs.length;
   return results;
 }
 
 /** Find and backfill gaps older than the current fetch window (scan last 24h, bounded). */
 export async function backfillRecent(pairsOverride = null, lookbackHours = 24) {
-  let pairs = pairsOverride || config.pairs;
-  if (!pairs) {
-    const { data } = await DBC.from('currency_pairs').select('code').eq('is_active', true);
-    pairs = (data || []).map(r => r.code);
-  }
+  const DBC = await db();
+  const pairs = pairsOverride ? [...pairsOverride] : await activePairs(DBC);
   const toTs = Date.now();
   const fromTs = toTs - lookbackHours * 3_600_000;
   const out = [];
@@ -250,12 +263,18 @@ export async function backfillRecent(pairsOverride = null, lookbackHours = 24) {
       out.push({ pair, gap, ...res });
       log(res.error ? 'warn' : 'info', `backfill ${pair} ${new Date(gap.from).toISOString()} (${gap.count}m)`,
         res.error ? res.error : `upserted=${res.upserted}`);
+      if (res.budgetLimited) return out; // wait for the provider window/reset; don't probe more gaps
     }
   }
   return out;
 }
 
-/** One locked ingestion pass (used by the loop and the CLI). */
+/** Locked ingestion pass (used by the loop and the CLI). */
 export async function runIngest(kind = 'live') {
-  return withJobLock('ingest', 300, async () => ingestAll(kind));
+  return withJobLock('ingest', 1800, async () => ingestAll(kind));
+}
+
+/** Locked backfill pass; share the same persistent credit guard as live ingestion. */
+export async function backfillLocked(pairsOverride = null, lookbackHours = 24) {
+  return withJobLock('backfill', 1800, async () => backfillRecent(pairsOverride, lookbackHours));
 }

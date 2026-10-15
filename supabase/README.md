@@ -21,6 +21,7 @@ for f in supabase/migrations/*.sql; do supabase db execute --file "$f"; done
 | `0004_ops.sql` | `risk_snapshots`, `ingestion_runs`, `telegram_deliveries`, `system_settings` (seeded), `job_locks` (+ `try_job_lock`/`release_job_lock` RPCs), `alert_log` |
 | `0005_rls.sql` | Row Level Security: anon can INSERT browser predictions + completed delivery records and SELECT monitoring data; **nothing else**. All other writes require the service-role key |
 | `0006_retention.sql` | `prune_market_candles(days)`, `prune_operational_logs(days)`, `prune_risk_snapshots()`, `prune_job_locks()` |
+| `0007_twelvedata_credit_budget.sql` | Persistent, atomic daily/minute Twelve Data request reservations for the server worker (service-role only) |
 
 ## Storage bucket (private model artifacts)
 
