@@ -49,18 +49,18 @@ Environment: Node 22.22.3, Python 3.11.2, disposable **PostgreSQL 17.6** (Unix s
 | Clean root and server `npm ci --ignore-scripts` | Passed | 0 |
 | Complete root `npm test` | Passed all component checks below | 0 |
 | Browser smoke | Passed one unnumbered assertion suite | 0 |
-| Server tests | **84 passed**, 0 failed/skipped | 0 |
+| Server tests | **85 passed**, 0 failed/skipped | 0 |
 | Python trainer | **35 passed** | 0 |
 | Security/migration/public-guard/config tests | **25 passed**, 0 failed/skipped | 0 |
 | Workflow contracts | **2 passed**, 0 failed/skipped | 0 |
 | Shared quota PGlite tests | **13 passed**, 0 failed/skipped | 0 |
-| `npm run test:postgres` on real PostgreSQL | **17 passed**, 0 failed/skipped | 0 |
+| `npm run test:postgres` on real PostgreSQL | **21 passed**, 0 failed/skipped | 0 |
 | Public build and artifact scan | Passed; 2 text assets | 0 |
-| Source credential scan | Passed; 82 text files, 4 exact pre-existing synthetic token occurrences excluded | 0 |
+| Source credential scan | Passed; 83 text files, 4 exact pre-existing synthetic token occurrences excluded | 0 |
 | Root `npm audit`; server `npm audit --omit=dev` | Each reports **0 vulnerabilities** | 0 |
 | Workflow actionlint | All **4** workflows pass | 0 |
 | YAML parse with PyYAML | All **4** workflows parse | 0 |
-| JS syntax / Python compile | **42 JS** files and **2 Python** files pass | 0 |
+| JS syntax / Python compile | **43 JS** files and **2 Python** files pass | 0 |
 | `git diff --check` (including final cumulative diff) | Passed | 0 |
 | CLI preflight with missing configuration | Expected redacted failure; NOT hosted preflight | **1** |
 
@@ -152,3 +152,25 @@ Follow-up commit `94f7d4f` was pushed normally and confirmed remotely. [Run 3871
 [Run 38710757468](https://github.com/zenosx77/Nexus/actions/runs/38710757468) exposed the exact failure through the authorized API: the concurrency observer saw zero blocked connections instead of at least four. The lock-holding transaction had cached an initial empty `pg_stat_activity` snapshot. The regression was reproduced locally by deliberately reading that empty snapshot before starting contenders (exit 1). Observation now uses a separate autocommit connection, so each poll sees fresh activity without releasing the quota row lock. The test still asserts at least four independent lock waiters, exactly six admitted requests and exactly one winner for the final daily credit. Outstanding contenders are always drained before the next fixture, including after a monitoring assertion failure. No production quota code, test assertion threshold or timing/credit guarantee was relaxed.
 
 After this correction, fresh `npm test` and real PostgreSQL tests both exit 0 with the totals above; source scan checks 82 text files, and syntax checks cover 42 JavaScript files. Reporter escaping was checked with a synthetic failure; production jobs never use this reporter. The final execution response records the corrected follow-up commit and its GitHub CI outcome rather than assuming a successful push or run.
+
+
+## 10. Restart, crash and accounting verification (2026-10-15)
+
+The latest workspace again initially exposed only `b953f66` locally, with the existing implementation as restored file changes. The named `87d3003` / `78a2996` objects were absent. Authorized fetch recovered the session branch at `1ca14f18a8afa368ffd6f1311db2ff673066b513`. A full staged-tree comparison against that remote commit returned **no differences**; the local branch pointer was advanced using `git reset --soft FETCH_HEAD` after confirming ancestry and tree equality. This preserved all file contents and the actual published commit history; no remote history rewrite or duplicate implementation commit occurred. GitHub independently confirmed [run 38711173037](https://github.com/zenosx77/Nexus/actions/runs/38711173037) succeeded at that commit.
+
+The shared quota design was already present and is unchanged. This follow-up adds:
+
+- A disposable child-worker fixture with a loopback/Unix-socket-only test DB allowlist and fake provider transport. Each child uses a fresh process and PostgreSQL connection, not a cleared in-memory mock counter.
+- Six sequential process restarts each reserve/send exactly once; a seventh process is denied with the account still at six. Scope counters sum to six rather than granting extra account capacity.
+- A worker killed immediately after a committed reservation leaves that charge intact. A simulated lost RPC reply consumes exactly one reservation, sends no provider call, and is not automatically retried. A new process cannot erase either charge.
+- Separate processes exercising provider HTTP failover and network retry each reserve exactly once per attempted provider call (four attempts, four account charges).
+- Twelve simultaneous worker/browser processes receive exactly six total grants and six quota denials. Every dispatched fake call is backed by a grant. Any admitted permit expiring under heavy load is allowed only as an explicitly checked `guard-unavailable`/expired result, never as a seventh grant; the existing strict six-admission SQL/connection tests remain unchanged.
+- An installed-Supabase-SDK regression verifies quota RPCs are POSTs and execute only once on success, HTTP 503 and network/lost-reply failures in both scopes. This checks the real dependency's retry behavior, not only a mock `.rpc()` method.
+
+**Accounting semantics:** the ledger counts durable reservations before paid dispatch, not billing receipts. A successful ordinary attempt is charged once globally and once in its secondary scope; do not add the global and scope counters together. Each explicit provider retry/failover is a new attempted call and requires a new reservation. Denied requests spend no credit. A crash, lost reply, or expired dispatch permit can leave a reservation without an actual provider call: conservative underuse is deliberate and must not be called actual consumption or silently refunded. Exactly-once provider billing across a database/HTTP failure boundary is not claimed. All account consumers must use this guard; third-party direct-key traffic remains outside its guarantee.
+
+**Fresh evidence:** root and server clean dependency installs exit 0; `npm test` passes browser smoke, **85 server**, **35 trainer**, **25 security/migration**, **2 workflow**, **13 PGlite** tests, public build/scan, source scan and the already-pinned Actionlint fork. The real PostgreSQL suite now reports **21 passed**, exit 0, with no skips/failures. Source scan covers **83 text files**; syntax checks cover **43 JavaScript** and **2 Python** files. All **4 workflow YAML** files parse. Both npm audits exit 0 with zero reported vulnerabilities. Git whitespace checks pass. PyYAML was initially absent and installed only in an ignored local venv. External shellcheck/pyflakes, a full historical secret scan, hosted Supabase/provider tests and production migrations were not executed.
+
+**Access rechecked, not assumed:** repository metadata reports push permission; open-PR list is empty. Secret-name listing, repository variables, Actions permission settings and main branch protection still return **HTTP 403**. Supabase connector reports unsupported, and hosted Supabase/provider endpoints are outside available network access. Applied migrations, bucket existence/privacy and production pipeline behavior therefore remain unknown. No public Storage change, production settings edit, migration application, PR creation or schedule activation is authorized/performed by this work.
+
+The previous quota calculations and rollback gates remain in force: scheduled ingestion ≤288/day, worker planning allowance 560/day, global hard ceiling 700/day. Keep migration 0009 and all counters/constraints during rollback; stop paid traffic on uncertainty, wait for legitimate reset/quarantine, and use an approved forward fix—never reset budgets or restore the independent RPCs. Updated tests do not alter the engines, trainer safeguards, model merge/validation, mirroring, Telegram, settlement, readbacks, backfill policy, or scheduled gates. This follow-up's exact commit, push result and CI result are recorded in the execution response after confirmation.

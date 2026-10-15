@@ -92,6 +92,77 @@ test('shared quota real PostgreSQL independent-connection verification',async t=
       assert.equal(results.filter(r=>r.status==='rejected'&&r.reason.reason==='minute-limit').length,18);
     }finally{config.twelveDataKeys=old;}
   });
+  // Each invocation starts a genuinely new worker process and new DB session.
+  // No local/provider cache survives between invocations. The provider is fake.
+  const child = (scope, mode = 'normal') => new Promise((resolve, reject) => {
+    require('node:child_process').execFile(process.execPath,
+      ['tests/helpers/quota-worker.cjs', scope, mode], {
+        cwd: process.cwd(), timeout: 15000,
+        env: { PATH: process.env.PATH, NEXUS_TEST_POSTGRES_URL: connectionString },
+      }, (error, stdout) => {
+        if (mode === 'crash' && error?.code === 23) return resolve({ crashed: true });
+        if (error) return reject(new Error('disposable worker exited unexpectedly'));
+        try { resolve(JSON.parse(stdout)); } catch { reject(new Error('invalid worker fixture result')); }
+      });
+  });
+  const accountCount = async () => Number((await db.query('select daily_calls from twelvedata_account_budget')).rows[0].daily_calls);
+  await t.test('six sequential process restarts preserve shared counters; seventh process is blocked', async () => {
+    await reset(db);
+    for (let i = 0; i < 6; i++) {
+      const result = await child(i % 2 ? 'browser' : 'worker');
+      assert.equal(result.ok, true);
+      assert.equal(result.rpcCalls, 1);
+      assert.equal(result.granted, 1);
+      assert.equal(result.paid, 1);
+      assert.equal(await accountCount(), i + 1, 'one charge per paid attempt, not two');
+    }
+    const blocked = await child('worker');
+    assert.equal(blocked.reason, 'minute-limit');
+    assert.equal(blocked.granted, 0); assert.equal(blocked.paid, 0);
+    assert.equal(await accountCount(), 6);
+    const scopes = await db.query(`select
+      (select daily_calls from twelvedata_credit_budget) +
+      (select daily_calls from twelvedata_browser_credit_budget) as total`);
+    assert.equal(scopes.rows[0].total, 6, 'scope counters partition rather than multiply account usage');
+  });
+  await t.test('crash and lost reply after commit retain conservative charges without automatic retry', async () => {
+    await reset(db);
+    assert.equal((await child('worker', 'crash')).crashed, true);
+    assert.equal(await accountCount(), 1, 'crashed worker cannot refund a committed reservation');
+    const lost = await child('browser', 'lost-response');
+    assert.equal(lost.reason, 'guard-unavailable'); assert.equal(lost.paid, 0);
+    assert.equal(lost.rpcCalls, 1); assert.equal(lost.granted, 1);
+    assert.equal(await accountCount(), 2, 'uncertain reply is not retried/double-charged by the client');
+    const restarted = await child('worker');
+    assert.equal(restarted.ok, true); assert.equal(restarted.paid, 1);
+    assert.equal(await accountCount(), 3, 'restart does not reset previously committed charges');
+  });
+  await t.test('real SQL counts each provider failover or network retry once across separate processes', async () => {
+    await reset(db);
+    for (const [scope, mode] of [['worker', 'failover'], ['browser', 'network-retry']]) {
+      const result = await child(scope, mode);
+      assert.equal(result.ok, true); assert.equal(result.rpcCalls, 2);
+      assert.equal(result.granted, 2); assert.equal(result.paid, 2);
+    }
+    assert.equal(await accountCount(), 4);
+  });
+  await t.test('12 simultaneous worker/browser processes admit only six total reservations', async () => {
+    await reset(db);
+    const results = await Promise.all(Array.from({ length: 12 }, (_, i) => child(i % 2 ? 'browser' : 'worker')));
+    assert.equal(results.reduce((sum, r) => sum + r.granted, 0), 6);
+    assert.equal(await accountCount(), 6);
+    assert.equal(results.filter(r => r.reason === 'minute-limit').length, 6);
+    for (const result of results) {
+      assert.equal(result.rpcCalls, 1);
+      assert.ok(result.paid <= result.granted);
+      if (result.granted && !result.ok) {
+        // A heavily loaded CI process may expire a valid permit. This is safe
+        // underuse, not permission to grant a seventh request or retry a permit.
+        assert.equal(result.reason, 'guard-unavailable'); assert.equal(result.expired, true);
+      }
+    }
+    assert.equal(results.reduce((sum, r) => sum + r.paid, 0), results.filter(r => r.ok).length);
+  });
   await t.test('rollback after reservation releases row safely; next transaction remains consistent',async()=>{
     await reset(db);await db.query('begin');
     assert.equal((await db.query(rpc())).rows[0].result.allowed,true);

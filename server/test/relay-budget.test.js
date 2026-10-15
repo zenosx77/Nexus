@@ -190,3 +190,39 @@ test('provider redirects cannot cause unreserved requests across scopes or key f
     globalThis.fetch = nativeFetch;
   }
 });
+
+test('installed Supabase SDK sends each quota RPC once, including 503 and lost replies', async () => {
+  const { createClient } = await import('@supabase/supabase-js');
+  for (const scope of ['worker', 'browser']) {
+    for (const outcome of ['reserved', '503', 'lost-reply']) {
+      reset();
+      let rpcPosts = 0, paid = 0;
+      const client = createClient('https://offline.example.test', 'offline-sdk-fixture', {
+        auth: { persistSession: false, autoRefreshToken: false },
+        global: { fetch: async (url, options) => {
+          rpcPosts++;
+          assert.equal(new URL(url).pathname, '/rest/v1/rpc/reserve_twelvedata_account_credit');
+          assert.equal(options.method, 'POST', 'reservations must not use retryable read semantics');
+          assert.equal(JSON.parse(options.body).p_scope, scope);
+          if (outcome === 'lost-reply') throw new Error('simulated lost RPC reply');
+          return new Response(JSON.stringify(outcome === '503' ? { message: 'offline failure' } : {
+            allowed: true, guard_version: 1, account: 'twelvedata', daily_limit: 700,
+            minute_limit: 6, valid_for_ms: 1000, daily_calls: 1, minute_calls: 1, reason: 'reserved',
+          }), { status: outcome === '503' ? 503 : 200, headers: { 'content-type': 'application/json' } });
+        } },
+      });
+      const request = requestTwelveData('price', { symbol: 'EUR/USD' }, scope, {}, {
+        db: async () => client,
+        fetch: async () => { paid++; return { ok: true, json: async () => ({ price: '1.1' }) }; },
+      });
+      if (outcome === 'reserved') {
+        await request;
+        assert.equal(paid, 1);
+      } else {
+        await assert.rejects(request, e => e.reason === 'guard-unavailable');
+        assert.equal(paid, 0);
+      }
+      assert.equal(rpcPosts, 1, 'no automatic second RPC or double charge');
+    }
+  }
+});
