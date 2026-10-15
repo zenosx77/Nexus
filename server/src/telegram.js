@@ -56,11 +56,13 @@ export async function telegramSend(chatId, text, opts = {}) {
  * never private chat IDs; resolve those aliases only on the server.
  */
 export async function runTelegramRetries(opts = {}) {
-  const DBC = await db();
+  const DBC = await (opts.db ?? db)();
+  const send = opts.send ?? telegramSend;
+  const now = opts.now ?? Date.now();
   const max = opts.max ?? config.telegramRetryMax;
   const { data: rows, error } = await DBC
     .from('telegram_deliveries')
-    .select('id, chat_id, payload, status, attempts, message_kind, server_managed')
+    .select('id, chat_id, payload, status, attempts, message_kind, server_managed, last_attempt_at, first_attempt_at')
     .eq('server_managed', true)
     .in('status', ['retrying', 'failed', 'pending'])
     .lt('attempts', max)
@@ -71,31 +73,37 @@ export async function runTelegramRetries(opts = {}) {
 
   const stats = { retried: 0, sent: 0, still_failing: 0 };
   for (const row of rows) {
+    // Defense in depth: never retry historical/untrusted rows or a fresh pending send.
+    if (row.server_managed !== true) continue;
+    if (row.status === 'pending' && now - Date.parse(row.last_attempt_at || row.first_attempt_at) < 60_000) continue;
     const storedDestination = String(row.chat_id || '');
-    const destination = config.telegramChats[storedDestination]
+    const destination = (Object.hasOwn(config.telegramChats, storedDestination) ? config.telegramChats[storedDestination] : '')
       || Object.values(config.telegramChats).find(value => value && value === storedDestination)
       || '';
     if (!destination || !row.payload) {
-      await DBC.from('telegram_deliveries').update({ status: 'skipped', last_error: 'missing/unknown configured destination or payload' }).eq('id', row.id);
+      const { error } = await DBC.from('telegram_deliveries').update({ status: 'skipped', last_error: 'missing/unknown configured destination or payload' }).eq('id', row.id);
+      if (error) throw new Error('Telegram retry status persistence failed');
       continue;
     }
     stats.retried += 1;
-    const r = await telegramSend(destination, row.payload, {
+    const r = await send(destination, row.payload, {
       protectContent: row.message_kind !== 'alert',
     });
     const nowIso = new Date().toISOString();
     if (r.ok) {
       stats.sent += 1;
-      await DBC.from('telegram_deliveries').update({
+      const { error } = await DBC.from('telegram_deliveries').update({
         status: 'sent', attempts: row.attempts + 1, telegram_message_id: String(r.message_id || ''),
         sent_at: nowIso, last_attempt_at: nowIso, last_error: null,
       }).eq('id', row.id);
+      if (error) throw new Error('Telegram retry status persistence failed; inspect before retrying');
     } else {
       stats.still_failing += 1;
-      await DBC.from('telegram_deliveries').update({
+      const { error } = await DBC.from('telegram_deliveries').update({
         status: row.attempts + 1 >= max ? 'failed' : 'retrying',
         attempts: row.attempts + 1, last_attempt_at: nowIso, last_error: redactSecrets(r.error),
       }).eq('id', row.id);
+      if (error) throw new Error('Telegram retry status persistence failed; inspect before retrying');
     }
   }
   if (stats.retried) log('info', 'telegram retries', stats);

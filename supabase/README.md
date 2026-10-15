@@ -1,50 +1,37 @@
 # Supabase schema — NEXUS
 
-Versioned SQL migrations. Apply in order with the Supabase CLI **or** paste each file into the Supabase Dashboard → SQL Editor (they are idempotent-safe to re-run in a fresh project, and `on conflict do nothing` where data exists).
-
-```bash
-# option A — Supabase CLI (recommended, keeps history)
-supabase link --project-ref <your-project-ref>
-for f in supabase/migrations/*.sql; do supabase db execute --file "$f"; done
-
-# option B — dashboard
-# Supabase Dashboard → SQL Editor → run each file in numeric order
-```
+Versioned SQL migrations are **not automatically applied** by npm, server startup or Pages. Hosted migration **0008 is unconfirmed**. Follow [the staging-first deployment runbook](../docs/DEPLOYMENT.md) before any live operation. Do not link to production or run an unreviewed loop over historic migrations.
 
 ## Migrations
 
 | File | Contents |
 |---|---|
-| `0001_core.sql` | `currency_pairs`, `market_candles`, `market_features`, freshness view, 10 seed pairs |
-| `0002_predictions.sql` | `predictions`, `trade_outcomes`, `trade_outcome_revisions` (audit trigger), accuracy view |
-| `0003_ml.sql` | `model_versions` (registry + one-deployed constraint), `training_runs`, late FK from predictions |
-| `0004_ops.sql` | `risk_snapshots`, `ingestion_runs`, `telegram_deliveries`, `system_settings` (seeded), `job_locks` (+ `try_job_lock`/`release_job_lock` RPCs), `alert_log` |
-| `0005_rls.sql` | Row Level Security: anon can INSERT browser predictions + completed delivery records and SELECT monitoring data; **nothing else**. All other writes require the service-role key |
-| `0006_retention.sql` | `prune_market_candles(days)`, `prune_operational_logs(days)`, `prune_risk_snapshots()`, `prune_job_locks()` |
-| `0007_twelvedata_credit_budget.sql` | Persistent, atomic daily/minute Twelve Data request reservations for the server worker (service-role only) |
+| `0001_core.sql` | `currency_pairs`, `market_candles`, `market_features`, freshness view, 10 seed pairs, pgcrypto |
+| `0002_predictions.sql` | Shared predictions, canonical outcomes, revision audit and accuracy view |
+| `0003_ml.sql` | Model registry, training runs and prediction model FK |
+| `0004_ops.sql` | Risk, ingestion, Telegram, settings, job locks/RPCs and alerts |
+| `0005_rls.sql` | Initial RLS policies; **its public operational reads/delivery inserts are superseded by 0008** |
+| `0006_retention.sql` | Worker retention/prune RPCs |
+| `0007_twelvedata_credit_budget.sql` | Atomic persistent worker credit reservations (700/day, 6/min defaults in code) |
+| `0008_cloud_security_and_browser_budget.sql` | Separate browser credit reservations (700/day, 7/min), safe ingestion view, `server_managed` delivery provenance, public operational-table/RPC privilege hardening and removal of browser delivery inserts |
 
-## Storage bucket (private model artifacts)
+Apply 0001–0008 in order **only to an explicitly approved staging target** using a reviewed SQL Editor or supported CLI workflow. Record target/revision and backup first. Existing projects need a schema/ledger comparison, not indiscriminate reapplication. The repository fixes quoting of the existing reserved identifier `"window"` in 0004/0006 for fresh PostgreSQL installs; it does not rename the column and is not a reason to rewrite a hosted ledger.
 
-Create one **private** bucket named `models` (Dashboard → Storage, or CLI):
+After 0008, anon/authenticated retain intended shared reads and browser prediction inserts. They cannot insert deliveries, read raw operational payloads/destinations or execute maintenance/budget/job-lock RPCs. Predictions are not owner-private or trusted evidence. Historical deliveries default to `server_managed=false` and are not retried; do not mark them server-managed merely to re-enable a queue.
 
-```bash
-supabase storage buckets create models --public=false
-```
+## Verification
 
-The Python trainer uploads artifacts to `models/artifacts/<model-id>.json` and dataset snapshots to `models/datasets/<run-id>.jsonl` using the service-role key. Artifacts are **never public**; the dashboard consumes the small verified `artifact_payload` mirror on `model_versions` (checksum-checked against `artifact_sha256`).
+- `npm run test:security` from the repository root runs migrations with pgcrypto in disposable in-memory PGlite, simulated roles and broad initial grants. It tests privilege/RLS/budget behavior and the read-only verifier. No hosted project, SQL service, provider credits or credentials are used.
+- `supabase/verify/0008_read_only.sql` performs schema, RLS, view and privilege assertions in a **read-only transaction**. A future authorized operator should run it as the staging database administrator and retain sanitized evidence. It reserves no credits and acquires no job locks.
+- Inspect actual migration history if maintained; SQL Editor applications may not appear in a CLI ledger. Passing the schema verifier establishes the checked properties, not the history, Auth settings, PostgREST permissions under real JWTs or multi-connection concurrency.
+- Test real staging anon/authenticated access and concurrent RPC reservations separately, without external provider calls. Never tamper with production counter tables for verification.
 
-## Retention
+## Optional private Storage
 
-- Default: 180 days of 1-minute candles (~1.3M rows/month at 30 pairs — fine on the default Postgres).
-- The worker's `housekeeping` job calls `prune_market_candles` / `prune_operational_logs` / `prune_risk_snapshots` weekly (configurable via `system_settings.retention.candles_days`).
-- Set `ARCHIVE_BEFORE_PRUNE=true` on the worker to export candles to Storage (`models/archive/…jsonl.gz`) before pruning — see `server/README.md`.
+A private bucket named `models` is required only for enabled archive/trainer workflows. Create it only under the appropriate staging approval and verify it is not publicly readable. The trainer uploads artifacts/datasets with a server credential. The browser uses the verified small `artifact_payload` mirror from `model_versions`, not public Storage access.
 
-## Verification after applying
+## Retention and rollback
 
-```sql
-select code, is_active from currency_pairs order by code;                 -- 10 rows
-select relname, relrowsecurity from pg_class
- where relname in ('predictions','market_candles','model_versions');      -- relrowsecurity = true
-select try_job_lock('smoke-test','manual',60);                            -- true
-select release_job_lock('smoke-test','manual');
-```
+The worker runs housekeeping during `once`/startup and then daily. `RETENTION_DAYS` controls its candle retention argument; `ARCHIVE_BEFORE_PRUNE` controls archival, **not whether pruning runs**. Defaults are 180 days and archival false. Other operational pruning details are defined in 0006 and `server/src/housekeeping.js`.
+
+Do not use `once` as a safe smoke test. See the runbook's single-pair bounded ingestion procedure. On rollback, stop the worker first, preserve security restrictions and budget history, and restore only a compatible approved application revision. Do not revoke 0008 protections to accommodate an old browser/worker. Production migration/rollback is a separate reviewed operation.

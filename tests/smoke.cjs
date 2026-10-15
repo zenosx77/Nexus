@@ -339,12 +339,59 @@ async function main() {
     deep.M1={ensVn:60,ensVwr:.68}; const g=productionGate(); histRows=oldH;deep.M1=oldD;return g;})()`);
   assert.equal(pgReady.ok, true, 'sufficient confirmed + statistical + deep evidence unlocks production');
 
+  /* ── 11c. real browser Auth/relay transport, not pre-seeded session shortcuts ─ */
+  {
+    const isolated=boot();
+    const requests=[];
+    isolated.E(`sbCfg={api:'https://relay.example.test',url:'https://nexus-test.supabase.co',anon:'${'A'.repeat(40)}',record:true};
+      nexusApiEndpoint=sbCfg.api; nexusSessionStorageClear();`);
+    isolated.w.fetch=async(url,opts)=>{
+      const u=String(url); requests.push({url:u,opts});
+      if(u.endsWith('/auth/v1/signup')) return jsonResponse({access_token:'fresh-auth',refresh_token:'fresh-refresh',expires_in:3600});
+      if(u.includes('/auth/v1/token?grant_type=refresh_token')) return jsonResponse({access_token:'refreshed-auth',refresh_token:'next-refresh',expires_in:3600});
+      if(u.endsWith('/api/v1/session')) return jsonResponse({ok:true,userId:'test-user',telegramAdmin:false,telegramChannels:{}});
+      if(u.endsWith('/api/v1/market')) return jsonResponse({data:{price:'1.1'}});
+      throw new Error('Unexpected browser network target: '+u);
+    };
+    const first=await isolated.E(`jget(BASE+'price?symbol=EUR%2FUSD&apikey=legacy-must-not-forward',null,'scan')`);
+    assert.equal(first.price,'1.1');
+    assert.equal(requests[0].url,'https://nexus-test.supabase.co/auth/v1/signup');
+    assert.equal(requests[0].opts.headers.apikey,'A'.repeat(40));
+    const paid=requests.find(r=>r.url.endsWith('/api/v1/market'));
+    assert.equal(paid.opts.headers.authorization,'Bearer fresh-auth');
+    assert.equal(paid.opts.headers['content-type'],'application/json');
+    const payload=JSON.parse(paid.opts.body);
+    assert.equal(payload.operation,'price'); assert.equal(payload.params.symbol,'EUR/USD');
+    assert.equal(payload.params.apikey,undefined,'legacy URL key is stripped before transport');
+    assert.ok(!String(isolated.w.localStorage.getItem('nx_sb')).includes('fresh-auth'),'bearer not stored in public configuration');
+    assert.equal(JSON.parse(isolated.w.sessionStorage.getItem(isolated.E('NEXUS_SESSION_KEY'))).access_token,'fresh-auth');
+    // A restored unexpired session must retain its real expiry, not gain an hour on reload.
+    const expiry=Date.now()+120000;
+    isolated.E(`nexusApiSession.expires_at=${expiry}; nexusSessionInfo=null`);
+    await isolated.E('ensureNexusSession()');
+    assert.equal(isolated.E('nexusApiSession.expires_at'),expiry);
+    isolated.E('nexusApiSession.expires_at=0; nexusSessionInfo=null');
+    await isolated.E('ensureNexusSession()');
+    const refresh=requests.find(r=>r.url.includes('grant_type=refresh_token'));
+    assert.equal(JSON.parse(refresh.opts.body).refresh_token,'fresh-refresh');
+    assert.equal(isolated.E('nexusApiSession.access_token'),'refreshed-auth');
+    assert.ok(!requests.some(r=>/api\.twelvedata\.com|api\.telegram\.org/.test(r.url)));
+    // Failed refresh and failed anonymous sign-in cannot reach a paid route.
+    isolated.E('nexusApiSession.expires_at=0; nexusSessionInfo=null');
+    const deniedTargets=[];
+    isolated.w.fetch=async url=>{ deniedTargets.push(String(url)); return {ok:false,status:401,json:async()=>({error:'denied'})}; };
+    await assert.rejects(isolated.E("jget(BASE+'price?symbol=EUR%2FUSD',null,'scan')"), /anonymous sign-in failed/);
+    assert.equal(deniedTargets.some(url=>url.endsWith('/api/v1/market')),false);
+    assert.equal(isolated.w.sessionStorage.getItem(isolated.E('NEXUS_SESSION_KEY')),null);
+    isolated.w.close();
+  }
+
   /* ── 12. Telegram transport authorization via the server relay ─ */
-  let calls = 0, lastUrl = '', telegramRequest = null;
+  let calls = 0, lastUrl = '', telegramRequest = null, relayHeaders = null, auditRecorded = true;
   w.fetch = async (url, opts) => {
     calls++; lastUrl=String(url);
-    telegramRequest=bodyObject(opts&&opts.body);
-    return jsonResponse({ok:true,result:{message_id:42,date:Date.now(),chat:{id:telegramRequest.channel||'main'}}});
+    telegramRequest=bodyObject(opts&&opts.body); relayHeaders=opts.headers;
+    return jsonResponse({ok:true,result:{message_id:42,date:Date.now(),chat:{id:telegramRequest.channel||'main'}},deliveryLog:{recorded:auditRecorded}});
   };
   await assert.rejects(E('tgCall("sendMessage",{chat_id:"main",text:"hi"})'), /not authorized/);
   assert.equal(calls, 0, 'no unauthenticated network send');
@@ -361,6 +408,8 @@ async function main() {
   assert.equal(calls, 1);
   assert.ok(lastUrl.endsWith('/api/v1/telegram'), 'Telegram operations use the authenticated relay');
   assert.ok(!lastUrl.includes('api.telegram.org'), 'browser never calls the Bot API host');
+  assert.equal(relayHeaders.authorization,'Bearer test-session-token', 'relay send carries the Supabase Auth bearer');
+  assert.equal(relayHeaders['content-type'],'application/json', 'relay sends JSON, not legacy Bot form data');
   assert.equal(telegramRequest.method,'sendMessage');
   assert.equal(telegramRequest.channel,'main');
   assert.equal(telegramRequest.text,'hi');
@@ -368,6 +417,11 @@ async function main() {
   assert.equal(Object.hasOwn(telegramRequest,'chat_id'),false, 'private chat ID is not sent by the browser');
   assert.equal(JSON.stringify(telegramRequest).includes('test-session-token'),false, 'bearer token is never included in the Telegram body');
   assert.equal(sent.message_id,42, 'relay returns a safe message result');
+  auditRecorded=false; const beforeAuditWarning=calls;
+  await E('tgCall("sendMessage",{chat_id:"main",text:"audit test"})');
+  assert.equal(calls,beforeAuditWarning+1, 'failed audit persistence must never trigger a duplicate send');
+  assert.ok(E('tg.log.some(line=>line.includes("delivery audit was not persisted"))'), 'browser surfaces audit persistence warning');
+  auditRecorded=true;
 
   /* ── 13. Telegram preferences contain only display settings ──── */
   E('tg.auth=false');
@@ -1026,6 +1080,10 @@ async function main() {
     E('showPage("cloud")');
     assert.ok($id('sbChip').textContent.includes('OFFLINE'), 'chip shows OFFLINE');
     assert.ok($id('sbApplyBtn').disabled, 'apply button disabled without a verified model');
+    E('sbCfg={url:"https://nexus-test.supabase.co",anon:"",record:true}; sbChipRender()');
+    assert.ok($id('sbChip').textContent.includes('CONFIGURATION REQUIRED'), 'partial configuration is never reported as connected');
+    E('sbClear()');
+    assert.ok(!html.includes('can never double-send'), 'delivery copy makes no exactly-once claim');
     E('showPage("dash")');
 
     // (b) configured mirror — captured fetch, contract of every write
@@ -1038,7 +1096,7 @@ async function main() {
           sbCalls.push({ url: String(url), opts });
           const u = String(url);
           if (u.includes('/rest/v1/predictions')) return jsonResponse([{ id: 'uuid-1' }]);
-          if (u.includes('/rest/v1/telegram_deliveries')) return jsonResponse([]);
+          if (u.includes('/rest/v1/telegram_deliveries')) throw new Error('Browser must never access raw delivery logs');
           if (u.includes('model_versions')) return jsonResponse([]);
           if (u.includes('risk_snapshots')) return jsonResponse([]);
           if (u.includes('v_market_freshness')) return jsonResponse([]);
@@ -1050,6 +1108,13 @@ async function main() {
     assert.deepEqual(sb.errors, [], 'cloud-configured boot is clean');
     assert.equal(sb.E('sbReady()'), true, 'config accepted');
     assert.equal(sb.E('sbRecording()'), true, 'recording enabled');
+    assert.ok(sb.w.document.getElementById('sbChip').textContent.includes('NOT VERIFIED'), 'configured but unverified is not SYNC ON');
+    await sb.E('sbTest()');
+    await sleep(80);
+    assert.ok(sb.w.document.getElementById('sbChip').textContent.includes('DATABASE OK'), 'database access alone does not claim relay authentication');
+    assert.ok(!sb.w.document.getElementById('sbChip').textContent.includes('SYNC ON'), 'no SYNC ON without relay session');
+    assert.ok(sb.w.document.getElementById('sbFresh').textContent.includes('NO WORKER RUNS'), 'no worker run recorded is shown as such, not as healthy');
+    assert.ok(sb.w.document.getElementById('sbDeliv') !== null, 'delivery log panel present');
     await sb.E('sbTrackPrediction({pair:"EUR/USD",tf:"M3",dir:"PUT",targetT:1730000000000,conf:.62,grade:"B",votes:{ema:"PUT",rsi:"CALL"},agents:{TREND:-1},origin:"live"})');
     await sleep(50);
     const pred = sbCalls.find(c => c.url.includes('/rest/v1/predictions'));

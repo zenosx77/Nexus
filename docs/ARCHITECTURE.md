@@ -69,3 +69,7 @@ This work intentionally preserves the current shared/anonymous database model:
 Local code/tests can validate syntax, request validation, budget math, secret-scrubbing behavior, and public artifact checks. They cannot prove the hosted Supabase project has applied migrations or has correct Auth/CORS/Storage/proxy settings.
 
 At this update, no live Supabase migration ledger, real staging rows, storage bucket, Auth setting, or production API proxy has been verified. Migration 0008 is a file only until an operator applies and verifies it in a safe staging project. Do not claim staging or production is operational, do not apply production migrations, deploy, or start a continuous worker without explicit approval.
+
+## Backend deployment preparation
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for separate managed relay/worker service settings, the code-derived environment inventory, staging-first gates, bounded worker tests and rollback. Offline HTTP security tests and disposable PostgreSQL migration tests now complement the browser/trainer suites. Migration 0008 remains unconfirmed on the hosted project. Health is liveness only; delivery logging is opt-in/best-effort and retries are not exactly once.

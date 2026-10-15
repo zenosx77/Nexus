@@ -967,7 +967,7 @@
       <div style="display:flex;gap:8px;margin-top:8px">
         <button class="b-ghost" style="flex:1" onclick="sbLoadDeliv()">🔄 REFRESH</button>
       </div>
-      <div class="mini" style="text-align:left">Recent deliveries recorded by this browser + the retry worker (chat ids and message text stay server-side — only status is public). Failed sends are retried up to the configured maximum; only explicit API failures are retried, so a message can never double-send.</div>
+      <div class="mini" style="text-align:left">Recent deliveries recorded by this browser + the retry worker (chat ids and message text stay server-side — only status is public). Failed sends are retried up to the configured maximum by the server. Delivery is best-effort and not exactly-once: inspect a message in the Telegram chat before any manual resend.</div>
     </div>
   </div>
 
@@ -1054,12 +1054,12 @@ async function ensureNexusSession(){
   nexusSessionPromise=(async()=>{
     if(!validNexusApiBase(nexusApiBase())) throw new Error('Set a valid HTTPS NEXUS API relay URL on the CLOUD page.');
     if(!sbReady()) throw new Error('Set the Supabase project URL and public anon key on the CLOUD page.');
-    let session=nexusApiSession||nexusSessionStorageGet();
+    let session=nexusApiSession||nexusSessionStorageGet(), restoredValid=false;
     if(session&&session.access_token&&Number(session.expires_at)>Date.now()+30_000&&nexusSessionInfo){
       nexusApiSession=session;
       return session.access_token;
     }
-    if(session&&session.access_token&&Number(session.expires_at)>Date.now()+30_000){ nexusApiSession=session; }
+    if(session&&session.access_token&&Number(session.expires_at)>Date.now()+30_000){ nexusApiSession=session; restoredValid=true; }
     else if(session&&session.refresh_token){
       const refreshed=await authJson('/auth/v1/token?grant_type=refresh_token',{refresh_token:session.refresh_token});
       session=refreshed.ok?refreshed.data:null;
@@ -1070,7 +1070,7 @@ async function ensureNexusSession(){
       session=created.ok?created.data:null;
       if(!session||!session.access_token) throw new Error('Supabase anonymous sign-in failed. Verify the project URL/anon key and enable anonymous sign-ins in Supabase Auth.');
     }
-    session.expires_at=Date.now()+Math.max(60,Number(session.expires_in)||3600)*1000;
+    if(!restoredValid) session.expires_at=Date.now()+Math.max(60,Number(session.expires_in)||3600)*1000;
     nexusApiSession=session; nexusSessionStorageSet(session);
     const r=await fetch(nexusApiBase()+'/api/v1/session',{headers:{authorization:'Bearer '+session.access_token}});
     let info={}; try{ info=await r.json(); }catch(_){}
@@ -1109,7 +1109,7 @@ async function checkNexusRelay(){
     const data=await r.json();
     if(!r.ok||!data.ok) throw new Error('HTTP '+r.status);
     nexusRelayHealth=data;
-    if(chip){chip.textContent=data.provider&&data.provider.configured?'relay: connected':'relay: provider not configured';chip.className='chip '+(data.provider&&data.provider.configured?'ok':'warn');}
+    if(chip){chip.textContent=data.provider&&data.provider.configured?'relay: reachable':'relay: provider not configured';chip.className='chip '+(data.provider&&data.provider.configured?'ok':'warn');}
     if(info) info.textContent='Server relay connected · provider '+(data.provider&&data.provider.configured?'configured':'not configured')+' · server keys '+String(data.provider&&data.provider.keyCount||0)+' · browser cap '+String(data.browserBudget&&data.browserBudget.dailyLimit||0)+'/day, '+String(data.browserBudget&&data.browserBudget.perMinuteLimit||0)+'/min. Credentials remain server-only.';
     if(status) status.textContent='Relay health check succeeded. Supabase authentication is required for market-data and Telegram operations.';
     updateTelegramServerStatus(); renderBudget(true); renderUsageMeter();
@@ -1130,12 +1130,12 @@ async function connectNexus(){
     await checkNexusRelay();
     const info=await nexusApiRequest('/api/v1/session');
     nexusSessionInfo=info;
-    updateTelegramServerStatus();
+    updateTelegramServerStatus(); sbChipRender();
     if(status) status.textContent='✅ Relay session connected. The displayed user UUID is needed only if enabling Telegram administration.';
     renderVault(); tgRender(); renderUsage();
     return true;
   }catch(e){
-    if(status) status.textContent='❌ '+String(e.message||e).slice(0,200);
+    if(status) status.textContent='❌ '+String(e.message||e).slice(0,200); sbChipRender();
     return false;
   }
 }
@@ -2940,6 +2940,8 @@ function tgCall(method,params,retries){
       catch(_){ throw new Error('Telegram command list is invalid'); }
     }else throw new Error('Telegram method is not allowed');
     const response=await nexusApiRequest('/api/v1/telegram',{method:'POST',body});
+    if(body.record_delivery&&response.deliveryLog&&response.deliveryLog.recorded===false)
+      tgLog('⚠ Telegram sent, but its delivery audit was not persisted. Do not resend; check server logs.');
     return response.result;
   };
   const p=tgChain.then(run,run);
@@ -4310,6 +4312,7 @@ const SB_STORE_KEY='nx_sb';
 const SB_STRAT_VER='nexus-fusion-v1';
 let sbCfg=(function(){ try{ const v=loadJSON(SB_STORE_KEY,null); return (v&&typeof v==='object')?v:{}; }catch(e){ return {}; } })();
 let sbDeployed=null;
+let sbVerify={db:'unknown'};            /* verified this session: unknown | connecting | ok | failed */
 const sbSentKeys=new Set();
 let sbFailT=0;
 function sbUrl(){ return String(sbCfg.url||window.NEXUS_SB_URL||'').trim().replace(/\/+$/,''); }
@@ -4406,9 +4409,17 @@ async function sbSha256Hex(str){
 /* ---- CLOUD page: config ---- */
 function sbChipRender(){
   const chip=$('sbChip'); if(!chip) return;
-  if(!sbReady()){ chip.textContent='☁ OFFLINE'; chip.className='chip warn'; }
-  else if(sbCfg.record===false){ chip.textContent='☁ CONNECTED · recording off'; chip.className='chip warn'; }
-  else { chip.textContent='☁ SYNC ON'; chip.className='chip'; }
+  let text, warn=true;
+  if(!sbReady()){
+    const partial=!!(sbCfg.url||sbCfg.anon);
+    text=partial?'☁ CONFIGURATION REQUIRED':'☁ OFFLINE';
+  } else if(sbCfg.record===false){ text='☁ CONNECTED · recording off'; }
+  else if(sbVerify.db==='connecting'){ text='☁ CONNECTING…'; }
+  else if(sbVerify.db==='failed'){ text='☁ OFFLINE · database unreachable'; }
+  else if(sbVerify.db!=='ok'){ text='☁ CONFIGURED · NOT VERIFIED'; }
+  else if(!nexusSessionInfo){ text='☁ DATABASE OK · relay not authenticated'; }
+  else { text='☁ SYNC ON'; warn=false; }
+  chip.textContent=text; chip.className=warn?'chip warn':'chip';
 }
 async function sbSave(){
   const api=String($('nexusApiUrl')?$('nexusApiUrl').value:'').trim().replace(/\/+$/,'');
@@ -4428,7 +4439,7 @@ async function sbSave(){
   const authChanged=sbCfg.url!==u||sbCfg.anon!==a||sbCfg.api!==api;
   sbCfg={api,url:u,anon:a,record:rec};
   nexusApiEndpoint=api;
-  if(authChanged) nexusSessionStorageClear();
+  if(authChanged){ nexusSessionStorageClear(); sbVerify={db:'unknown'}; }
   store.set(SB_STORE_KEY,JSON.stringify(sbCfg));
   sbChipRender();
   if(msg) msg.textContent=sbReady()?'✅ cloud config saved. Testing Supabase and relay…':'Cloud config saved; enter both the Supabase URL and anon key to enable cloud features.';
@@ -4441,7 +4452,7 @@ async function sbSave(){
   }
 }
 function sbClear(){
-  sbCfg={}; nexusApiEndpoint=''; nexusSessionStorageClear(); nexusRelayHealth=null;
+  sbCfg={}; nexusApiEndpoint=''; nexusSessionStorageClear(); nexusRelayHealth=null; sbVerify={db:'unknown'};
   store.set(SB_STORE_KEY,'');
   const u=$('sbUrl'),a=$('sbAnon'),api=$('nexusApiUrl');
   if(u) u.value=''; if(a) a.value=''; if(api) api.value='';
@@ -4457,13 +4468,15 @@ function sbClear(){
 async function sbTest(){
   if(!sbReady()){ const msg=$('sbMsg'); if(msg) msg.textContent='cloud sync not configured.'; return; }
   const msg=$('sbMsg'); if(msg) msg.textContent='⏳ testing connection…';
+  sbVerify={db:'connecting'}; sbChipRender();
   try{
     const r=await sbRest('currency_pairs?select=code&limit=1');
     if(!r.ok) throw new Error('HTTP '+r.status+' — check URL + anon key and that migrations are applied');
     const rows=await r.json();
-    if(msg) msg.innerHTML='✅ connected — schema reachable ('+(rows&&rows.length?rows[0].code+' is live':'no pairs seeded yet')+').';
+    sbVerify={db:'ok'}; sbChipRender();
+    if(msg) msg.innerHTML='✅ database reachable ('+(rows&&rows.length?rows[0].code+' is live':'no pairs seeded yet')+'). Relay authentication is checked separately below.';
     sbLoadModel(); sbLoadPerf(); sbLoadFresh(); sbLoadDeliv();
-  }catch(e){ if(msg) msg.innerHTML='❌ connection failed: '+esc(String(e.message||e).slice(0,120)); }
+  }catch(e){ sbVerify={db:'failed'}; sbChipRender(); if(msg) msg.innerHTML='❌ connection failed: '+esc(String(e.message||e).slice(0,120)); }
 }
 /* ---- CLOUD page: model registry ---- */
 async function sbLoadModel(){
@@ -4551,7 +4564,7 @@ async function sbLoadPerf(){
     if(!rows||!rows.length){ if(el) el.textContent='No snapshots yet — they appear once the worker has evaluated recorded predictions (risk job runs every 5 minutes).'; return; }
     const seen=new Set(), latest=[];
     for(const row of rows){ if(seen.has(row.window)) continue; seen.add(row.window); latest.push(row); }
-    if(el) el.innerHTML=latest.map(s=>{
+    if(el) el.innerHTML='<div class="mini" style="text-align:left;padding:4px 10px">Includes browser-submitted signals (the shared prediction mirror is not independent verification). Returns are simulated after estimated spread and slippage; win rate ≠ profitability.</div>'+latest.map(s=>{
       const wr=s.win_rate!=null?(s.win_rate*100).toFixed(1)+'%':'—';
       const fresh=Date.now()-Date.parse(s.as_of)<15*60000;
       return '<div class="usage-row" style="padding:7px 10px">'
@@ -4572,19 +4585,43 @@ async function sbLoadFresh(){
   if(!sbReady()){ if(el) el.textContent='cloud sync not configured — block 1.'; return; }
   if(el) el.textContent='⏳ loading feed health…';
   try{
-    const r=await sbRest('v_market_freshness?select=pair,is_active,age_seconds,candle_count&is_active=eq.true&order=pair.asc');
+    const [r,ri]=await Promise.all([
+      sbRest('v_market_freshness?select=pair,is_active,age_seconds,candle_count&is_active=eq.true&order=pair.asc'),
+      sbRest('v_ingestion_health_public?select=pair_code,kind,status,started_at,finished_at,candles_upserted,gaps_detected,has_error&order=started_at.desc&limit=1'),
+    ]);
     if(!r.ok) throw new Error('HTTP '+r.status);
     const rows=await r.json();
-    if(!rows||!rows.length){ if(el) el.textContent='No pairs active yet — the worker ingests the 10 seeded pairs on its first run.'; return; }
-    if(el) el.innerHTML=rows.map(f=>{
-      const age=f.age_seconds==null?'—':f.age_seconds<90?f.age_seconds+'s':f.age_seconds<3600?Math.round(f.age_seconds/60)+'m':Math.round(f.age_seconds/3600)+'h';
-      const lag=f.age_seconds!=null&&f.age_seconds>180;
-      return '<div class="usage-row" style="padding:5px 10px">'
-        +'<span class="k" style="flex:0 0 88px">'+esc(f.pair)+'</span>'
-        +'<span style="flex:1;text-align:left;font-size:12px">newest candle <b'+(lag?' style="color:var(--warn)"':'')+'>'+esc(String(age))+'</b> ago'
-        +' · stored bars <b>'+esc(String(f.candle_count==null?'—':f.candle_count))+'</b></span>'
-        +(lag?'<span class="chip warn" style="font-size:9px">LAG</span>':'')+'</div>';
-    }).join('');
+    /* Worker liveness is inferred from its recorded ingestion runs, never from relay health. */
+    let runHtml;
+    if(!ri.ok){ runHtml='<span class="chip warn" style="font-size:9px">WORKER UNKNOWN</span> <span class="mini">run status unavailable (HTTP '+esc(String(ri.status))+')</span>'; }
+    else {
+      const runs=await ri.json();
+      const last=runs&&runs[0];
+      if(!last){ runHtml='<span class="chip warn" style="font-size:9px">NO WORKER RUNS</span> <span class="mini">no ingestion run recorded yet — the worker may not be running</span>'; }
+      else {
+        const started=Date.parse(last.started_at);
+        const ageMin=isFinite(started)?Math.max(0,Math.round((Date.now()-started)/60000)):null;
+        const stale=ageMin==null||ageMin>15;
+        const bad=last.status==='failed'||last.has_error||last.status==='partial';
+        const label=stale?'STALE':(bad?'DEGRADED':'RUNNING OK');
+        runHtml='<span class="chip'+(stale||bad?' warn':'')+'" style="font-size:9px">'+label+'</span> '
+          +'<span class="mini">last ingestion '+esc(String(last.status))+(ageMin==null?'':' '+ageMin+'m ago')
+          +' · candles upserted '+esc(String(last.candles_upserted==null?'—':last.candles_upserted))
+          +' · gaps '+esc(String(last.gaps_detected==null?'—':last.gaps_detected))+'</span>';
+      }
+    }
+    const pairHtml=!rows||!rows.length
+      ?'No pairs active yet — the worker ingests the seeded pairs on its first run.'
+      :rows.map(f=>{
+        const age=f.age_seconds==null?'—':f.age_seconds<90?f.age_seconds+'s':f.age_seconds<3600?Math.round(f.age_seconds/60)+'m':Math.round(f.age_seconds/3600)+'h';
+        const lag=f.age_seconds!=null&&f.age_seconds>180;
+        return '<div class="usage-row" style="padding:5px 10px">'
+          +'<span class="k" style="flex:0 0 88px">'+esc(f.pair)+'</span>'
+          +'<span style="flex:1;text-align:left;font-size:12px">newest completed candle <b'+(lag?' style="color:var(--warn)"':'')+'>'+esc(String(age))+'</b> ago'
+          +' · stored bars <b>'+esc(String(f.candle_count==null?'—':f.candle_count))+'</b></span>'
+          +(lag?'<span class="chip warn" style="font-size:9px">LAG</span>':'')+'</div>';
+      }).join('');
+    if(el) el.innerHTML='<div class="usage-row" style="padding:5px 10px"><span class="k" style="flex:0 0 88px">WORKER</span><span style="flex:1;text-align:left">'+runHtml+'</span></div>'+pairHtml;
   }catch(e){ if(el) el.textContent='⚠ feed health read failed: '+String(e.message||e).slice(0,120); }
 }
 /* ---- CLOUD page: delivery log ---- */

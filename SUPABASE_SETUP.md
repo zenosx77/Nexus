@@ -109,7 +109,7 @@ The worker:
   win-rate degradation, losing streaks) to `TELEGRAM_OPS_CHAT`;
 - prunes old data (retention) with optional gzip archival to the `models` bucket first.
 
-Tests: `cd server && npm test` (pure logic, no network).
+Tests: `cd server && npm test` (logic and loopback HTTP; fake database/provider/Bot transports, no hosted access). Root `npm test` additionally exercises migrations 0001–0008 in disposable PGlite. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) before any live staging steps; migration files do not prove hosted state.
 
 ## 3. Trainer (self-learning)
 

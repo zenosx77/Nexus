@@ -54,15 +54,15 @@ export function recommendedIngestIntervalSeconds(
   return Math.max(minimum, rateLimitSpacing);
 }
 
-async function reserveCredit({ scope, rpc, dailyLimit, minuteLimit, extra = {} }) {
-  const now = Date.now();
+async function reserveCredit({ scope, rpc, dailyLimit, minuteLimit, extra = {} }, dependencies = {}) {
+  const now = (dependencies.now ?? Date.now)();
   if (now < dailyBlockedUntil[scope]) {
     throw new TwelveDataBudgetError('daily-limit', `Twelve Data ${scope} daily credit limit reached; requests resume at 00:00 UTC.`, dailyBlockedUntil[scope] - now);
   }
 
   let client;
   try {
-    client = await db();
+    client = await (dependencies.db ?? db)();
   } catch (err) {
     throw new TwelveDataBudgetError('guard-unavailable', `Twelve Data credit guard unavailable; request blocked: ${err.message}`);
   }
@@ -99,16 +99,16 @@ async function reserveCredit({ scope, rpc, dailyLimit, minuteLimit, extra = {} }
 }
 
 /** Reserve one worker request; fail closed if the persistent guard is offline. */
-export function reserveTwelveDataCredit() {
+export function reserveTwelveDataCredit(dependencies = {}) {
   return reserveCredit({
     scope: 'worker', rpc: 'reserve_twelvedata_credit',
     dailyLimit: config.twelveDataDailyCreditLimit,
     minuteLimit: config.twelveDataMinuteCreditLimit,
-  });
+  }, dependencies);
 }
 
 /** Reserve one authenticated browser-relay request in its own persistent pool. */
-export function reserveTwelveDataBrowserCredit(category = 'scan', scanReserve = 0) {
+export function reserveTwelveDataBrowserCredit(category = 'scan', scanReserve = 0, dependencies = {}) {
   const safeCategory = ['scan', 'ticker', 'settlement'].includes(category) ? category : 'scan';
   const safeScanReserve = Math.max(0, Math.min(
     config.twelveDataBrowserMinuteCreditLimit,
@@ -119,5 +119,5 @@ export function reserveTwelveDataBrowserCredit(category = 'scan', scanReserve = 
     dailyLimit: config.twelveDataBrowserDailyCreditLimit,
     minuteLimit: config.twelveDataBrowserMinuteCreditLimit,
     extra: { p_category: safeCategory, p_scan_reserve: safeScanReserve },
-  });
+  }, dependencies);
 }

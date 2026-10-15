@@ -7,11 +7,15 @@ The Node service has two independent modes:
 
 The public GitHub Pages app never calls Twelve Data or Telegram directly and never receives their credentials. The browser may use the public Supabase anon key for the existing shared/anonymous prediction mirror. Delivery audit rows and retryable payloads are written by the authenticated relay with the server role, never inserted by anonymous browser clients. Prediction and delivery records are **not user-owned**.
 
+## Deployment preparation
+
+See [the staging-first deployment runbook](../docs/DEPLOYMENT.md). Recommended managed topology: a Node web service for the relay and a separate background-worker service. No backend host or hosted migration 0008 is verified. Use Node 22+ and the committed server lockfile; the current Supabase SDK requires Node 22. The app reads `NEXUS_API_PORT`, not `PORT`. No continuous worker is authorized by repository preparation.
+
 ## Setup
 
 ```bash
 cd server
-npm install
+npm ci --ignore-scripts
 cp .env.example .env       # use real host values; never commit server/.env
 ```
 
@@ -34,7 +38,7 @@ npm run alerts
 npm run backfill         # find + fill gaps from the last 24h
 npm run housekeeping     # prune logs/snapshots/candles (+ archive first when enabled)
 npm run settings-sync    # write effective non-secret settings to system_settings
-npm test                 # unit tests (node:test, no network, no Supabase)
+npm test                 # offline tests; HTTP uses loopback and fake transports
 ```
 
 Use separate service definitions for `npm run api` and `npm start`. Do not run a continuous worker on a developer laptop that sleeps. Example PM2 commands (after reviewing host values):
@@ -46,15 +50,19 @@ pm2 save
 pm2 startup
 ```
 
+These process commands are for a separately approved deployment, not the local preparation/test workflow. `npm run once` is side-effecting and includes retention, alerts and sends; use the bounded staging ingestion procedure in the runbook instead.
+
 The static website and server are separate. The browser tab still runs NEXUS’s existing strategy, signal, and paper-trading engines; the API relay supplies only the market-data and Telegram transport. A configured relay does not itself prove the worker is online.
 
 ## API relay security
+
+The public health route is liveness/configuration only: it does not verify database migrations, Auth, upstream connectivity or worker activity.
 
 - All browser routes except `/api/v1/health` require an authenticated Supabase Auth bearer session and an allowed `Origin`.
 - The app creates/restores an anonymous Auth session using the public anon key. It stores that browser session in `sessionStorage`; it is not a server secret and does not change the shared database ownership model.
 - Twelve Data operations/parameters are allowlisted. Keys are selected server-side and scrubbed from provider responses/errors. Paid requests reserve from an atomic Supabase budget **before** contacting the provider; a failed guard blocks the request.
 - `api_usage` is free and returns aliases such as `Server key 1`, never key material.
-- Telegram supports only sendMessage, sendSticker, getUpdates, and setMyCommands. The route resolves channel aliases on the server, filters incoming updates to configured chats, replaces chat IDs with aliases, and allows sending/polling only for user IDs in `NEXUS_TELEGRAM_ADMIN_USER_IDS`. Delivery attempts/payloads are inserted by the relay as server-managed rows; anonymous callers cannot create rows that the worker will retry.
+- Telegram supports only sendMessage, sendSticker, getUpdates, and setMyCommands. The route resolves channel aliases on the server, filters incoming updates to configured chats, replaces chat IDs with aliases, and allows sending/polling only for user IDs in `NEXUS_TELEGRAM_ADMIN_USER_IDS`. Requested message delivery attempts/payloads are inserted by the relay as server-managed rows; logging is opt-in/best-effort and `deliveryLog.recorded` reports persistence. Sticker sends are not retry-logged; anonymous callers cannot create rows that the worker will retry.
 - API, Telegram, and usage rate limits are additional in-process controls; the persistent Twelve Data credit budget is the authoritative shared quota. Do not expose the relay without its origin allowlist and upstream proxy controls.
 
 ## Twelve Data credit budgets
@@ -94,4 +102,4 @@ The worker and browser relay budgets do not reconcile provider usage from other 
 
 ## Tests
 
-`node --test test/` runs pure-logic tests without live network, Supabase, or Telegram credentials. Live migrations, CORS/proxy behavior, Auth settings, staging data, and provider quotas must be verified separately in a safe staging project before production use.
+`npm test` runs logic plus loopback HTTP tests with fake Auth/database/provider/Bot transports; no hosted Supabase or provider access and no real credentials are used. Root `npm test` also runs disposable PGlite migrations/role tests, the trainer/browser suites and the public artifact scan. See the runbook for limitations: PGlite is not a hosted or multi-connection verification, and Telegram delivery is not exactly once. Live migrations, CORS/proxy behavior, Auth settings, staging data, and provider quotas must be verified separately in a safe staging project before production use.
