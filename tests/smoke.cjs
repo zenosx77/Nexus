@@ -126,12 +126,25 @@ async function main() {
   // every section lives on a page; tabs cover all pages
   assert.ok($id('pageTabs'), 'page tab bar present');
   assert.ok(doc.querySelectorAll('#pageTabs button').length >= 10, 'at least 10 page tabs');
-  assert.deepEqual(E('JSON.stringify(PAGES)'), '["dash","sig","sess","vip","prem","bot","tg","res","brain","data","cloud"]');
+  assert.deepEqual(E('JSON.stringify(PAGES)'),
+    '["dash","sig","markets","sess","vip","prem","bot","tg","res","brain","data","cloud","health","settings","brand"]',
+    'the feature registry drives routing');
+  assert.equal(E('FEATURES.every(f=>f.id&&f.label&&f.icon&&f.group&&f.note)'), true,
+    'every registry entry carries navigation metadata + a description');
+  assert.equal(E(`JSON.stringify([...new Set(FEATURES.map(f=>f.group))].sort())`),
+    '["Channels","Infrastructure","Intelligence","Monitor","Operations"]',
+    'features are grouped into independent, extensible sections');
+  assert.equal(E('PAGES.length'), E('FEATURES.length'), 'the router is generated from the registry');
   for (const p of E('PAGES')) assert.ok($id('page-' + p), `page ${p} exists`);
   for (const s of ['sec-keys', 'sec-usage', 'sec-feeds', 'sec-scan', 'sec-m1', 'sec-m3', 'sec-list', 'sec-sess', 'sec-vip',
                    'sec-bot', 'sec-tg', 'sec-pub', 'sec-paper', 'sec-stats', 'sec-perf', 'sec-brain', 'sec-hist', 'sec-bt',
                    'sec-live', 'sec-notif', 'sec-regime', 'sec-agents', 'sec-ready', 'sec-status',
-                   'sec-sbcfg', 'sec-sbmodel', 'sec-sbperf', 'sec-sbfresh', 'sec-sbdeliv'])
+                   'sec-sbcfg', 'sec-sbmodel', 'sec-sbperf', 'sec-sbfresh', 'sec-sbdeliv',
+                   'sec-dash-summary', 'sec-dash-signals', 'sec-dash-stats', 'sec-dash-health',
+                   'sec-sig-history', 'sec-mkt-explorer', 'sec-mkt-chart', 'sec-mkt-analysis',
+                   'sec-perf-pairs', 'sec-perf-tf', 'sec-brain-models', 'sec-hl-top', 'sec-hl-services',
+                   'sec-hl-stale', 'sec-hl-audit', 'sec-set-appearance', 'sec-set-notify', 'sec-set-security',
+                   'sec-set-config', 'sec-brand-identity', 'sec-brand-logos', 'sec-brand-icons', 'sec-brand-creator'])
     assert.ok($id(s), `section id ${s} exists`);
   // showPage switches exactly one page and persists
   E(`showPage('sess')`);
@@ -1202,6 +1215,136 @@ async function main() {
     sb.w.close();
   }
 
+  /* ── 32b. LIQUID GLASS DESIGN SYSTEM + REDESIGN MODULES ────────── */
+  {
+    // design tokens, glass surfaces and accessibility fallbacks are all present
+    assert.match(html, /--nx-accent:#3ad2ff/, 'midnight/ocean/cyan token set shipped');
+    assert.match(html, /backdrop-filter:blur\(var\(--glass-blur\)\)/, 'glass surfaces use real backdrop blur');
+    assert.match(html, /@supports not \(\(backdrop-filter/, 'a solid background fallback exists when blur is unavailable');
+    assert.match(html, /:root\[data-theme="light"\]/, 'a fully tokenised light theme ships');
+    assert.match(html, /prefers-reduced-motion/, 'reduced-motion is honoured');
+    assert.match(html, /:root\[data-motion="off"\]/, 'the in-app reduce-motion switch is honoured');
+    assert.match(html, /nx-scene/, 'the original artwork layer renders behind the UI');
+    assert.ok(!/strawhat|one ?piece|zoro|luffy/i.test(html), 'no copied franchise assets, logos or character art');
+    // navigation surfaces all come from the registry
+    assert.equal(doc.querySelectorAll('#mobileNav button').length >= 4, true, 'mobile navigation renders from the registry');
+    assert.equal(doc.querySelectorAll('#sideNav .rail-link').length, E('FEATURES.length'), 'desktop rail renders every feature');
+    assert.equal(doc.querySelectorAll('#pageTabs button').length, E('FEATURES.length'), 'tab bar renders every feature');
+    // router keeps every surface in sync and rejects unknown/disabled pages
+    E(`showPage('brand')`);
+    assert.equal($id('page-brand').classList.contains('on'), true);
+    assert.equal(doc.querySelector('#sideNav .rail-link[data-page="brand"]').classList.contains('active'), true, 'rail stays in sync');
+    assert.equal(doc.querySelector('#pageTabs button[data-page="brand"]').classList.contains('active'), true, 'tabs stay in sync');
+    assert.equal(w.localStorage.getItem('nx_page'), 'brand');
+    E(`showPage('nope')`);
+    assert.equal($id('page-dash').classList.contains('on'), true, 'unknown pages fall back to the overview');
+    // theme + branding are presentation-only and never touch engine state
+    const gateBefore = JSON.stringify(E('productionGate()'));
+    const statBefore = JSON.stringify(E('stat'));
+    E(`setBrand({theme:'light',accent:'#00a3ff',glass:120,wallpaper:'fleet',artwork:30})`);
+    assert.equal(doc.documentElement.getAttribute('data-theme'), 'light', 'theme switches to light');
+    assert.equal(doc.documentElement.style.getPropertyValue('--nx-accent'), '#00a3ff', 'accent token applies');
+    assert.equal(doc.documentElement.style.getPropertyValue('--scene-opacity'), '0.3', 'artwork intensity applies');
+    assert.match($id('nxScene').innerHTML, /<svg/, 'wallpaper artwork renders inline (no external request)');
+    E(`setBrand({theme:'dark',accent:'#3ad2ff',glass:100,wallpaper:'harbour',artwork:42})`);
+    assert.equal(JSON.stringify(E('productionGate()')), gateBefore, 'branding cannot alter the production gate');
+    assert.equal(JSON.stringify(E('stat')), statBefore, 'branding cannot alter settled statistics');
+    // tagline + creator attribution
+    assert.match($id('railSub').textContent, /Predict\. Learn\. Grow\./, 'brand tagline is applied site-wide');
+    assert.match(html, /Created by Vinayyyy/, 'creator attribution present');
+    assert.equal($id('brandCreatorOn').checked, false, 'creator card is disabled by default');
+    assert.match($id('brandCreatorCard').textContent, /disabled/, 'disabled creator card explains how to enable it');
+    E(`setBrand({creatorOn:true,creatorName:'Vinayyyy',creatorBio:'Builder of NEXUS.',creatorLinks:'GitHub | https://github.com/zenosx77'})`);
+    assert.match($id('brandCreatorCard').textContent, /Vinayyyy/, 'enabled creator card shows the name');
+    assert.match($id('brandCreatorCard').innerHTML, /https:\/\/github\.com\/zenosx77/, 'creator card links only https destinations');
+    assert.equal(E(`(function(){nxBrand.creatorLinks='X | javascript:alert(1)';renderCreatorCard();const bad=/javascript:/.test($('brandCreatorCard').innerHTML);nxBrand.creatorLinks='GitHub | https://github.com/zenosx77';renderCreatorCard();return bad;})()`), false, 'non-https creator links are dropped');
+    E(`setBrand({creatorOn:false,creatorName:'',creatorBio:'',creatorLinks:''})`);
+    // logo variants + exports are original inline SVG
+    assert.equal((E(`(function(){renderBrandStudio();return document.querySelectorAll('#brandVariants .nx-logotile').length;})()`)), 4, 'four logo variants render');
+    assert.match($id('brandVariants').innerHTML, /<svg/, 'logo variants are inline SVG (no external assets)');
+    assert.match(E(`nxMarkSvg({variant:'outline'})`), /<svg/, 'outline variant renders');
+    assert.match(E('nxLoaderSvg()'), /animateTransform/, 'loading animation ships with the brand kit');
+    // dashboard widgets: add, remove, reorder
+    assert.equal(doc.querySelectorAll('#page-dash .nx-widget[data-widget]').length, E('DEF_WIDGETS.length'), 'every overview widget is registered');
+    const order0 = E('JSON.stringify(widgetOrder)');
+    E(`moveWidget('regime',-1)`);
+    assert.notEqual(E('JSON.stringify(widgetOrder)'), order0, 'widgets can be reordered');
+    E(`toggleWidget('regime')`);
+    assert.equal($id('sec-regime').hidden, true, 'widgets can be hidden');
+    E(`renderWidgetList()`);
+    assert.equal(doc.querySelectorAll('#widgetList .nx-widgetitem').length, E('DEF_WIDGETS.length'), 'widget drawer lists every card');
+    E(`resetWidgets()`);
+    assert.equal(E('JSON.stringify(widgetOrder)'), order0, 'layout resets cleanly');
+    assert.equal($id('sec-regime').hidden, false, 'reset restores visibility');
+    assert.equal(w.localStorage.getItem('nx_widgets'), E('JSON.stringify(widgetOrder)'), 'layout persists in this browser');
+    // signal registry: durable records with explicit settlement states
+    assert.equal(E('typeof sigLogAdd'), 'function');
+    E(`sigLog.length=0;
+       sigLogAdd({id:9001,pair:'EUR/USD',tf:'M1',time:'12:00',dir:'CALL',grade:'A',score:80,conf:0.8,targetT:Date.now()+60000,origin:'live'});
+       sigLogAdd({id:9002,pair:'GBP/JPY',tf:'M3',time:'12:03',dir:'PUT',grade:'B',score:66,conf:0.7,targetT:Date.now()+180000,origin:'vip'});
+       renderSigTable();`);
+    assert.equal(E('sigLog.length'), 2);
+    assert.equal(doc.querySelectorAll('#sigRows tr').length, 2, 'signal history renders a row per record');
+    assert.match($id('sigRows').textContent, /Pending/, 'pending outcomes are labelled pending');
+    assert.match($id('sigRows').textContent, /EURUSD/, 'pairs render in the history table');
+    E('sigLogSettle(9001,"win",{o:1.1,c:1.15}); renderSigTable();');
+    assert.match($id('sigRows').textContent, /Settled · win/, 'settled outcomes are labelled as settled');
+    E('sigLogSettle(9002,"unavailable",null); renderSigTable();');
+    assert.match($id('sigRows').textContent, /Unavailable/, 'unconfirmed verdicts are never shown as wins');
+    // search + filter + sort are wired to the registry
+    E(`sigSearchTerm='EURUSD';renderSigTable()`);
+    assert.equal(doc.querySelectorAll('#sigRows tr').length, 1, 'search filters the history');
+    E(`sigSearchTerm='';sigStatusFilter='unavailable';renderSigTable()`);
+    assert.equal(doc.querySelectorAll('#sigRows tr').length, 1, 'status filter works');
+    E(`sigStatusFilter='all';sigSortMode='pair';renderSigTable()`);
+    assert.match($id('sigRows').textContent, /GBPJPY/, 'sorting reorders rows');
+    E(`sigSortMode='new';sigSearchTerm='';
+       sigLog.length=0;renderSigTable();`);
+    assert.match($id('sigRows').textContent, /No signals recorded yet/, 'empty state is explicit');
+    E(`openSignalDetail(4242)`);
+    assert.equal($id('sigDrawer').classList.contains('on'), false, 'unknown signal ids never open a drawer');
+    // markets: explorer, charts and analysis only ever use cached candles
+    E(`cache['EUR/USD']={t:Date.now(),latencyMs:8,
+        m1:Array.from({length:80},(_,i)=>({t:'x',ts:Date.now()-(80-i)*60000,o:1.1+i*0.0001,h:1.1001+i*0.0001,l:1.0999+i*0.0001,c:1.10005+i*0.0001})),
+        m3:Array.from({length:30},(_,i)=>({t:'x',ts:Date.now()-(30-i)*180000,o:1.1,h:1.1002,l:1.0998,c:1.1001}))};
+       renderMarketExplorer(); renderMarketChart(); renderPairAnalysis();`);
+    assert.ok(doc.querySelectorAll('#mktRows tr').length >= 3, 'pair explorer lists monitored pairs');
+    assert.match($id('mktChart').innerHTML, /<svg/, 'candlestick chart renders from cached candles');
+    assert.ok($id('mktStructure').textContent.length > 40, 'pair analysis renders structure and agents');
+    assert.ok($id('mktAgreement').textContent.length > 20, 'strategy agreement renders');
+    E(`cache={}; renderMarketExplorer(); renderMarketChart(); renderPairAnalysis();`);
+    assert.match($id('mktChart').textContent, /No cached candles/, 'market empty states are explicit');
+    // performance breakdowns come from settled trades only
+    E(`paper.closed=[{t:Date.now()-3000,pair:'EUR/USD',tf:'M1',dir:'CALL',grade:'A',res:'win',win:true,pl:8,stake:10,agents:{}},
+                     {t:Date.now()-2000,pair:'EUR/USD',tf:'M1',dir:'PUT',grade:'B',res:'loss',win:false,pl:-10,stake:10,agents:{}},
+                     {t:Date.now()-1000,pair:'GBP/JPY',tf:'M3',dir:'CALL',grade:'A',res:'push',win:false,pl:0,stake:10,agents:{}}];
+       renderPerfCharts(); renderPairBreakdown(); renderTfBreakdown();`);
+    assert.equal(doc.querySelectorAll('#perfPairRows tr').length, 2, 'pair breakdown groups settled trades');
+    assert.match($id('perfPairRows').textContent, /EURUSD/, 'pair breakdown lists the pair');
+    assert.match($id('perfTfRows').textContent, /M3/, 'timeframe breakdown covers both timeframes');
+    assert.match($id('perfChartDonut').innerHTML, /<svg/, 'outcome donut renders');
+    assert.match($id('perfChartEquity').innerHTML, /<svg/, 'paper equity curve renders');
+    assert.match($id('perfChartEquity').innerHTML + $id('perfTfKpis').textContent, /paper|settled/i, 'simulated results are labelled');
+    E(`paper.closed=[]; renderPerfCharts(); renderPairBreakdown(); renderTfBreakdown();`);
+    assert.match($id('perfPairRows').textContent, /No settled paper trades yet/, 'empty performance states are explicit');
+    // system health reports real states and never invents liveness
+    E(`refreshHealth()`);
+    await sleep(120);
+    const healthText = $id('healthRows').textContent + $id('healthKpis').textContent;
+    assert.match($id('healthRows').innerHTML, /API relay/, 'health matrix lists the relay');
+    assert.match($id('healthRows').innerHTML, /Worker \/ ingestion/, 'health matrix lists the worker');
+    assert.ok(!/guaranteed|all systems (healthy|green)/i.test(healthText), 'health never makes an unverifiable claim');
+    assert.match($id('healthStale').textContent + $id('healthSummary').textContent, /fresh|stale|No stale/i, 'staleness section reports real state');
+    // settings catalogue reflects real configuration owners
+    E(`renderSettings()`);
+    assert.match($id('setConfigRows').textContent, /server env|browser guard|cloud registry|computed/, 'configuration table names the owner of each value');
+    assert.match($id('setSecurityKpis').textContent, /never in browser/, 'security panel states secrets stay server-side');
+    assert.match($id('setConfigRows').textContent, /Production gate/, 'production gate state is surfaced in settings');
+    assert.equal(/service.role key/i.test($id('setConfigRows').innerHTML), false, 'no service-role material is rendered');
+    // saved configuration cannot be raised above the server ceiling from the browser
+    assert.equal(E('perDayCap() <= 700'), true, 'server ceiling still caps browser preferences');
+  }
+
   /* ── 33. chaos pass: every UI entry point runs without throwing ── */
   E('tg.auth=false; tg.listen=false; sxStop("chaos"); premStop()');
   w.fetch = async (url, opts) => {
@@ -1231,6 +1374,16 @@ async function main() {
     'settleAll()', 'settlePrem()', 'settlementFetches()', 'livePairsRender()', 'renderTopLive()', 'renderNotes()',
     'clearNotes()', 'showPage("brain")', 'showPage("dash")', 'showPage("vip")', 'showPage("cloud")', 'sxTick()', 'premTick()', 'premStudySample(0)', 'sxForce()',
     'sbSave()', 'sbClear()', 'sbTest()', 'sbLoadModel()', 'sbLoadPerf()', 'sbLoadFresh()', 'sbLoadDeliv()', 'sbInit()',
+    'showPage("markets")', 'showPage("health")', 'showPage("settings")', 'showPage("brand")', 'showPage("tg")',
+    'buildNav()', 'applyWidgetLayout()', 'renderWidgetList()', 'openWidgetDrawer()', 'closeWidgetDrawer()', 'resetWidgets()',
+    'applyTheme()', 'applyWallpaper()', 'renderBrandStudio()', 'renderCreatorCard()', 'syncBrandInputs()', 'syncSettingsInputs()',
+    'renderSigTable()', 'openSignalDetail(1)', 'renderMarketExplorer()', 'renderMarketChart()', 'renderPairAnalysis()',
+    'loadMarketCandles()', 'focusPair("EUR/USD")', 'renderModelVersions()', 'refreshHealth()', 'renderHealth()',
+    'renderDashSummary()', 'renderDashStats()', 'renderDashSignals()', 'renderDashHealth()', 'renderRailStatus()',
+    'renderPerfCharts()', 'renderPairBreakdown()', 'renderTfBreakdown()', 'renderSettings()', 'renderDashboardSuite()',
+    'downloadBrandAsset("logo")', 'downloadBrandAsset("favicon")', 'downloadBrandAsset("icon")', 'downloadBrandAsset("loader")',
+    'copyBrandMarkup()', 'applyBrandFavicon()', 'revokeTelegramAuth()', 'clearRelaySession()', 'clearCloudConfig()',
+    'resetBrand()', 'toggleThemeButton()',
   ];
   for (const ep of entryPoints) {
     await assert.doesNotReject(E(`(async()=>{ ${ep}; })()`), `UI entry point ${ep} must not throw`);
@@ -1239,7 +1392,7 @@ async function main() {
   assert.deepEqual(errors, [], 'no DOM/runtime errors during the chaos pass');
 
   assert.deepEqual(errors, [], 'no DOM/runtime errors across the whole suite');
-  console.log('PASS: boot · DOM refs · 11 tabbed pages · font+license · Meridian branding · 10 live pairs ·');
+  console.log('PASS: boot · DOM refs · 15 registry-driven pages · font+license · NEXUS branding · 10 live pairs ·');
   console.log('      server-only provider credentials + relay credit caps · stale+weekend gates · quality gates ·');
   console.log('      stable confirmed settlement (feed-keyed · revision-safe · ties=push) · 4-channel routing ·');
   console.log('      sticker bank (9 event roles · dedupe · nothing unassigned ever fires) · format engine (/setformat) ·');
@@ -1248,7 +1401,11 @@ async function main() {
   console.log('      bot stream · public privacy filter · local-art lockdown · M1/M3/list separation ·');
   console.log('      CLOUD SYNC (anon-only mirror · idempotent writes · relay-managed delivery records · SHA-256 model apply ·');
   console.log('      offline degradation · canonical JSON matches the Python trainer) ·');
-  console.log('      paper mode · deep training + readiness honesty · legacy migration · SESSION scenarios · chaos pass');
+  console.log('      paper mode · deep training + readiness honesty · legacy migration · SESSION scenarios ·');
+  console.log('      Liquid Glass design system (tokens, themes, motion, solid fallback) · feature registry navigation ·');
+  console.log('      signal registry (pending/settled/invalid/unavailable + search, filters, detail drawer) · markets explorer ·');
+  console.log('      charts (candles · donut · equity · bars) · widget layout · model versions · system health · settings ·');
+  console.log('      branding studio (4 logo variants · favicon · loader · wallpaper · creator card) · chaos pass');
   w.close();
 }
 main().catch(e => { console.error(e); process.exitCode = 1; try { w.close(); } catch (_) {} });
