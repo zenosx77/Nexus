@@ -867,7 +867,18 @@
         <div class="f4">per-minute cap<b id="u_min">0</b></div>
         <div class="f4">keys active<b id="u_keys">0</b></div>
       </div>
-      <div class="mini" style="text-align:left">The meter above counts every call NEXUS makes. CHECK reads the real per-key spend from the <b>api_usage</b> endpoint (costs 0 credits). Free keys reset daily at <b>00:00 UTC</b>.</div>
+      <div class="two" style="margin-top:10px">
+        <div><span class="mini" style="display:block;text-align:left">DAILY HARD CAP · PAID CALLS / UTC DAY</span>
+          <input type="number" id="creditDailyLimit" min="0" max="100000" step="50" inputmode="numeric" aria-label="Daily Twelve Data credit cap"></div>
+        <div><span class="mini" style="display:block;text-align:left">MAX PAID CALLS / MINUTE</span>
+          <input type="number" id="creditMinuteLimit" min="0" max="1000" step="1" inputmode="numeric" aria-label="Per-minute Twelve Data request cap"></div>
+      </div>
+      <div class="two" style="margin-top:8px">
+        <button class="b-gen" id="saveCreditLimits" style="padding:9px" onclick="saveCreditLimits()">💾 SAVE CREDIT LIMITS</button>
+        <button class="b-ghost" style="padding:9px" onclick="resetCreditLimits()">↺ SAFE DEFAULTS</button>
+      </div>
+      <div class="mini" id="creditLimitMsg" style="margin-top:6px;text-align:left">Loading local credit limits…</div>
+      <div class="mini" style="text-align:left">The meter above counts paid data calls from this browser. CHECK reads real per-key spend from Twelve Data's <b>api_usage</b> endpoint (0 credits); use it to reconcile other devices and the server worker. Default guard: <b>700 calls/day + 7/min</b>, not multiplied by key count. At 60% scans slow; at 80% only settlements may use the reserve; at 100% all paid calls stop until UTC midnight or you raise the cap.</div>
     </div>
 
     <div class="glass" id="sec-feeds">
@@ -1263,26 +1274,90 @@ function renderPerf(){ /* win rate, EV after costs, drawdown, attribution */
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   CREDIT BUDGET — Twelve Data free keys: ~8 calls/min, ~800/day.
-   The engine throttles itself so multi-pair live refresh never dies
-   into 429s; more keys = faster refresh.
+   CREDIT BUDGET — conservative, configurable per-browser guard.
+   Limits do not multiply just because more API keys are entered.
+   20% of the daily cap is reserved for pending settlements.
    ═══════════════════════════════════════════════════════════════════ */
+const DEFAULT_CREDIT_LIMITS={daily:700,minute:7};
+function readCreditLimits(){
+  const raw=loadJSON('nx_credit_limits',null)||{};
+  const n=(v,def,max)=>Number.isFinite(+v)?Math.min(max,Math.max(0,Math.floor(+v))):def;
+  return {daily:n(raw.daily,DEFAULT_CREDIT_LIMITS.daily,100000),
+    minute:n(raw.minute,DEFAULT_CREDIT_LIMITS.minute,1000)};
+}
+let creditLimits=readCreditLimits();
 let budget=loadJSON('nx_budget',null);
 if(!budget||typeof budget!=='object') budget={day:'',calls:0,min:[]};
 if(!Array.isArray(budget.min)) budget.min=[];
+if(!Number.isFinite(+budget.calls)||+budget.calls<0) budget.calls=0;
+let budgetBlockReason='';
 function budgetRoll(){
   const k=dayKeyNow();
-  if(budget.day!==k){ budget.day=k; budget.calls=0; budget.min=[]; }
+  if(budget.day!==k){ budget.day=k; budget.calls=0; budget.min=[]; store.set('nx_budget',JSON.stringify(budget)); }
   const now=Date.now(); budget.min=budget.min.filter(t=>now-t<60000);
 }
-function budgetNote(){ budgetRoll(); budget.calls++; budget.min.push(Date.now());
-  if(budget.calls%5===0) store.set('nx_budget',JSON.stringify(budget)); }
-function perMinCap(){ return Math.max(6,7*(keyPool().length||1)); }
-function perDayCap(){ return Math.max(700,760*(keyPool().length||1)); }
-function budgetLevel(){ budgetRoll(); const d=budget.calls/perDayCap();
-  return d>=1?3:d>=0.8?2:d>=0.6?1:0; }
-function budgetScanStep(){ const lvl=budgetLevel(); return lvl>=3?0:lvl===2?5:lvl===1?2:1; }
-function budgetAllows(){ budgetRoll(); return budget.min.length<perMinCap(); }
+function perMinCap(){ return creditLimits.minute; }
+function perDayCap(){ return creditLimits.daily; }
+function settlementReserveStart(){ return Math.max(1,Math.floor(perDayCap()*0.8)); }
+function budgetLevel(){
+  budgetRoll();
+  if(perDayCap()===0||budget.calls>=perDayCap()) return 3;
+  const d=budget.calls/perDayCap();
+  return budget.calls>=settlementReserveStart()?2:d>=0.6?1:0;
+}
+function budgetScanStep(){ const lvl=budgetLevel(); return lvl>=2?0:lvl===1?2:1; }
+function budgetCheck(category){
+  budgetRoll(); category=category||'scan';
+  if(perDayCap()===0||budget.calls>=perDayCap()) return {ok:false,reason:'daily-cap'};
+  if(category!=='settlement'&&budget.calls>=settlementReserveStart()) return {ok:false,reason:'settlement-reserve'};
+  if(category==='ticker'){
+    const scanReserve=Math.min(perMinCap(),Math.max(1,watch().length*(($('m5conf')&&$('m5conf').checked)?2:1)));
+    if(budget.min.length>=perMinCap()-scanReserve) return {ok:false,reason:'scan-reserve'};
+  }
+  if(perMinCap()===0||budget.min.length>=perMinCap()) return {ok:false,reason:'minute-cap'};
+  return {ok:true,reason:''};
+}
+function budgetAllows(category){ return budgetCheck(category).ok; }
+function budgetReserve(category){
+  const check=budgetCheck(category);
+  if(!check.ok){ budgetBlockReason=check.reason; renderBudget(true); return false; }
+  const now=Date.now(); budget.calls++; budget.min.push(now);
+  budgetBlockReason='';
+  /* Persist every reservation: a reload must not refund already-started requests. */
+  store.set('nx_budget',JSON.stringify(budget));
+  renderUsageMeter(); renderBudget(true);
+  return true;
+}
+function syncCreditLimitInputs(){
+  const daily=$('creditDailyLimit'), minute=$('creditMinuteLimit');
+  if(daily) daily.value=String(creditLimits.daily);
+  if(minute) minute.value=String(creditLimits.minute);
+}
+function saveCreditLimits(){
+  const daily=Number($('creditDailyLimit')&&$('creditDailyLimit').value);
+  const minute=Number($('creditMinuteLimit')&&$('creditMinuteLimit').value);
+  const msg=$('creditLimitMsg');
+  if(!Number.isInteger(daily)||daily<0||daily>100000||!Number.isInteger(minute)||minute<0||minute>1000){
+    if(msg) msg.textContent='⚠ Enter whole numbers: daily 0–100,000; per-minute 0–1,000. Zero pauses that request class.';
+    return false;
+  }
+  creditLimits={daily,minute};
+  store.set('nx_credit_limits',JSON.stringify(creditLimits));
+  budgetWarnedLvl=-1;
+  syncCreditLimitInputs();
+  if(msg) msg.textContent='✅ Saved for this browser: '+daily+' paid calls per UTC day, '+minute+' per minute. Current tracked spend: '+budget.calls+'.';
+  renderUsageMeter(); renderBudget(true);
+  return true;
+}
+function resetCreditLimits(){
+  creditLimits=Object.assign({},DEFAULT_CREDIT_LIMITS);
+  store.set('nx_credit_limits',JSON.stringify(creditLimits));
+  syncCreditLimitInputs();
+  const msg=$('creditLimitMsg');
+  if(msg) msg.textContent='✅ Safe defaults restored: '+creditLimits.daily+' paid calls/day and '+creditLimits.minute+' per minute. Current tracked spend: '+budget.calls+'.';
+  renderUsageMeter(); renderBudget(true);
+  return true;
+}
 let lastBudgetRender=0, budgetWarnedLvl=-1;
 function renderBudget(force){
   const now=Date.now();
@@ -1290,13 +1365,16 @@ function renderBudget(force){
   lastBudgetRender=now; budgetRoll();
   const lvl=budgetLevel();
   const chip=$('budgetChip'), info=$('budgetInfo');
-  const txt='⚡ '+budget.min.length+'/'+perMinCap()+' per min · '+budget.calls+'/'+perDayCap()+' today · '+Math.max(1,keyPool().length)+' key(s)';
-  if(chip) chip.textContent = lvl===0?'⚡ budget: healthy':lvl===3?'⛔ budget: exhausted':lvl===2?'⚠ budget: 80% used':'⚠ budget: 60% used';
+  const txt='⚡ '+budget.min.length+'/'+perMinCap()+' per min · '+budget.calls+'/'+perDayCap()+' today · '+keyPool().length+' key(s)';
+  if(chip) chip.textContent = lvl===0?'⚡ budget: healthy':lvl===3?'⛔ budget: hard stop':lvl===2?'⚠ budget: reserve only':'⚠ budget: 60% used';
   if(chip) chip.className='chip '+(lvl===0?'ok':lvl>=2?'bad':'warn');
-  if(info) info.textContent=txt+(lvl>=3?' — daily credit budget reached: auto scans paused (settlements still fetch). Add more keys or wait for UTC midnight.'
-    :lvl>=1?' — auto-scan cadence throttled to protect the daily budget':'');
+  if(info) info.textContent=txt+(lvl===3?' — hard stop: all paid data calls, including settlements, are blocked until UTC midnight or you raise the cap.'
+    :lvl===2?' — new scans/ticker calls paused at 80%; pending settlements may use the reserved headroom.'
+    :lvl===1?' — scan cadence throttled to protect the daily reserve':'');
   if(lvl!==budgetWarnedLvl&&lvl>=2){ budgetWarnedLvl=lvl;
-    pushNote('sys',lvl===3?'⛔ Daily API budget exhausted — auto scanning paused until UTC midnight (settlements unaffected)':'⚠ API budget '+Math.round(budget.calls/perDayCap()*100)+'% used — throttling scan cadence'); }
+    pushNote('sys',lvl===3?'⛔ Daily API hard cap reached — all paid data calls paused until UTC midnight or a limit change':'⚠ API spend reached 80% — new scans paused; remaining headroom reserved for settlements'); }
+  const msg=$('creditLimitMsg');
+  if(msg&&!msg.textContent.trim()) msg.textContent='Limits are local to this browser. Paid data requests use this guard; free api_usage checks do not. Current cap: '+perDayCap()+'/day and '+perMinCap()+'/minute.';
 }
 
 /* ---------- API CREDIT USAGE — per-key spend straight from Twelve Data (0 credits) ---------- */
@@ -1603,10 +1681,10 @@ function tickerTick(){
   const wl=watch();
   if(!wl.length||!keyPool().length) return;
   if(isWeekendWindow()) return;
-  if(!budgetAllows()) return;                       /* keep headroom for the aligned scan burst */
+  if(!budgetAllows('ticker')) return;                /* preserve enough headroom for one aligned scan */
   const pair=wl[tickIdx%wl.length]; tickIdx++;
   lastTick=now; tickBusy=true;
-  apiTimeSeries(pair,{maxAge:0,quiet:true})
+  apiTimeSeries(pair,{maxAge:0,quiet:true,budgetClass:'ticker'})
     .then(()=>{ livePairsRender(); settleAll(); settlePrem(); })
     .catch(()=>{ livePairsRender(); })
     .finally(()=>{ tickBusy=false; });
@@ -1763,8 +1841,13 @@ function renderVault(){
 
 /* ---------- Twelve Data APIs (candle-feed first; diagnostics on demand) ---------- */
 const BASE='https://api.twelvedata.com/';
-async function jget(url,k){ credits++; $('credits').textContent='API credits this session: '+credits;
-  budgetNote();
+async function jget(url,k,category){
+  if(!budgetReserve(category||'scan')){
+    const why=budgetBlockReason==='daily-cap'?'daily hard cap reached':budgetBlockReason==='settlement-reserve'
+      ?'80% soft cap reached; only pending settlements may use the reserve':'per-minute hard cap reached';
+    throw new Error('NEXUS API budget: '+why+' ('+budget.calls+'/'+perDayCap()+' today, '+budget.min.length+'/'+perMinCap()+' this minute)');
+  }
+  credits++; $('credits').textContent='API credits this session: '+credits;
   const r=await fetch(url); let j;
   try{ j=await r.json(); }catch(e){ throw new Error('HTTP '+r.status+' — non-JSON response'); }
   if(k) markKeyUsed(k.v);
@@ -1789,7 +1872,7 @@ async function apiTimeSeries(pair,opt){
   if(ck && maxAge>0 && Date.now()-ck.t<maxAge) return ck;
   const k=requireKey();
   const t0=Date.now();
-  const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=1min&outputsize=360&apikey=${encodeURIComponent(k.v)}`,k);
+  const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=1min&outputsize=360&apikey=${encodeURIComponent(k.v)}`,k,opt.budgetClass||'scan');
   setFeedTz(resolveFeedTz(j)); /* infer from candle clock before parsing; meta is fallback */
   if(!Array.isArray(j.values)||!j.values.length) throw new Error('unexpected time_series shape');
   const m1=j.values.map(v=>({t:v.datetime,ts:parseCandleUTC(v.datetime).getTime(),o:+v.open,h:+v.high,l:+v.low,c:+v.close})).reverse();
@@ -1811,7 +1894,7 @@ async function apiM5Bias(pair){ /* candle-feed only (time_series 5min) — highe
   const ck=cache['m5:'+pair];
   if(ck&&Date.now()-ck.t<50000) return ck.bias;
   const k=requireKey();
-  const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=5min&outputsize=80&apikey=${encodeURIComponent(k.v)}`,k);
+  const j=await jget(`${BASE}time_series?symbol=${encodeURIComponent(pair)}&interval=5min&outputsize=80&apikey=${encodeURIComponent(k.v)}`,k,'scan');
   setFeedTz(resolveFeedTz(j)); /* same feed, same clock — keep the correction current */
   if(!Array.isArray(j.values)||j.values.length<40) throw new Error('m5: too few candles');
   const cl=j.values.map(v=>+v.close).reverse();
@@ -2319,7 +2402,7 @@ function settlementFetches(){
   }
   if(!due.size) return;
   settleFetchBusy=true;
-  Promise.all([...due.values()].slice(0,10).map(p=>apiTimeSeries(p.pair,{maxAge:0,quiet:true}).catch(()=>null)))
+  Promise.all([...due.values()].slice(0,10).map(p=>apiTimeSeries(p.pair,{maxAge:0,quiet:true,budgetClass:'settlement'}).catch(()=>null)))
     .then(()=>{ settleAll(); settlePrem(); settleVip(); livePairsRender(); })
     .finally(()=>{ settleFetchBusy=false; });
 }
@@ -3564,6 +3647,14 @@ async function runScan(manual,opt){
   if(isWeekendWindow()){
     setStatus('wait','📅 Weekend — forex market closed. Engines paused to save quota; open verdicts still settle from cached candles.');
     return; }
+  const spendCheck=budgetCheck('scan');
+  if(!spendCheck.ok){
+    renderBudget(true);
+    setStatus('wait',spendCheck.reason==='settlement-reserve'
+      ?'⏸ API soft cap reached — new scans paused; pending settlements keep the reserved credits.'
+      :spendCheck.reason==='minute-cap'?'⏱ API per-minute cap reached — wait for the next minute.'
+      :'⛔ API daily hard cap reached — paid requests resume at 00:00 UTC or after you raise the cap.');
+    return; }
   busy=true; $('btnRun').disabled=true;
   const active=tfs();
   if(!active.length){ setStatus('err','Select at least one timeframe (M1 / M3)'); busy=false;$('btnRun').disabled=false;return; }
@@ -4608,6 +4699,9 @@ initTabs();
 showPage(store.get('nx_page')||'dash');
 renderKeyInputs();
 syncSettings();
+syncCreditLimitInputs();
+const initialCreditMsg=$('creditLimitMsg');
+if(initialCreditMsg) initialCreditMsg.textContent='Limits are local to this browser. Current cap: '+perDayCap()+' paid calls/UTC day and '+perMinCap()+'/minute; key count does not raise either limit.';
 ensureDay();
 setBrainTf(brainTf);
 renderStats(); renderHist(); renderPaper(); renderPerf(); renderVault(); renderBudget(true);

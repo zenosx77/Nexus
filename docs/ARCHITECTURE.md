@@ -14,7 +14,7 @@
 | **Streams** | 4 Telegram channels (MAIN / PUBLIC / VIP / LIST) driven from the browser via `tgCall()` → Bot API. Public stream = 1 quality signal/min before the open; VIP = best shot every 10 min. | Delivery authorization is explicit (`tg.auth`); token changes revoke it. |
 | **Self-learning** | In-browser walk-forward training (`train`, `deepTrainSeries`) producing per-strategy/per-regime win-rate weights persisted to `localStorage` (`nx_deep`, `nx_mem`, `nx_memR`). `finalWeights()` blends live + deep + regime memory. | This is the interface a promoted cloud model must feed — **weights, not logic**. |
 | **Outcome settlement** | `candleOutcome()` + `resolveSignal()` settle from confirmed candle closes (fast settle). Stats in `localStorage` (`nx_stats2`, `nx_hist`), capped at 200 rows, single-browser only. | **Key gap this integration fixes:** outcomes/accuracy are not durable, not multi-device, not queryable. |
-| **Market data** | Twelve Data `time_series` (1min candles), 10 rotating key slots, quota cooldown, budget throttling. Cache is per-page-load. | No server-side history — every reload re-fetches; no gap accounting. |
+| **Market data** | Twelve Data `time_series` (1min candles), 10 rotating key slots, quota cooldown, configurable browser hard caps and persistent worker-side credit reservations. Cache is per-page-load. | Browser counter is device-local; provider `api_usage` remains authoritative for account-wide spend. |
 | **Storage** | 100% browser `localStorage`. | No retention/backup story. |
 
 **Integration risks identified**
@@ -37,7 +37,7 @@
                                                                      │
                                         https://<project>.supabase.co│
 ┌─────────────────────────────────────────────────────────────────────▼──────────────────┐
-│  Supabase PostgreSQL — 10 spec tables + system_settings/job_locks/alert_log              │
+│  Supabase PostgreSQL — spec tables + system settings/job locks/alerts/credit budget       │
 │  Supabase Storage (private bucket "models") — training artifacts + dataset snapshots     │
 │  RLS: anon = INSERT predictions/deliveries only; SELECT monitoring; service = full       │
 └───────────────▲─────────────────────────▲──────────────────────────▲────────────────────┘
@@ -64,7 +64,7 @@
 | # | Step | Files |
 |---|---|---|
 | 1 | Architecture report (this file) | `docs/ARCHITECTURE.md` |
-| 2 | Versioned SQL migrations: 10 spec tables + support tables, FKs, checks, indexes, triggers, views, RLS, retention functions, seed pairs | `supabase/migrations/0001…0006` |
+| 2 | Versioned SQL migrations: core/support tables (including the persistent worker credit budget), FKs, checks, indexes, triggers, views, RLS, retention functions, seed pairs | `supabase/migrations/0001…0007` |
 | 3 | Node worker: config, db, ingestion, validation, features, outcome evaluator, risk monitor, telegram retry, alerts, scheduler with job locks | `server/**` |
 | 4 | Python trainer: dataset builder (leakage-safe), walk-forward validation, promotion gates, artifact + checksum, shadow/rollback CLIs | `trainer/**` |
 | 5 | Frontend: REST-only Supabase client (no CDN/library), prediction + delivery mirroring, CLOUD dashboard page, deployed-model apply, CSP update | `index.html` |

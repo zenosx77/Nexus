@@ -9,6 +9,7 @@ import { telegramSend } from './telegram.js';
 
 /** Record + (attempt to) deliver one alert. Returns true when newly raised. */
 export async function raiseAlert(kind, severity, message, payload = {}, opts = {}) {
+  const DBC = await db();
   const hourBucket = new Date(opts.now ?? Date.now()).toISOString().slice(0, 13);   // YYYY-MM-DDTHH
   const dedupeKey = `${kind}:${payload.scope || 'global'}:${hourBucket}`;
 
@@ -44,6 +45,7 @@ function escapeHtml(s) {
 
 /** All alert checks — one bounded pass. */
 export async function runAlertChecks(opts = {}) {
+  const DBC = await db();
   const now = opts.now ?? Date.now();
   const a = config.alerts;
   const raised = [];

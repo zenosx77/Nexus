@@ -35,6 +35,9 @@ export const config = {
   pollSeconds: Math.max(10, num('WORKER_POLL_SECONDS', 30)),
   pairs: list('INGEST_PAIRS') || fileConfig.pairs || null,   // null = all active pairs from DB
   ingestOutputsize: Math.min(5000, Math.max(60, num('INGEST_OUTPUTSIZE', 360))),
+  ingestMinIntervalSeconds: Math.max(0, Math.floor(num('INGEST_MIN_INTERVAL_SECONDS', 60))),
+  twelveDataDailyCreditLimit: Math.max(0, Math.floor(num('TWELVEDATA_DAILY_CREDIT_LIMIT', 700))),
+  twelveDataMinuteCreditLimit: Math.max(0, Math.floor(num('TWELVEDATA_PER_MINUTE_LIMIT', 6))),
 
   evaluationHorizon: Math.max(1, num('EVALUATION_HORIZON_CANDLES', 1)),
   evaluationGraceSeconds: num('EVALUATION_GRACE_SECONDS', 120),

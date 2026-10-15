@@ -175,8 +175,11 @@ async function main() {
   assert.equal(E('nonstopOn()'), false, 'NONSTOP defaults to OFF — quality only (no low-grade signals)');
   assert.equal(E('budgetLevel()'), 0);
   assert.equal(E('budgetScanStep()'), 1);
-  assert.equal(E('perMinCap()'), 7, 'one key budget = 7 calls/min headroom under the 8/min limit');
-  assert.equal(E('perDayCap()'), 760);
+  assert.equal(E('perMinCap()'), 7, 'conservative per-minute default is fixed, not multiplied by key count');
+  assert.equal(E('perDayCap()'), 700, 'conservative daily default is fixed, not multiplied by key count');
+  assert.ok($id('creditDailyLimit') && $id('creditMinuteLimit') && $id('saveCreditLimits'), 'editable daily and minute hard caps render');
+  assert.equal(+$id('creditDailyLimit').value, 700);
+  assert.equal(+$id('creditMinuteLimit').value, 7);
   assert.match($id('noteList').textContent, /Live feed/, 'notification centre never says "no trades" when empty');
 
   /* ── 6. TEN key slots: one-click save → browser storage ──────── */
@@ -188,8 +191,14 @@ async function main() {
   assert.equal(saved10.length, 10, 'all ten slots persisted to localStorage');
   assert.equal(saved10.filter(Boolean).length, 10);
   assert.equal(E('keyPool().length'), 10, 'pool holds all ten saved slots');
-  assert.equal(E('perMinCap()'), 70, 'budget scales with the ten-key pool');
-  assert.equal(E('perDayCap()'), 7600);
+  assert.equal(E('perMinCap()'), 7, 'ten keys do not automatically multiply the safe minute cap');
+  assert.equal(E('perDayCap()'), 700, 'ten keys do not automatically multiply the safe daily cap');
+  $id('creditDailyLimit').value = '900'; $id('creditMinuteLimit').value = '5';
+  assert.equal(E('saveCreditLimits()'), true, 'custom credit limits save');
+  assert.equal(E('perDayCap()'), 900); assert.equal(E('perMinCap()'), 5);
+  assert.equal(JSON.parse(w.localStorage.getItem('nx_credit_limits')).daily, 900, 'limits persist in this browser');
+  E('resetCreditLimits()');
+  assert.equal(E('perDayCap()'), 700); assert.equal(E('perMinCap()'), 7);
   // legacy 4-slot vault migrates forward
   const b10 = boot({ nx_keys4: JSON.stringify(['old-a', 'old-b', '', '']) });
   assert.equal(b10.E('keyPool().length'), 2, 'v5 4-slot vault migrated into the 10-slot pool');
@@ -501,7 +510,7 @@ async function main() {
   assert.equal(E('openSigs.every(s=>s.targetT>Date.now())'), true, 'targets point at the NEXT candle');
   assert.ok($id('pairGrid').querySelectorAll('.pcard').length >= 3, 'live pair grid renders every ticked pair');
   // M5 on → one extra candle request per pair, still candle-only
-  E(`$('m5conf').checked=true; cache={}`);
+  E(`$('m5conf').checked=true; cache={}; budget.min=[]`); // simulate the next minute, preserving the 7/min hard cap
   const u2 = [];
   w.fetch = async (url) => { u2.push(String(url)); return jsonResponse(candlePayload()); };
   await E('runScan(true)');
@@ -550,7 +559,7 @@ async function main() {
   assert.match(E('apiTimeSeries.toString()'), /resolveFeedTz/, 'M1 path resolves the effective feed clock');
   assert.match(E('apiM5Bias.toString()'), /resolveFeedTz/, 'M5 path resolves the effective feed clock');
   assert.match(E('deepBacktest.toString()'), /resolveFeedTz/, 'backtest path resolves the effective feed clock');
-  E('feedTzOff=660');
+  E('budget.min=[]; feedTzOff=660');
   assert.equal(E('parseCandleUTC("2024-05-01 03:15:00").toISOString()'), '2024-04-30T16:15:00.000Z', 'naive local stamp shifted back to UTC');
   assert.equal(E('parseCandleUTC("2024-05-01 03:15:00Z").toISOString()'), '2024-05-01T03:15:00.000Z', 'explicit Z stamps untouched');
   assert.equal(E('parseCandleUTC("2024-05-01 03:15:00+02:00").toISOString()'), '2024-05-01T01:15:00.000Z', 'offset-stamped candles untouched');
@@ -570,7 +579,7 @@ async function main() {
   assert.equal(E('candleGate(cache["EUR/USD"].m1).ok'), true, 'corrected newest candle passes the freshness gate');
   const shownUtc = new Date(tzNewest.ts).toISOString().slice(0, 19).replace('T', ' ') + ' UTC';
   assert.ok($id('pxinfo').textContent.includes(shownUtc), 'info line shows the corrected UTC candle stamp');
-  E('cache={}; feedTzOff=0');
+  E('cache={}; feedTzOff=0; budget.min=[]');
   w.fetch = async () => { const p = candlePayload(); p.meta = { '4. Time Zone': 'UTC' }; return jsonResponse(p); };
   await E('runScan(true)');
   assert.equal(E('feedTzOff'), 0, 'UTC feed → no shift');
@@ -596,7 +605,7 @@ async function main() {
   $id('blackout').dispatchEvent(new w.Event('change'));
   assert.equal(E('blackoutOn()'), true);
   assert.equal(w.localStorage.getItem('nx_blackout'), '1', 'blackout persists in browser storage');
-  E('cache={}; isWeekendWindow=()=>false; sessionGate=()=>({ok:true,reason:"test"})');
+  E('cache={}; budget.min=[]; isWeekendWindow=()=>false; sessionGate=()=>({ok:true,reason:"test"})');
   const sigCount0 = E('openSigs.length');
   w.fetch = async (url) => jsonResponse(candlePayload());
   await E('runScan(true)');
@@ -608,14 +617,31 @@ async function main() {
   assert.equal(E('blackoutOn()'), false);
 
   /* ── 21. credit budget throttling ─────────────────────────────── */
-  E('budget.day=(new Date()).toISOString().slice(0,10)');
-  E('budget.calls=perDayCap()*0.65');
+  E('budget.day=(new Date()).toISOString().slice(0,10); budget.min=[]; budget.calls=perDayCap()*0.65');
   assert.equal(E('budgetLevel()'), 1); assert.equal(E('budgetScanStep()'), 2, 'scan cadence halves at 60% budget');
-  E('budget.calls=perDayCap()*0.85');
-  assert.equal(E('budgetLevel()'), 2); assert.equal(E('budgetScanStep()'), 5);
-  E('budget.calls=perDayCap()+1');
-  assert.equal(E('budgetLevel()'), 3); assert.equal(E('budgetScanStep()'), 0, 'auto scans stop when the daily budget is gone');
-  E('budget.calls=0;budget.min=[];renderBudget(true)');
+  E('budget.calls=Math.ceil(perDayCap()*0.8); budget.min=[]');
+  assert.equal(E('budgetLevel()'), 2); assert.equal(E('budgetScanStep()'), 0, 'new scans stop at the 80% settlement reserve');
+  assert.equal(E('budgetCheck("scan").reason'), 'settlement-reserve');
+  assert.equal(E('budgetCheck("settlement").ok'), true, 'pending settlements may spend the reserved 20%');
+  assert.equal(E('budgetReserve("scan")'), false, 'hard soft-cap guard rejects a new scan');
+  assert.equal(E('budgetReserve("settlement")'), true, 'settlement can reserve a call below the hard cap');
+  E('budget.calls=perDayCap(); budget.min=[]');
+  assert.equal(E('budgetLevel()'), 3); assert.equal(E('budgetScanStep()'), 0, 'auto scans stop at the cap');
+  assert.equal(E('budgetCheck("settlement").reason'), 'daily-cap', 'hard cap blocks settlements too');
+  assert.equal(E('budgetReserve("settlement")'), false, 'no paid calls cross the daily hard cap');
+  const blockedFetches = [];
+  w.fetch = async url => { blockedFetches.push(String(url)); return jsonResponse({ values: [] }); };
+  E('cache={}; budget.calls=perDayCap(); budget.min=[]');
+  await assert.rejects(E('apiTimeSeries("EUR/USD",{maxAge:0})'), /NEXUS API budget/, 'request is blocked before provider fetch');
+  assert.equal(blockedFetches.length, 0, 'hard cap prevents any paid Twelve Data request');
+  E('creditLimits.minute=7; budget.calls=0; budget.min=[]; $("m5conf").checked=true');
+  assert.equal(E('budgetCheck("ticker").ok'), true, 'one background ticker request may use spare minute headroom');
+  assert.equal(E('budgetReserve("ticker")'), true);
+  assert.equal(E('budgetCheck("ticker").reason'), 'scan-reserve', 'ticker leaves room for a three-pair M1+M5 scan');
+  assert.equal(E('budgetCheck("scan").ok'), true, 'reserved scan capacity stays available');
+  E('creditLimits.minute=2; budget.calls=0; budget.min=[Date.now(),Date.now()];');
+  assert.equal(E('budgetCheck("scan").reason'), 'minute-cap', 'per-minute hard cap is enforced');
+  E('creditLimits=Object.assign({},DEFAULT_CREDIT_LIMITS); budget.calls=0;budget.min=[];$("m5conf").checked=false;renderBudget(true)');
   assert.match($id('budgetInfo').textContent, /per min/, 'budget meter renders');
 
   /* Channel e2e tests exercise delivery after an already-validated deployment. */

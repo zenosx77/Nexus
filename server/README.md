@@ -19,8 +19,8 @@ private `models` Storage bucket.
 ## Run
 
 ```bash
-npm start               # loop (default): ingest + evaluate + telegram + alerts each
-                        #   cycle, risk every 5 min, backfill every 6h, housekeeping daily
+npm start               # continuous loop: evaluation/retries/alerts each poll;
+                        #   quota-paced ingestion, risk every 5 min, backfill every 6h, housekeeping daily
 npm run once            # one full pass, then exit (cron-friendly)
 npm run ingest          # single job entrypoints, for debugging / scheduling:
 npm run evaluate        #   each is lock-protected (job_locks table) so running
@@ -32,11 +32,36 @@ npm run settings-sync   # write effective non-secret settings to system_settings
 npm test                # unit tests (node:test, no network, no Supabase)
 ```
 
+## Twelve Data credit guard
+
+Apply migration `0007_twelvedata_credit_budget.sql` before running the worker. Every paid, one-symbol data request atomically reserves a credit in Supabase **before** calling Twelve Data. The daily and minute counters survive restarts and are shared by worker instances. If the reservation service is unavailable, the worker fails closed and sends no paid request.
+
+Defaults are **700 worker requests per UTC day** and **6 per minute**. Live ingestion uses at most 80% of the daily cap, leaving the rest for backfills/retries, and rotates through the active pairs at a cadence calculated from the pair count. With the default ten pairs, this is not a real-time feed: expect each pair to refresh roughly every 26 minutes. Raise the cap only to fit the actual Twelve Data plan; the `WORKER_POLL_SECONDS` setting still controls evaluations, Telegram retries and alerts independently. Override with `TWELVEDATA_DAILY_CREDIT_LIMIT`, `TWELVEDATA_PER_MINUTE_LIMIT`, `INGEST_MIN_INTERVAL_SECONDS`, or a smaller `INGEST_PAIRS` list in `server/.env`.
+
+The server counter covers **this worker only**. The browser has its own local credit cap; if both use the same Twelve Data account/key, check DATA → API CREDIT USAGE and leave room for both. Twelve Data's `api_usage` figures are authoritative for the provider account.
+
+### Keep the worker running 24/7
+
+A terminal `npm start` stops when you log out or the machine sleeps. On an always-on Linux VPS, run it under PM2:
+
+```bash
+cd /path/to/Nexus/server
+npm install
+cp .env.example .env       # fill in real values; never commit this file
+npm install --global pm2
+pm2 start npm --name nexus-worker -- start
+pm2 save
+pm2 startup                # run the one-time command PM2 prints
+pm2 logs nexus-worker
+```
+
+Use a VPS/container that does not sleep, and keep `server/.env` on that host. For systemd, set `WorkingDirectory` to `.../Nexus/server`, `ExecStart` to `npm start`, `Restart=always`, and a non-root `User`; the worker loads `server/.env` itself. The static website is separate: GitHub Pages serves the UI continuously, while an open browser tab is still required for browser-only scanning/Telegram engines.
+
 ## What each job does
 
 | Job | Cadence | Behaviour |
 |---|---|---|
-| `ingest` | every poll (30s default) | Fetch 1-min candles per active pair from Twelve Data (key rotation + cooldown), keep **completed candles only**, upsert with duplicate/revision detection, compute `nexus-f1` feature snapshots, record an `ingestion_runs` row. Never writes fabricated prices — a provider failure writes nothing but a failed run row. |
+| `ingest` | credit-paced (at most 80% of daily cap) | Fetch 1-min candles for a rotating batch of active pairs from Twelve Data (atomic credit reservation + key rotation/cooldown), keep **completed candles only**, upsert with duplicate/revision detection, compute `nexus-f1` feature snapshots, record an `ingestion_runs` row. Never writes fabricated prices — a provider failure writes nothing but a failed run row. |
 | `evaluate` | every poll | Evaluate predictions whose horizon elapsed: entry = open of target candle, exit = close of candle at `target + (horizon−1)·60s`. Direction-adjusted gross bps minus estimated costs (pair spread + slippage). Insert-only (PK = prediction_id) → no duplicate evaluations; corrections go through the audited update path. Missing candles after `EVALUATION_MAX_DELAY_MINUTES` → `invalid`. |
 | `telegram` | every poll | Retry deliveries the browser recorded as `failed`/`retrying` (max `TELEGRAM_RETRY_MAX` attempts). Retrying only explicit API failures guarantees no double-sends. |
 | `alerts` | every poll | Data lag, missing evaluations, delivery failures, w20 win-rate floor + losing-streak degradation — deduplicated per hour into `alert_log`, mirrored to the ops Telegram chat. |

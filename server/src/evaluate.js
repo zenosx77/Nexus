@@ -20,6 +20,7 @@ const DEFAULT_COSTS = { spread_bps: 1.0, slippage_bps: 0.5 };
  * 3. Evaluate; insert-if-absent. Candles still missing after max_delay → 'invalid'.
  */
 export async function runEvaluate(opts = {}) {
+  const DBC = await db();
   const now = opts.now ?? Date.now();
   const graceMs = config.evaluationGraceSeconds * 1000;
   const maxDelayMs = config.evaluationMaxDelayMinutes * 60_000;

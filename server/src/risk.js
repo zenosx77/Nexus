@@ -64,6 +64,7 @@ const WINDOWS = { w20: 20, w100: 100, all: null };
  * valid outcomes per scope). Idempotent per (scope, window, as_of-minute).
  */
 export async function runRiskSnapshots(opts = {}) {
+  const DBC = await db();
   const asOf = new Date(opts.now ?? Date.now());
   asOf.setSeconds(0, 0);                            // minute granularity → natural dedupe
 
@@ -122,6 +123,7 @@ export async function runRiskSnapshots(opts = {}) {
 
 /** Latest snapshot per scope+window (bounded) — used by alerts + dashboard. */
 export async function latestSnapshots() {
+  const DBC = await db();
   const { data, error } = await DBC
     .from('risk_snapshots')
     .select('scope, window, as_of, win_rate, expectancy_bps, profit_factor, current_losing_streak, sample_size')

@@ -22,7 +22,7 @@ and **quality-first signals**.
 | **Paper-first production gate** | Telegram signal/list production remains locked until there are ≥100 confirmed paper outcomes, ≥70% measured wins, a 95% Wilson lower bound above payout break-even, and ≥50 profitable deep-validation trades. Local paper scanning remains active to collect honest evidence. Passing the gate reduces risk but never guarantees a future win. |
 | **Figma-style product polish** | Responsive page reveals, staggered cards, hover depth, button ripples, ambient motion, toast feedback, online/offline status, back-to-top, and a searchable **Ctrl/⌘ K command palette**. Motion automatically disables when the operating system requests reduced motion. |
 | **Quality first** | NONSTOP relaxed signals are **off by default**; the SESSION floor **never decays** into low grades — it waits for quality. 26 strategies (10 new: TRIX, Awesome Oscillator, Chande Momentum, Envelope stretch, BB squeeze break, Fractal breakout, EMA-50 pullback, ROC flip, 3-bar reversal, Stoch+RSI combo). |
-| **API credit usage** | A dedicated **API CREDIT USAGE** section reads each key's real spend from Twelve Data's `api_usage` endpoint (0 credits) with per-key bars, remaining counts and a live call meter. |
+| **API credit usage** | **API CREDIT USAGE** reads each key's real spend from Twelve Data's free `api_usage` endpoint and provides editable daily/minute hard caps. Defaults are 700/day + 7/min (not multiplied by key count); new scans pause at 80%, reserving headroom for settlements. The worker has a separate persistent Supabase-backed cap. |
 | **10 API keys** | Up from 4 — ten rotating slots with quota cooldown, plus PERMANENT_KEYS / keys.js sources merged into one pool. |
 | **Bot-configured formats** | Text `/setformat signal` (or `vip` · `row` · `list` · `result` · `verdict`) with your layout — placeholders like `{pair} {dir} {time} {grade}`, markup `*bold* _italic_ \`code\`` — saved permanently. `/formats` lists them, `/resetformat` restores defaults. Defaults are **ultra-minimal**: pair · direction · entry time · 1-min expiry. |
 | **Premium emoji** | Telegram **blocks bots from sending premium/custom emoji** — the format engine never emits those entities, so pasted premium emoji are auto-normalized to regular emoji and messages can never fail on them. |
@@ -50,6 +50,12 @@ everything is one self-contained file with a strict CSP (`api.twelvedata.com` + 
 
 The CI credential guard (`tools/check-public.cjs`) refuses to publish if any key/token would ship.
 
+### Control API credits
+
+On the **DATA → API CREDIT USAGE** card, set a daily hard cap and per-minute cap (defaults: **700/day, 7/minute**). The browser stores these limits and its request counter in that browser only. Scans slow at 60%; at 80%, new paid scans pause and pending settlements may use the 20% reserve; the hard cap blocks every paid data request until 00:00 UTC or the cap is raised. The free `api_usage` CHECK shows actual provider spend by key, including use from other devices. Multiple keys do **not** automatically raise the local cap.
+
+The `server/` worker is controlled separately via `TWELVEDATA_DAILY_CREDIT_LIMIT` and `TWELVEDATA_PER_MINUTE_LIMIT`; its reservation count is persistent in Supabase after migration 0007. Browser and worker limits are independent—if they share a Twelve Data account, configure their combined allowance below your plan limit and reconcile with `api_usage`.
+
 ### Telegram setup (3 minutes)
 
 1. **TELEGRAM page → block 1:** paste the bot token, your brand, and the four channels
@@ -61,7 +67,7 @@ The CI credential guard (`tools/check-public.cjs`) refuses to publish if any key
 
 ### Continuous operation (important)
 
-The browser engine persists pending signals and resumes them after reload, but browsers cannot guarantee background timers after a tab/device sleeps. For genuine 24/7 operation, keep the page open on an always-on machine (disable tab sleeping) and run the `server/` worker under a process supervisor. The worker handles ingestion, evaluation, retries and alerts continuously; forex streams intentionally pause during the weekend market closure and configured safety gates. “24/7” never means forcing a trade when no setup qualifies.
+**The public website and its engines are different things.** GitHub Pages serves the static UI 24/7 after the deploy workflow publishes `main`; this branch's changes go live after they are merged to `main`. Browser-only scans and Telegram streams run only while the page is open and the device/tab is awake—browsers can suspend timers, so this is not reliable unattended hosting. For background ingestion, evaluation, retries and alerts, deploy `server/` to an always-on VPS and keep it alive with PM2/systemd (exact commands in [server/README.md](server/README.md)). Apply migrations 0001–0007 first. The worker's safe default credit cap spaces data ingestion; real-time all-pair coverage needs a provider plan sized for it. Forex market feeds intentionally pause over weekends and safety gates may suppress signals. “24/7” never means forcing a trade when no setup qualifies.
 
 ### Bot commands
 
@@ -82,7 +88,7 @@ outcome evaluation, risk monitoring and self-learning, connect a Supabase projec
   minus estimated costs), risk snapshots, Telegram retries, ops alerts, retention.
 - **`trainer/`** — Python trainer (stdlib only): leakage-free chronological walk-forward
   training, gated promotion (shadow mode first), rollback support, private model artifacts.
-- **`supabase/migrations/`** — versioned SQL schema (10 tables + views + RLS + retention).
+- **`supabase/migrations/`** — versioned SQL schema (core tables plus the worker credit-budget table, views, RLS and retention).
 
 Full setup: **[SUPABASE_SETUP.md](SUPABASE_SETUP.md)** · architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 

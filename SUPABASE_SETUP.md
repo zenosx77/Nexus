@@ -36,6 +36,8 @@ supabase/migrations/0003_ml.sql          model registry, training runs
 supabase/migrations/0004_ops.sql         risk, ingestion, deliveries, settings, job locks
 supabase/migrations/0005_rls.sql         row-level security (anon = insert-only mirror)
 supabase/migrations/0006_retention.sql   prune functions
+supabase/migrations/0007_twelvedata_credit_budget.sql
+                                         persistent atomic worker credit guard
 ```
 
 Then create the **private** Storage bucket: Dashboard → Storage → `models` (private).
@@ -55,13 +57,28 @@ cd server
 npm install
 cp .env.example .env        # fill in SUPABASE_URL, SERVICE-ROLE key, Twelve Data keys, Telegram
 npm run once               # one full pass: ingest → evaluate → telegram → alerts → risk → housekeeping
-npm start                  # or run forever (or schedule `npm run once` with cron)
+npm start                  # continuous loop (keep alive with PM2/systemd on an always-on host)
 ```
 
+For a restart-on-crash/background process on an always-on Linux VPS:
+
+```bash
+cd /path/to/Nexus/server
+npm install
+cp .env.example .env       # fill in the credentials on the server only
+npm install --global pm2
+pm2 start npm --name nexus-worker -- start
+pm2 save
+pm2 startup                # run PM2's one-time startup command
+pm2 logs nexus-worker
+```
+
+**Credit controls:** migration `0007_twelvedata_credit_budget.sql` adds an atomic Supabase-backed guard. The worker defaults to 700 paid requests per UTC day and 6 per minute; it persists reservations across restarts, fails closed if it cannot reserve, and spaces live ingestion to use at most 80% of the daily cap (20% stays available for retries/backfill). Change `TWELVEDATA_DAILY_CREDIT_LIMIT`, `TWELVEDATA_PER_MINUTE_LIMIT`, `INGEST_MIN_INTERVAL_SECONDS`, and `INGEST_PAIRS` in `server/.env` to match the provider plan. With 10 active pairs, the safe default is a slow rotating feed (roughly 26 minutes per pair), not a 1-minute real-time stream. The browser's DATA page has a separate local cap; both budgets are independent, so use the free per-key `api_usage` check to monitor combined account spend.
+
 The worker:
-- ingests **completed** 1-minute candles for all active pairs (rotates Twelve Data keys,
-  cooldown on quota, records every run, detects gaps/duplicates/revisions/staleness,
-  never fabricates prices);
+- ingests **completed** 1-minute candles in a credit-paced rotating batch of active pairs
+  (rotates Twelve Data keys, reserves each request against the persistent worker budget,
+  records every run, detects gaps/duplicates/revisions/staleness, never fabricates prices);
 - evaluates predictions after their horizon: entry = open of the target candle,
   exit = close of the last candle in the horizon, direction-adjusted, minus estimated
   costs (pair spread + slippage); missing candles after the max delay → `invalid`;
@@ -119,11 +136,11 @@ What one `run` does:
 
 ## 5. Deployment / operations checklist
 
-- [ ] migrations applied in order; `models` bucket private
+- [ ] migrations 0001–0007 applied in order; `models` bucket private
 - [ ] RLS verified: anon can INSERT `predictions` / `telegram_deliveries` but never
       UPDATE/DELETE anything (0005 policies)
 - [ ] `server/.env` + `trainer/.env` created, never committed (gitignored)
-- [ ] worker running (`npm start` or cron `npm run once`) — watch `ingestion_runs`
+- [ ] worker running under PM2/systemd on an always-on host — watch `ingestion_runs` and supervisor logs
 - [ ] trainer scheduled (`train.py run`), `training.auto_promote` still `false`
 - [ ] ops alerts arriving in `TELEGRAM_OPS_CHAT`
 - [ ] CLOUD page connected with the anon key; signals appear in `predictions`

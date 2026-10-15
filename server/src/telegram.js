@@ -43,6 +43,7 @@ export async function telegramSend(chatId, text, opts = {}) {
  * Bounded to 25 rows per pass.
  */
 export async function runTelegramRetries(opts = {}) {
+  const DBC = await db();
   const max = opts.max ?? config.telegramRetryMax;
   const { data: rows, error } = await DBC
     .from('telegram_deliveries')
