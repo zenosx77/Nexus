@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NEXUS self-learning trainer (stdlib only — Python 3.9+).
+NEXUS self-learning trainer (Python 3.9+ stdlib and Node 22 browser contract).
 
 Learns per-timeframe per-strategy weights (vwr / vtrades) from recorded
 production predictions + evaluated outcomes, using the SAME weight shape the
@@ -25,6 +25,7 @@ import json
 import os
 import re
 import sys
+import subprocess
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -89,8 +90,7 @@ def sb_request(method, path, params=None, body=None, prefer=None, storage=False)
             raw = res.read().decode()
             return json.loads(raw) if raw else None
     except urllib.error.HTTPError as err:
-        detail = err.read().decode()[:400]
-        raise RuntimeError(f"supabase {method} {path}: HTTP {err.code} {detail}") from err
+        raise RuntimeError(f"supabase request failed: HTTP {err.code}") from err
 
 
 # ── pure logic: dataset handling ──────────────────────────────────────────
@@ -104,6 +104,17 @@ def chronological_split(rows, holdout_frac=0.2, min_holdout=30):
     holdout_n = max(min_holdout, int(n * holdout_frac)) if n > min_holdout * 2 else max(1, n // 5)
     holdout_n = min(holdout_n, n - 1) if n > 1 else 0
     return rows[: n - holdout_n], rows[n - holdout_n:]
+
+
+def purge_overlapping_labels(train, validation):
+    """A training label must finish strictly before the next validation target.
+    Also purges all pairs sharing a target timestamp at a split boundary."""
+    if not validation:
+        return []
+    boundary = datetime.fromisoformat(validation[0]["target_open_ts"].replace("Z", "+00:00")).timestamp()
+    return [r for r in train if
+            datetime.fromisoformat(r["target_open_ts"].replace("Z", "+00:00")).timestamp()
+            + max(1, int(r.get("evaluation_horizon", 1))) * 60 < boundary]
 
 
 def walk_forward_folds(n_rows, n_folds=4, min_val=30):
@@ -153,8 +164,23 @@ def canonical_json(obj):
     """Compact, key-sorted, ASCII-only JSON — the exact byte stream that is
     hashed AND the exact byte stream the browser rebuilds from artifact_payload
     to verify artifact_sha256 with crypto.subtle."""
-    return json.dumps(sanitize_json(obj), sort_keys=True, separators=(",", ":"),
-                      ensure_ascii=True, allow_nan=False)
+    return browser_contract(obj)
+
+
+def browser_contract(obj, validate=False):
+    tool = os.path.join(os.path.dirname(__file__), "..", "tools", "model-contract.cjs")
+    command = ["node", tool] + (["--validate"] if validate else [])
+    result = subprocess.run(command, input=json.dumps(obj, ensure_ascii=True, allow_nan=False),
+                            text=True, capture_output=True, timeout=15)
+    if result.returncode:
+        raise ValueError("browser model contract rejected artifact")
+    return result.stdout
+
+
+def eligible_record(row):
+    return (row.get("is_valid") is True and row.get("outcome") in ("win", "loss")
+            and row.get("direction") in ("CALL", "PUT"))
+
 
 
 def artifact_sha256(artifact):
@@ -198,7 +224,7 @@ def compute_strategy_stats(records, min_trades=15, max_trades=5000):
     stats = {}  # tf -> {strat: [wins, total]}
     for r in records:
         o = r.get("outcome")
-        if o not in ("win", "loss"):
+        if not eligible_record(r):
             continue
         tf = r.get("timeframe", "1m")
         right_dir = r.get("direction") if o == "win" else (
@@ -241,7 +267,7 @@ def evaluate_weights(records, weights):
     net = peak = max_dd = 0.0
     for r in records:
         o = r.get("outcome")
-        if o not in ("win", "loss"):
+        if not eligible_record(r):
             continue
         tf = r.get("timeframe", "1m")
         score = 0.0
@@ -389,33 +415,54 @@ def fetch_dataset(limit=5000, since_days=180):
     since = (datetime.now(timezone.utc) - timedelta(days=since_days)).isoformat()
     params = {
         "select": ("id,pair_code,timeframe,target_open_ts,direction,strategy_detail,"
-                   "feature_version,created_at,"
+                   "feature_version,created_at,evaluation_horizon,"
                    "trade_outcomes!inner(outcome,is_valid,net_return_bps)"),
         "is_shadow": "is.false",
         "source": "eq.browser",
         "target_open_ts": f"gte.{since}",
-        "order": "target_open_ts.asc",
+        "order": "target_open_ts.asc,id.asc",
+        "trade_outcomes.is_valid": "is.true",
+        "trade_outcomes.outcome": "in.(win,loss)",
         "limit": str(limit),
     }
-    rows = sb_request("GET", "predictions", params=params) or []
+    rows = []
+    # Explicit pages avoid silently training on PostgREST's default 1000-row cap.
+    while len(rows) < limit:
+        page_size = min(1000, limit - len(rows))
+        page = sb_request("GET", "predictions", params={**params,
+            "limit": str(page_size), "offset": str(len(rows))}) or []
+        rows.extend(page)
+        if len(page) < page_size:
+            break
     records = []
     for r in rows:
-        oc = (r.get("trade_outcomes") or [{}])[0]
-        if not oc.get("outcome"):
+        oc = r.get("trade_outcomes") or {}
+        if isinstance(oc, list):
+            oc = oc[0] if len(oc) == 1 else {}
+        if not eligible_record({**r, **oc}):
+            continue
+        # Fail closed on malformed/future targets and late-recorded predictions.
+        try:
+            target = datetime.fromisoformat(r["target_open_ts"].replace("Z", "+00:00"))
+            created = datetime.fromisoformat(r["created_at"].replace("Z", "+00:00"))
+            if created > target or target >= datetime.now(timezone.utc):
+                continue
+        except (KeyError, TypeError, ValueError):
             continue
         records.append({
             "id": r["id"],
             "pair_code": r["pair_code"],
             "timeframe": r.get("timeframe", "1m"),
             "target_open_ts": r["target_open_ts"],
+            "evaluation_horizon": r.get("evaluation_horizon", 1),
             "direction": r.get("direction"),
             "strategy_detail": r.get("strategy_detail") or {},
             "feature_version": r.get("feature_version", "browser-live-v1"),
             "outcome": oc["outcome"],
-            "is_valid": oc.get("is_valid", True),
+            "is_valid": oc.get("is_valid"),
             "net_return_bps": oc.get("net_return_bps"),
         })
-    return records
+    return sorted(records, key=lambda r: (r["target_open_ts"], r["id"]))
 
 
 def get_deployed_model():
@@ -428,28 +475,41 @@ def deployed_weights(model_row):
     if not model_row:
         return {}
     payload = model_row.get("artifact_payload") or {}
-    return payload.get("timeframes") or payload or {}
+    encoded = browser_contract(payload, validate=True)
+    if hashlib.sha256(encoded.encode()).hexdigest() != model_row.get("artifact_sha256"):
+        raise ValueError("deployed model checksum mismatch")
+    return payload["timeframes"]
 
 
 def upload_artifact(model_id, artifact):
-    body = json.dumps(artifact, sort_keys=True).encode()
+    body = browser_contract(artifact, validate=True).encode("utf-8")
     sha = hashlib.sha256(body).hexdigest()
     path = f"artifacts/{model_id}.json"
-    # storage PUT with upsert
+    # Storage object is immutable; a colliding model ID must fail closed.
     url = f"{SB_URL.rstrip('/')}/storage/v1/object/models/{path}"
-    req = urllib.request.Request(url, data=body, method="PUT", headers={
+    req = urllib.request.Request(url, data=body, method="POST", headers={
         "apikey": SB_KEY, "authorization": f"Bearer {SB_KEY}",
-        "content-type": "application/json", "x-upsert": "true",
+        "content-type": "application/json", "x-upsert": "false",
     })
     try:
         with urllib.request.urlopen(req, timeout=60) as res:
             res.read()
     except urllib.error.HTTPError as err:
-        raise RuntimeError(f"artifact upload failed: HTTP {err.code} {err.read().decode()[:300]}") from err
+        raise RuntimeError(f"artifact upload failed: HTTP {err.code} ") from err
+    # Read back Storage bytes; never register an unverified upload.
+    read = urllib.request.Request(
+        f"{SB_URL.rstrip('/')}/storage/v1/object/authenticated/models/{path}",
+        headers=sb_headers())
+    with urllib.request.urlopen(read, timeout=60) as res:
+        downloaded = res.read()
+    if downloaded != body:
+        raise ValueError("storage artifact readback mismatch")
     return path, sha, len(body)
 
 
 def register_model(model_id, artifact, metrics, status, path, sha, nbytes, notes=None):
+    if hashlib.sha256(browser_contract(artifact, validate=True).encode()).hexdigest() != sha:
+        raise ValueError("model checksum mismatch")
     row = {
         "id": model_id,
         "kind": "strategy-weights",
@@ -467,6 +527,10 @@ def register_model(model_id, artifact, metrics, status, path, sha, nbytes, notes
     if status == "deployed":
         row["promoted_at"] = datetime.now(timezone.utc).isoformat()
     sb_request("POST", "model_versions", body=row, prefer="return=minimal")
+    saved = sb_request("GET", "model_versions", params={"id": f"eq.{model_id}", "limit": "1"})
+    if not saved or saved[0].get("artifact_sha256") != sha:
+        raise ValueError("model registry readback failed")
+    deployed_weights(saved[0])
     return row
 
 
@@ -503,16 +567,22 @@ def cmd_run():
         return 1
 
     train_pool, holdout = chronological_split(records)
+    train_pool = purge_overlapping_labels(train_pool, holdout)
     folds = walk_forward_folds(len(train_pool))
 
     deployed_row = get_deployed_model()
     dep_w = deployed_weights(deployed_row)
+    if deployed_row:
+        prior_end = (deployed_row.get("artifact_payload", {}).get("dataset") or {}).get("window_end")
+        if not prior_end or prior_end >= records[0]["target_open_ts"]:
+            raise ValueError("deployed prior overlaps evaluation history; choose a later dataset window")
 
     # walk-forward: candidate (re-learned per fold) vs deployed replay vs raw majority
     wf_c, wf_d, wf_b = [], [], []
     for train_end, val_start, val_end in folds:
-        learned = blend_weights(dep_w, compute_strategy_stats(train_pool[:train_end]))
         val = train_pool[val_start:val_end]
+        fold_train = purge_overlapping_labels(train_pool[:train_end], val)
+        learned = blend_weights(dep_w, compute_strategy_stats(fold_train))
         wf_c.append(evaluate_weights(val, learned))
         wf_d.append(evaluate_weights(val, dep_w))
         wf_b.append(evaluate_majority(val))
@@ -542,7 +612,8 @@ def cmd_run():
     }
 
     passed, reasons = promotion_gate(candidate_metrics, deployed_metrics, settings, n)
-    auto_promote = settings.get("auto_promote", False)
+    # Promotion is an explicit production operation, never part of scheduled training.
+    auto_promote = False
 
     if passed and auto_promote:
         decision = "promoted"
@@ -622,6 +693,7 @@ def cmd_rollback():
     if not previous:
         print("no previous model available for rollback")
         return 1
+    deployed_weights(previous)  # validate before touching the current registry
     retire_deployed(deployed, new_status="rolled_back")
     promote_model(previous["id"])
     print(f"rolled back: {deployed['id']} → {previous['id']}")
@@ -662,4 +734,8 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception:
+        print("trainer failed; inspect configuration and database state (details suppressed)", file=sys.stderr)
+        sys.exit(1)

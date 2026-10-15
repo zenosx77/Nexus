@@ -89,7 +89,7 @@ The worker and browser relay budgets do not reconcile provider usage from other 
 | `telegram` | every poll | Retry recorded `failed`/`retrying` delivery attempts up to `TELEGRAM_RETRY_MAX`. |
 | `alerts` | every poll | Data lag, missing evaluations, delivery failures, win-rate and losing-streak alerts, deduplicated in `alert_log` and sent to the ops chat. |
 | `risk` | 5 min | Rolling w20/w100/all snapshots per scope; accuracy remains separate from simulated returns. |
-| `backfill` | 6 h | Detect and fill gaps ≥3 min from provider history. |
+| `backfill` | manual only | Detect and fill gaps ≥3 min from provider history. |
 | `housekeeping` | 24 h | Sweep job locks and prune operational logs, risk snapshots, and candles. Optional archival is controlled by `ARCHIVE_BEFORE_PRUNE`. |
 
 ## External services
@@ -103,3 +103,7 @@ The worker and browser relay budgets do not reconcile provider usage from other 
 ## Tests
 
 `npm test` runs logic plus loopback HTTP tests with fake Auth/database/provider/Bot transports; no hosted Supabase or provider access and no real credentials are used. Root `npm test` also runs disposable PGlite migrations/role tests, the trainer/browser suites and the public artifact scan. See the runbook for limitations: PGlite is not a hosted or multi-connection verification, and Telegram delivery is not exactly once. Live migrations, CORS/proxy behavior, Auth settings, staging data, and provider quotas must be verified separately in a safe staging project before production use.
+
+## Scheduled deployment
+
+See [the verified implementation report and phone runbook](../docs/DEPLOYMENT_VERIFICATION.md). Scheduled jobs are separate from `loop`/`once`, never generate predictions or send Telegram, and require production approval. Backfill is now manual in every worker mode. The existing independent browser/worker budget counters are **not** an account-wide cap; resolve the shared-account blocker before activation.

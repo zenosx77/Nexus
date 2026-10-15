@@ -20,7 +20,7 @@ const DEFAULT_COSTS = { spread_bps: 1.0, slippage_bps: 0.5 };
  * 3. Evaluate; insert-if-absent. Candles still missing after max_delay → 'invalid'.
  */
 export async function runEvaluate(opts = {}) {
-  const DBC = await db();
+  const DBC = await (opts.db ?? db)();
   const now = opts.now ?? Date.now();
   const graceMs = config.evaluationGraceSeconds * 1000;
   const maxDelayMs = config.evaluationMaxDelayMinutes * 60_000;
@@ -30,7 +30,7 @@ export async function runEvaluate(opts = {}) {
   const cutoff = new Date(now - graceMs - 60_000).toISOString();
   const { data: due, error } = await DBC
     .from('v_prediction_accuracy')
-    .select('id, pair_code, timeframe, target_open_ts, direction, evaluation_horizon, strategy_version, outcome')
+    .select('id, pair_code, timeframe, target_open_ts, direction, strategy_version, outcome')
     .is('outcome', null)
     .eq('is_shadow', false)
     .lte('target_open_ts', cutoff)
@@ -41,6 +41,13 @@ export async function runEvaluate(opts = {}) {
   const stats = { due: due ? due.length : 0, evaluated: 0, invalid: 0, skipped: 0 };
   if (!due || !due.length) return stats;
 
+  // The accuracy view intentionally does not expose evaluation_horizon.
+  const { data: horizons, error: horizonError } = await DBC.from('predictions')
+    .select('id,evaluation_horizon').in('id', due.map(p => p.id));
+  const horizonMap = new Map((horizons || []).map(p => [p.id, p.evaluation_horizon]));
+  if (horizonError || due.some(p => !horizonMap.has(p.id))) throw new Error('prediction horizon read failed');
+  for (const p of due) p.evaluation_horizon = horizonMap.get(p.id);
+
   // group by pair to batch candle loads
   const byPair = new Map();
   for (const p of due) {
@@ -48,21 +55,23 @@ export async function runEvaluate(opts = {}) {
     byPair.get(p.pair_code).push(p);
   }
 
-  const { data: pairRows } = await DBC.from('currency_pairs').select('code, spread_bps');
+  const { data: pairRows, error: pairError } = await DBC.from('currency_pairs').select('code, spread_bps');
+  if (pairError) throw new Error('pair cost read failed');
   const spreadMap = new Map((pairRows || []).map(r => [r.code, Number(r.spread_bps) || DEFAULT_COSTS.spread_bps]));
 
   for (const [pair, preds] of byPair) {
-    // candle range covering this whole batch (bounded: max horizon 60 candles)
-    const from = Math.min(...preds.map(p => Date.parse(p.target_open_ts)));
-    const to = Math.max(...preds.map(p => exitTsFor(p)));
-    const { data: candles, error: cErr } = await DBC
-      .from('market_candles')
-      .select('ts, open, close')
-      .eq('pair_code', pair)
-      .eq('timeframe', TF)
-      .gte('ts', new Date(from).toISOString())
-      .lte('ts', new Date(to).toISOString());
-    if (cErr) { log('warn', `candle load failed for ${pair}`, cErr.message); stats.skipped += preds.length; continue; }
+    // Fetch exact required timestamps in bounded chunks: a broad range can
+    // silently hit PostgREST's row cap and falsely classify older gaps invalid.
+    const times = [...new Set(preds.flatMap(p => [p.target_open_ts,
+      new Date(exitTsFor(p) - 60_000).toISOString()]))];
+    const candles = [];
+    for (let i = 0; i < times.length; i += 100) {
+      const { data, error: cErr } = await DBC.from('market_candles')
+        .select('ts, open, close').eq('pair_code', pair).eq('timeframe', TF)
+        .in('ts', times.slice(i, i + 100));
+      if (cErr) throw new Error('settlement candle read failed');
+      candles.push(...(data || []));
+    }
     const cmap = new Map((candles || []).map(c => [Date.parse(c.ts), { open: Number(c.open), close: Number(c.close) }]));
 
     for (const p of preds) {
@@ -97,10 +106,11 @@ export async function runEvaluate(opts = {}) {
       });
       if (insErr) {
         if (insErr.code === '23505') { stats.skipped += 1; continue; }       // already evaluated (race) — fine
-        log('warn', `outcome insert failed for ${p.id}`, insErr.message);
-        stats.skipped += 1;
-        continue;
+        throw new Error('outcome insert failed');
       }
+      const { data: readback, error: readError } = await DBC.from('trade_outcomes')
+        .select('outcome,is_valid').eq('prediction_id', p.id).single();
+      if (readError || readback?.outcome !== r.outcome || readback?.is_valid !== r.is_valid) throw new Error('settlement readback failed');
       if (r.outcome === 'invalid') stats.invalid += 1; else stats.evaluated += 1;
     }
   }

@@ -66,7 +66,7 @@ export const config = {
 
   evaluationHorizon: Math.max(1, num('EVALUATION_HORIZON_CANDLES', 1)),
   evaluationGraceSeconds: num('EVALUATION_GRACE_SECONDS', 120),
-  evaluationMaxDelayMinutes: num('EVALUATION_MAX_DELAY_MINUTES', 30),
+  evaluationMaxDelayMinutes: Math.max(90, num('EVALUATION_MAX_DELAY_MINUTES', 90)),
 
   telegramRetryMax: num('TELEGRAM_RETRY_MAX', 3),
 

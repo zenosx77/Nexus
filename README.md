@@ -94,3 +94,7 @@ Simulated performance shown anywhere is a signal-quality metric, never realized 
 - `tools/check-public.cjs` — static deployment credential guard
 - `tests/smoke.cjs` / `server/test/` — local regression and unit tests
 - `SUPABASE_SETUP.md` — detailed setup and verification checklist
+
+## Scheduled jobs and deployment approval
+
+See [Deployment verification and phone runbook](docs/DEPLOYMENT_VERIFICATION.md) for local results, production blockers, read-only SQL, approval gates and rollback. Weekly training is shadow-only; it requires Node 22 as well as Python. No production readiness or profitability is implied by offline tests.

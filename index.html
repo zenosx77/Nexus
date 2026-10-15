@@ -4390,6 +4390,21 @@ function sbCanonical(v){
   if(Array.isArray(v)) return '['+v.map(sbCanonical).join(',')+']';
   return '{'+Object.keys(v).sort().map(k=>sbCanonicalStr(k)+':'+sbCanonical(v[k])).join(',')+'}';
 }
+function sbValidateArtifact(payload){
+  const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+  const safe=k=>!['__proto__','prototype','constructor'].includes(k);
+  if(!object(payload)||payload.kind!=='strategy-weights'||!object(payload.timeframes)) throw new Error('invalid model shape');
+  let count=0;
+  for(const [tf,block] of Object.entries(payload.timeframes)){
+    if(!['1m','3m'].includes(tf)||!object(block)||!object(block.strats)) throw new Error('invalid model timeframe');
+    for(const [name,w] of Object.entries(block.strats)){
+      if(!safe(name)||!object(w)||!Number.isFinite(w.vwr)||w.vwr<0||w.vwr>1||!Number.isInteger(w.vtrades)||w.vtrades<0||w.vtrades>5000) throw new Error('invalid strategy weight');
+      count++;
+    }
+  }
+  if(!count) throw new Error('artifact carries no usable strategy weights');
+  return true;
+}
 function sbUtf8(str){
   if(typeof TextEncoder!=='undefined') return new TextEncoder().encode(str);
   const out=[];                                   /* manual UTF-8 for old engines */
@@ -4518,6 +4533,7 @@ async function sbApplyModel(){
     if(!payload||!payload.timeframes||typeof payload.timeframes!=='object') throw new Error('artifact carries no timeframes');
     const sha=await sbSha256Hex(sbCanonical(payload));
     if(sha!==String(model.artifact_sha256||'')) throw new Error('checksum mismatch — artifact rejected (registry sha '+String(model.artifact_sha256).slice(0,12)+'… vs computed '+sha.slice(0,12)+'…)');
+    sbValidateArtifact(payload); // validate the entire model before mutating any weights
     const tfMap={'1m':'M1','3m':'M3'};
     let applied=0; const tfSeen=[];
     for(const tk in payload.timeframes){

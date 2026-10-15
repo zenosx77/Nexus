@@ -72,6 +72,11 @@ function scrubProviderData(value) {
  * browser or worker request pool; api_usage is free and reserves no credits.
  * Returns { data, keyIndex } without ever returning the selected key.
  */
+let jobCreditsRemaining = Infinity;
+export function limitJobCredits(limit = 6) {
+  jobCreditsRemaining = Math.max(0, Math.min(6, Math.floor(limit)));
+}
+
 export async function requestTwelveData(endpoint, params = {}, scope = 'worker', budgetOptions = {}, dependencies = {}) {
   if (!['time_series', 'quote', 'price', 'exchange_rate', 'api_usage'].includes(endpoint)) {
     throw new Error('Twelve Data operation is not allowed');
@@ -85,11 +90,13 @@ export async function requestTwelveData(endpoint, params = {}, scope = 'worker',
     if (!key) throw new Error(`all ${config.twelveDataKeys.length} provider keys are cooling down`);
     const keyIndex = config.twelveDataKeys.indexOf(key);
     if (endpoint !== 'api_usage') {
+      if (scope === 'worker' && jobCreditsRemaining <= 0) throw new TwelveDataBudgetError('job-limit', 'Job paid-call cap reached');
       if (scope === 'browser') await reserveTwelveDataBrowserCredit(budgetOptions.category, budgetOptions.scanReserve, dependencies);
       else if (scope === 'worker') await reserveTwelveDataCredit(dependencies);
       else throw new Error('invalid Twelve Data budget scope');
     }
 
+    if (endpoint !== 'api_usage' && scope === 'worker') jobCreditsRemaining--;
     const query = new URLSearchParams();
     for (const [name, value] of Object.entries(params)) {
       if (value !== undefined && value !== null && value !== '') query.set(name, String(value));

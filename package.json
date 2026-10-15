@@ -1,13 +1,15 @@
 {
   "private": true,
   "scripts": {
-    "test": "npm run test:browser && npm run test:server && npm run test:trainer && npm run test:security && npm run check:public",
+    "test": "npm run test:browser && npm run test:server && npm run test:trainer && npm run test:security && npm run check:public && npm run test:workflows && npm run check:secrets",
     "test:browser": "node tests/smoke.cjs",
     "test:server": "npm --prefix server test",
     "test:trainer": "python3 -m unittest discover -s trainer -p \"test_*.py\"",
     "test:security": "node --test tests/migrations.test.cjs tests/public-guard.test.cjs tests/config-contract.test.cjs",
     "build:public": "node tools/build-public.cjs",
-    "check:public": "npm run build:public && node tools/check-public.cjs .cache/public"
+    "check:public": "npm run build:public && node tools/check-public.cjs .cache/public",
+    "test:workflows": "node --test tests/workflows.test.cjs",
+    "check:secrets": "node tools/check-secrets.cjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.10",

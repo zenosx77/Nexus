@@ -1,0 +1,56 @@
+name: NEXUS data jobs
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Manual operation (backfill is never scheduled)
+        required: true
+        default: preflight-only
+        type: choice
+        options: [preflight-only, ingest-only, outcomes-only, backfill-only]
+permissions:
+  contents: read
+concurrency:
+  group: nexus-production-jobs
+  cancel-in-progress: false
+jobs:
+  data:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.NEXUS_SCHEDULE_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - run: npm --prefix server ci --ignore-scripts
+      - name: Execute bounded data job
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TWELVEDATA_KEYS: ${{ secrets.TWELVEDATA_KEYS }}
+          INGEST_PAIRS: ${{ vars.INGEST_PAIRS }}
+          MODE: ${{ inputs.mode }}
+          EVENT: ${{ github.event_name }}
+          EVALUATION_MAX_DELAY_MINUTES: '90'
+          INGEST_MIN_INTERVAL_SECONDS: '1800'
+          LOG_LEVEL: error
+        run: |
+          set -euo pipefail
+          node server/src/index.js preflight
+          if [ "$EVENT" = schedule ]; then
+            node server/src/index.js job-ingest
+            node server/src/index.js job-outcomes
+          else
+            case "$MODE" in
+              preflight-only) ;;
+              ingest-only) node server/src/index.js job-ingest ;;
+              outcomes-only) node server/src/index.js job-outcomes ;;
+              backfill-only) node server/src/index.js job-backfill ;;
+              *) exit 2 ;;
+            esac
+          fi

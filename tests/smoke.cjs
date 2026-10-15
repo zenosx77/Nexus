@@ -1167,6 +1167,16 @@ async function main() {
     await sb.E('sbApplyModel()');
     assert.equal(sb.E('deep.M1'), null, 'checksum mismatch → artifact rejected, brain untouched');
     assert.ok(sb.doc.getElementById('sbApplyMsg').textContent.includes('checksum mismatch'), 'mismatch reason surfaced');
+    // Correct checksum is not sufficient: reject the whole malformed model before merging.
+    const invalid = JSON.parse(JSON.stringify(FIXTURE));
+    invalid.timeframes['3m'].strats.ema.vwr = 2;
+    const invalidSha = require('node:crypto').createHash('sha256')
+      .update(sb.E(`sbCanonical(${JSON.stringify(invalid)})`)).digest('hex');
+    sb.E(`sbDeployed = ${JSON.stringify({id:'invalid',artifact_sha256:invalidSha,artifact_payload:invalid})}`);
+    await sb.E('sbApplyModel()');
+    assert.equal(sb.E('deep.M1'), null, 'invalid later timeframe must not partially apply valid first timeframe');
+    assert.ok(sb.doc.getElementById('sbApplyMsg').textContent.includes('invalid strategy weight'));
+
     sb.w.close();
   }
 
