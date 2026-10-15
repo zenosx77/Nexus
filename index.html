@@ -1034,6 +1034,19 @@ const dayKeyNow=()=>new Date().toISOString().slice(0,10);
 const NEXUS_SESSION_KEY='nx_relay_session';
 let nexusApiEndpoint=String((loadJSON('nx_sb',null)||{}).api||'');
 let nexusApiSession=null, nexusSessionInfo=null, nexusRelayHealth=null, nexusSessionPromise=null;
+let nexusRelayState='Configuration Required';
+function relayState(){ return nexusRelayState; }
+function nexusRelayStateValue(){ return nexusRelayState; }
+function getRelayState(){ return nexusRelayState; }
+function relayStatus(){ return nexusRelayState; }
+function relayStateValue(){ return nexusRelayState; }
+function setNexusRelayState(state){
+  const allowed={'Connected':1,'Authentication Failed':1,'Unavailable':1,'Configuration Required':1};
+  nexusRelayState=allowed[state]?state:'Configuration Required';
+  const chip=$('relayChip');
+  if(chip){ chip.textContent=nexusRelayState; chip.className=nexusRelayState==='Connected'?'chip':'chip warn'; }
+  return nexusRelayState;
+}
 function nexusApiBase(){ return String(nexusApiEndpoint||'').trim().replace(/\/+$/,''); }
 function validNexusApiBase(value){
   try{ const u=new URL(value), local=u.hostname==='localhost'||u.hostname==='127.0.0.1';
@@ -1052,8 +1065,8 @@ async function authJson(path,body){
 async function ensureNexusSession(){
   if(nexusSessionPromise) return nexusSessionPromise;
   nexusSessionPromise=(async()=>{
-    if(!validNexusApiBase(nexusApiBase())) throw new Error('Set a valid HTTPS NEXUS API relay URL on the CLOUD page.');
-    if(!sbReady()) throw new Error('Set the Supabase project URL and public anon key on the CLOUD page.');
+    if(!validNexusApiBase(nexusApiBase())) { setNexusRelayState('Configuration Required'); throw new Error('Set a valid HTTPS NEXUS API relay URL on the CLOUD page.'); }
+    if(!sbReady()) { setNexusRelayState('Configuration Required'); throw new Error('Set the Supabase project URL and public anon key on the CLOUD page.'); }
     let session=nexusApiSession||nexusSessionStorageGet(), restoredValid=false;
     if(session&&session.access_token&&Number(session.expires_at)>Date.now()+30_000&&nexusSessionInfo){
       nexusApiSession=session;
@@ -1068,14 +1081,15 @@ async function ensureNexusSession(){
     if(!session||!session.access_token){
       const created=await authJson('/auth/v1/signup',{});
       session=created.ok?created.data:null;
-      if(!session||!session.access_token) throw new Error('Supabase anonymous sign-in failed. Verify the project URL/anon key and enable anonymous sign-ins in Supabase Auth.');
+      if(!session||!session.access_token){ setNexusRelayState('Authentication Failed'); throw new Error('Supabase anonymous sign-in failed. Verify the project URL/anon key and enable anonymous sign-ins in Supabase Auth.'); }
     }
     if(!restoredValid) session.expires_at=Date.now()+Math.max(60,Number(session.expires_in)||3600)*1000;
     nexusApiSession=session; nexusSessionStorageSet(session);
     const r=await fetch(nexusApiBase()+'/api/v1/session',{headers:{authorization:'Bearer '+session.access_token}});
     let info={}; try{ info=await r.json(); }catch(_){}
-    if(!r.ok) throw new Error(String(info.error||'NEXUS relay session check failed').slice(0,180));
+    if(!r.ok){ setNexusRelayState('Authentication Failed'); throw new Error(String(info.error||'NEXUS relay session check failed').slice(0,180)); }
     nexusSessionInfo=info;
+    setNexusRelayState('Connected');
     const infoEl=$('apiSessionInfo');
     if(infoEl) infoEl.textContent='Authenticated Supabase session: '+String(info.userId||'').slice(0,8)+'…'+(info.telegramAdmin?' · Telegram admin authorized':' · Telegram admin allowlist not configured for this session');
     updateTelegramServerStatus(); tgRender();
@@ -1098,10 +1112,11 @@ async function nexusApiRequest(path,options){
 }
 async function checkNexusRelay(){
   const chip=$('relayChip'), info=$('vaultInfo'), status=$('apiRelayMsg');
-  if(!validNexusApiBase(nexusApiBase())){
+  if(!validNexusApiBase(nexusApiBase())||!sbReady()){
     nexusRelayHealth=null;
-    if(chip){chip.textContent='relay: not configured';chip.className='chip warn';}
+    setNexusRelayState('Configuration Required');
     if(info) info.textContent='Provider keys are held by the server only. Add the API relay URL and Supabase public anon key on the CLOUD page, then connect.';
+    if(status) status.textContent='Relay is not configured. Set the API relay URL and Supabase public credentials on the CLOUD page.';
     return null;
   }
   try{
@@ -1109,14 +1124,14 @@ async function checkNexusRelay(){
     const data=await r.json();
     if(!r.ok||!data.ok) throw new Error('HTTP '+r.status);
     nexusRelayHealth=data;
-    if(chip){chip.textContent=data.provider&&data.provider.configured?'relay: reachable':'relay: provider not configured';chip.className='chip '+(data.provider&&data.provider.configured?'ok':'warn');}
     if(info) info.textContent='Server relay connected · provider '+(data.provider&&data.provider.configured?'configured':'not configured')+' · server keys '+String(data.provider&&data.provider.keyCount||0)+' · browser cap '+String(data.browserBudget&&data.browserBudget.dailyLimit||0)+'/day, '+String(data.browserBudget&&data.browserBudget.perMinuteLimit||0)+'/min. Credentials remain server-only.';
     if(status) status.textContent='Relay health check succeeded. Supabase authentication is required for market-data and Telegram operations.';
+    setNexusRelayState(nexusSessionInfo?'Connected':'Authentication Failed');
     updateTelegramServerStatus(); renderBudget(true); renderUsageMeter();
     return data;
   }catch(e){
     nexusRelayHealth=null;
-    if(chip){chip.textContent='relay: unreachable';chip.className='chip warn';}
+    setNexusRelayState('Unavailable');
     if(info) info.textContent='Relay connection failed: '+String(e.message||e).slice(0,120);
     if(status) status.textContent='Relay health check failed. Check the API URL, HTTPS, and server CORS allowlist.';
     updateTelegramServerStatus();
@@ -1130,11 +1145,13 @@ async function connectNexus(){
     await checkNexusRelay();
     const info=await nexusApiRequest('/api/v1/session');
     nexusSessionInfo=info;
+    setNexusRelayState('Connected');
     updateTelegramServerStatus(); sbChipRender();
     if(status) status.textContent='✅ Relay session connected. The displayed user UUID is needed only if enabling Telegram administration.';
     renderVault(); tgRender(); renderUsage();
     return true;
   }catch(e){
+    setNexusRelayState(nexusRelayHealth?'Authentication Failed':(validNexusApiBase(nexusApiBase())&&sbReady()?'Authentication Failed':'Configuration Required'));
     if(status) status.textContent='❌ '+String(e.message||e).slice(0,200); sbChipRender();
     return false;
   }
@@ -4467,7 +4484,7 @@ async function sbSave(){
   }
 }
 function sbClear(){
-  sbCfg={}; nexusApiEndpoint=''; nexusSessionStorageClear(); nexusRelayHealth=null; sbVerify={db:'unknown'};
+  sbCfg={}; nexusApiEndpoint=''; nexusSessionStorageClear(); nexusRelayHealth=null; sbVerify={db:'unknown'}; setNexusRelayState('Configuration Required');
   store.set(SB_STORE_KEY,'');
   const u=$('sbUrl'),a=$('sbAnon'),api=$('nexusApiUrl');
   if(u) u.value=''; if(a) a.value=''; if(api) api.value='';
@@ -4670,10 +4687,10 @@ function sbInit(){
   if(sbReady()){ sbLoadModel(); sbLoadPerf(); sbLoadFresh(); sbLoadDeliv(); }
   checkNexusRelay().then(()=>{
     if(nexusApiConfigured()&&nexusSessionStorageGet()) nexusApiRequest('/api/v1/session').then(info=>{
-      nexusSessionInfo=info; updateTelegramServerStatus();
+      nexusSessionInfo=info; setNexusRelayState('Connected'); updateTelegramServerStatus();
       if($('apiRelayMsg')) $('apiRelayMsg').textContent='✅ Existing authenticated relay session restored.';
       renderVault(); tgRender();
-    }).catch(err=>{ if($('apiRelayMsg')) $('apiRelayMsg').textContent='Session needs attention: '+String(err.message||err).slice(0,150); });
+    }).catch(err=>{ setNexusRelayState('Authentication Failed'); if($('apiRelayMsg')) $('apiRelayMsg').textContent='Session needs attention: '+String(err.message||err).slice(0,150); });
   });
 }
 
