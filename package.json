@@ -13,7 +13,7 @@
     "test:quota": "node --test tests/shared-quota.test.cjs",
     "test:postgres": "node --test --test-reporter=tap --test-reporter-destination=stdout --test-reporter=./tools/github-test-reporter.cjs --test-reporter-destination=stderr tests/quota-postgres.test.cjs",
     "lint:workflows": "node tools/lint-workflows.cjs",
-    "test:edge": "deno check --frozen --config supabase/functions/nexus-relay/deno.json supabase/functions/nexus-relay/index.ts && deno test --frozen -A --config supabase/functions/nexus-relay/deno.json server/test/api.test.js server/test/relay-budget.test.js"
+    "test:edge": "deno check --frozen --config supabase/functions/nexus-relay/deno.json supabase/functions/nexus-relay/index.ts && deno test --frozen -A --config supabase/functions/nexus-relay/deno.json server/test/api.test.js server/test/relay-auth.test.js server/test/relay-budget.test.js"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.10",

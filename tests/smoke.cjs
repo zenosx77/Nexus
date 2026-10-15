@@ -90,6 +90,7 @@ function enableRelay(E, options={}) {
 const M = 60000;
 
 const { w, E, errors, doc, dom } = boot();
+assert.equal(E('relayState()'), 'Configuration Required', 'relay state starts as configuration required');
 const $id = id => doc.getElementById(id);
 
 /* inject a confirmed candle window so a pending target settles as a WIN for dir */
