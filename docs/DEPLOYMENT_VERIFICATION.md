@@ -56,11 +56,11 @@ Environment: Node 22.22.3, Python 3.11.2, disposable **PostgreSQL 17.6** (Unix s
 | Shared quota PGlite tests | **13 passed**, 0 failed/skipped | 0 |
 | `npm run test:postgres` on real PostgreSQL | **17 passed**, 0 failed/skipped | 0 |
 | Public build and artifact scan | Passed; 2 text assets | 0 |
-| Source credential scan | Passed; 81 text files, 4 exact pre-existing synthetic token occurrences excluded | 0 |
+| Source credential scan | Passed; 82 text files, 4 exact pre-existing synthetic token occurrences excluded | 0 |
 | Root `npm audit`; server `npm audit --omit=dev` | Each reports **0 vulnerabilities** | 0 |
 | Workflow actionlint | All **4** workflows pass | 0 |
 | YAML parse with PyYAML | All **4** workflows parse | 0 |
-| JS syntax / Python compile | **41 JS** files and **2 Python** files pass | 0 |
+| JS syntax / Python compile | **42 JS** files and **2 Python** files pass | 0 |
 | `git diff --check` (including final cumulative diff) | Passed | 0 |
 | CLI preflight with missing configuration | Expected redacted failure; NOT hosted preflight | **1** |
 
@@ -138,8 +138,17 @@ The current continuation started clean at `9f2539f`, with all four previous comm
 
 Review found a transport-level quota gap: native `fetch` followed HTTP redirects implicitly. Provider requests now use `redirect: 'error'`, including free `api_usage` lookups so a free request cannot redirect into a paid endpoint. Any explicit key failover still requires its own reservation. Regression coverage uses native fetch against a local-only HTTP fixture for 301/302/303/307/308 across both scopes, verifies one reservation per explicit attempt, zero redirected requests, and no invented usage figures. The regression failed before the fix (exit 1: missing expected rejection) and passed afterward. The first extended test expected an HTTP-error message instead of the existing network-error result; its assertion was corrected to require null counters and the actual redacted network-error response. No existing test was weakened.
 
-Fresh final execution: `npm test` exit **0** (84 server, 35 trainer, 25 security/migration, 2 workflow, 13 PGlite quota tests, browser smoke, public build/scan, source scan and actionlint); real PostgreSQL 17.6 suite **17 passed**, exit **0**. Both npm audits exit **0**, no vulnerabilities. Four YAML files, 41 JavaScript syntax checks, two Python compile checks and cumulative Git whitespace checks passed. Missing-config preflight still exits **1** as expected. No tests skipped; external shellcheck/pyflakes and hosted integrations were not executed. The disposable PostgreSQL server uses only a local Unix socket and is stopped after testing.
+Fresh final execution: `npm test` exit **0** (84 server, 35 trainer, 25 security/migration, 2 workflow, 13 PGlite quota tests, browser smoke, public build/scan, source scan and actionlint); real PostgreSQL 17.6 suite **17 passed**, exit **0**. Both npm audits exit **0**, no vulnerabilities. Four YAML files, 42 JavaScript syntax checks, two Python compile checks and cumulative Git whitespace checks passed. Missing-config preflight still exits **1** as expected. No tests skipped; external shellcheck/pyflakes and hosted integrations were not executed. The disposable PostgreSQL server uses only a local Unix socket and is stopped after testing.
 
-This follow-up changes only the provider redirect policy, its regression test and these two review documents. Migration 0009, hard quota limits, schedule gates, shadow training, engines, weight merging, canonical model validation, mirroring, Telegram behavior, outcomes and manual-only backfill are unchanged. Redirecting provider responses now fail closed; investigate the canonical provider URL rather than re-enable automatic redirects. Existing conservative quota/cutover rollback instructions above remain mandatory.
+The initial follow-up changed only the provider redirect policy, its regression test and these two review documents. Subsequent CI diagnosis added a supplemental PostgreSQL failure reporter and corrected the concurrency test observer described below. Migration 0009, hard quota limits, schedule gates, shadow training, engines, weight merging, canonical model validation, mirroring, Telegram behavior, outcomes and manual-only backfill are unchanged. Redirecting provider responses now fail closed; investigate the canonical provider URL rather than re-enable automatic redirects. Existing conservative quota/cutover rollback instructions above remain mandatory.
 
 The follow-up is eligible for a normal, authorized session-branch push after checks. Its exact commit, remote confirmation and any new GitHub CI outcome are reported by the final execution response; no production or PR operation is implied.
+
+
+### GitHub failure investigation and test-harness correction
+
+Follow-up commit `94f7d4f` was pushed normally and confirmed remotely. [Run 38710481443](https://github.com/zenosx77/Nexus/actions/runs/38710481443) passed `npm test` but failed the real-PostgreSQL step (exit 1); the later Git check was skipped by GitHub. Detailed log downloads redirect to a host blocked in this environment, so their contents could not be fetched. Commit `599ab9c` added a supplemental Node test reporter that publishes actual disposable-suite assertion failures as escaped GitHub annotations while preserving TAP and the original exit status.
+
+[Run 38710757468](https://github.com/zenosx77/Nexus/actions/runs/38710757468) exposed the exact failure through the authorized API: the concurrency observer saw zero blocked connections instead of at least four. The lock-holding transaction had cached an initial empty `pg_stat_activity` snapshot. The regression was reproduced locally by deliberately reading that empty snapshot before starting contenders (exit 1). Observation now uses a separate autocommit connection, so each poll sees fresh activity without releasing the quota row lock. The test still asserts at least four independent lock waiters, exactly six admitted requests and exactly one winner for the final daily credit. Outstanding contenders are always drained before the next fixture, including after a monitoring assertion failure. No production quota code, test assertion threshold or timing/credit guarantee was relaxed.
+
+After this correction, fresh `npm test` and real PostgreSQL tests both exit 0 with the totals above; source scan checks 82 text files, and syntax checks cover 42 JavaScript files. Reporter escaping was checked with a synthetic failure; production jobs never use this reporter. The final execution response records the corrected follow-up commit and its GitHub CI outcome rather than assuming a successful push or run.

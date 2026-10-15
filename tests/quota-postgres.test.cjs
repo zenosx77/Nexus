@@ -25,20 +25,33 @@ test('shared quota real PostgreSQL independent-connection verification',async t=
   await quotaCases(t,{query:async sql=>{const r=await db.query(sql);return Array.isArray(r)?r.at(-1):r;}});
   const pool=new Pool({connectionString,max:20,connectionTimeoutMillis:5000,application_name:'nexus-quota-race'});
   t.after(()=>pool.end());
+  // Monitoring must not share the long-lived lock-holder transaction: PostgreSQL
+  // caches pg_stat_activity snapshots until transaction end. Autocommit gives
+  // each poll a fresh snapshot without releasing the row-lock barrier.
+  const observer=new Client({connectionString,application_name:'nexus-quota-observer'});
+  await observer.connect();t.after(()=>observer.end());
   await t.test('40 parallel mixed-scope requests on real connections admit exactly six',async()=>{
     await reset(db);
     await db.query('begin;select * from twelvedata_account_budget for update;');
+    // Regression: freeze a zero-waiter statistics snapshot in the lock-holding
+    // transaction before contenders connect. CI can naturally hit this timing.
+    assert.equal(Number((await db.query("select count(*) as n from pg_stat_activity where application_name='nexus-quota-race' and wait_event_type='Lock'")).rows[0].n),0);
     const jobs=Array.from({length:40},(_,i)=>pool.query(rpc(i%2?'worker':'browser')));
+    let results;
     try{
       // Hold the shared row until independent backends demonstrably contend.
       let locked=0;
       for(let i=0;i<50 && locked<4;i++){
         await new Promise(r=>setTimeout(r,20));
-        locked=Number((await db.query("select count(*) as n from pg_stat_activity where application_name='nexus-quota-race' and wait_event_type='Lock'")).rows[0].n);
+        locked=Number((await observer.query("select count(*) as n from pg_stat_activity where application_name='nexus-quota-race' and wait_event_type='Lock'")).rows[0].n);
       }
       assert.ok(locked>=4,`expected >=4 independently blocked connections, got ${locked}`);
-    }finally{await db.query('commit');}
-    const results=await Promise.all(jobs);
+    }finally{
+      await db.query('commit');
+      // Drain contenders even when a monitor assertion fails; otherwise they
+      // can mutate counters during the next test's fresh-fixture setup.
+      results=await Promise.all(jobs);
+    }
     assert.equal(results.filter(r=>r.rows[0].result.allowed).length,6);
     assert.equal(results.filter(r=>r.rows[0].result.reason==='minute-limit').length,34);
     const state=(await db.query('select daily_calls,cardinality(recent_calls) as n from twelvedata_account_budget')).rows[0];
