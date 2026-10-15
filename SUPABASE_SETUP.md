@@ -14,6 +14,9 @@ Architecture and design decisions: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md
 
 ---
 
+> **Repeatable deployment:** [Production relay deployment](docs/RELAY_DEPLOYMENT.md)
+> documents the gated Actions workflow, secret provisioning and actual-session checks.
+
 ## 0. What you need
 
 | Thing | Used for | Where it lives |

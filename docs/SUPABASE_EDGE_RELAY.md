@@ -5,6 +5,9 @@ function gateway, or connection test is confirmed. All remote operations below
 require explicit approval for the named target. There are no new migrations,
 schedules, worker jobs, prediction engines, or training tasks in this change.
 
+For repeatable GitHub Actions deployment, required access, safe hosted checks and
+current access limitations, see [Production relay deployment](RELAY_DEPLOYMENT.md).
+
 ## Inspected contract and implementation
 
 The Cloud Sync configuration (`index.html`) stores `api`, `url`, `anon`, and

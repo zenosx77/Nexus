@@ -8,7 +8,7 @@
     "test:security": "node --test tests/migrations.test.cjs tests/public-guard.test.cjs tests/config-contract.test.cjs",
     "build:public": "node tools/build-public.cjs",
     "check:public": "npm run build:public && node tools/check-public.cjs .cache/public",
-    "test:workflows": "node --test tests/workflows.test.cjs",
+    "test:workflows": "node --test tests/workflows.test.cjs tests/relay-deployment.test.cjs",
     "check:secrets": "node tools/check-secrets.cjs",
     "test:quota": "node --test tests/shared-quota.test.cjs",
     "test:postgres": "node --test --test-reporter=tap --test-reporter-destination=stdout --test-reporter=./tools/github-test-reporter.cjs --test-reporter-destination=stderr tests/quota-postgres.test.cjs",
