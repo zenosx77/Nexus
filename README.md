@@ -1,8 +1,8 @@
-# NEXUS Glass v5.1 · Meridian
+# NEXUS Glass v5.2 · Meridian
 
 A single-file, glassmorphic **multi-pair M1/M3 signal research engine** for binary-options-style
 candle prediction — built around **4 Telegram channels** (PUBLIC · VIP · LIST · MAIN),
-**bot-configured message formats**, a **per-event sticker bank**, **fast confirmed settlement**
+**bot-configured message formats**, a **per-event sticker bank**, **revision-safe confirmed settlement**
 and **quality-first signals**.
 
 > ⚠️ **Signal-only + paper-trading.** NEXUS never places, clicks, or automates real trades.
@@ -10,14 +10,17 @@ and **quality-first signals**.
 > when there is no clean shot, but losses can and do happen. Every verdict is settled from real,
 > confirmed candle data. Binary options carry a very high risk of loss.
 
-## What's new in v5.1 (Meridian)
+## What's new in v5.2 (Meridian)
 
 | Area | Change |
 |---|---|
 | **4 channels** | One bot, four destinations set on the TELEGRAM page: **MAIN** (session show + bot stream), **PUBLIC** (normal 1-min signals + announcements), **VIP** (one high-grade shot every 10 min), **LIST** (premium lists + results). Empty channels fall back to MAIN. |
 | **PUBLIC stream** | One **quality-only** signal per minute (B grade and above, no relaxed fallback), computed and delivered **seconds before the candle opens** so subscribers can enter at the open. Skips the minute when nothing qualifies. |
-| **VIP stream** | Every 10 minutes the best available shot across all pairs goes to the VIP channel ~20 s before the candle opens, **grade shown honestly** (A+/A/B). Never a filler shot. |
-| **Fast verification** | Verdicts settle **seconds after the candle closes** — the old confirming-candle wait (up to an extra minute) is gone. Pending candles fetch in parallel and retry every ~4 s. |
+| **VIP stream** | Every 10 minutes the best setup that clears the quality, EV, timing and market gates goes to VIP before the candle opens. If none qualifies, the slot is skipped—never filled with a weak trade. |
+| **Future premium lists** | The 10-minute study takes a fresh snapshot every minute, refreshes once more before production, and publishes unique-pair windows **40–60 minutes ahead**. The conviction floor is never silently relaxed. |
+| **Stable verification** | Verdicts wait through an 8-second provider revision window, then settle from the exact target candle keyed by UTC epoch. A verdict is final; a provisional close can no longer flash LOSS and later become WIN. |
+| **Paper-first production gate** | Telegram signal/list production remains locked until there are ≥100 confirmed paper outcomes, ≥70% measured wins, a 95% Wilson lower bound above payout break-even, and ≥50 profitable deep-validation trades. Local paper scanning remains active to collect honest evidence. Passing the gate reduces risk but never guarantees a future win. |
+| **Figma-style product polish** | Responsive page reveals, staggered cards, hover depth, button ripples, ambient motion, toast feedback, online/offline status, back-to-top, and a searchable **Ctrl/⌘ K command palette**. Motion automatically disables when the operating system requests reduced motion. |
 | **Quality first** | NONSTOP relaxed signals are **off by default**; the SESSION floor **never decays** into low grades — it waits for quality. 26 strategies (10 new: TRIX, Awesome Oscillator, Chande Momentum, Envelope stretch, BB squeeze break, Fractal breakout, EMA-50 pullback, ROC flip, 3-bar reversal, Stoch+RSI combo). |
 | **API credit usage** | A dedicated **API CREDIT USAGE** section reads each key's real spend from Twelve Data's `api_usage` endpoint (0 credits) with per-key bars, remaining counts and a live call meter. |
 | **10 API keys** | Up from 4 — ten rotating slots with quota cooldown, plus PERMANENT_KEYS / keys.js sources merged into one pool. |
@@ -55,6 +58,10 @@ The CI credential guard (`tools/check-public.cjs`) refuses to publish if any key
 3. **Block 3:** text `/setformat signal <your layout>` to the bot to set your own message formats permanently (or keep the ultra-minimal defaults).
 4. **Block 4:** flip the automation switches — **PUBLIC STREAM** (1 quality signal/min), **VIP STREAM** (best shot every 10 min), auto list + result, bot stream, verdicts.
 5. SESSION page → **START SESSION**, PREMIUM page → **START PREMIUM LIST**, VIP page → **FIRE VIP SHOT NOW** — or use `/session`, `/premium`, `/vip` in the bot chat.
+
+### Continuous operation (important)
+
+The browser engine persists pending signals and resumes them after reload, but browsers cannot guarantee background timers after a tab/device sleeps. For genuine 24/7 operation, keep the page open on an always-on machine (disable tab sleeping) and run the `server/` worker under a process supervisor. The worker handles ingestion, evaluation, retries and alerts continuously; forex streams intentionally pause during the weekend market closure and configured safety gates. “24/7” never means forcing a trade when no setup qualifies.
 
 ### Bot commands
 

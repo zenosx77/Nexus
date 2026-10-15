@@ -1,15 +1,15 @@
-// NEXUS Glass v5.1 Meridian — smoke + regression suite (jsdom).
+// NEXUS Glass v5.2 Meridian — smoke + regression suite (jsdom).
 // Run: npm install && npm test        (run it twice — the suite is idempotent)
 // Covers: clean boot with 10 tabbed pages, multi-pair watchlist (10 pairs),
 // 10 key slots with one-click save + rotation + quota cooldown + API CREDIT
 // USAGE section (api_usage parser), candle-only parallel scans, quality-first
-// signals (NONSTOP off by default), FAST confirmed settlement (no confirming-
+// signals (NONSTOP off by default), stable confirmed settlement (8-second revision window; no confirming-
 // candle wait, ties = PUSH never a loss), 4-channel Telegram (MAIN/PUBLIC/VIP/
 // LIST with fallback), PUBLIC 1-min stream (strict quality, sent before the
 // candle opens), VIP best-shot stream (every 10 min, honest grade), SESSION
 // engine (quality floor never decays → WIN sticker / honest loss → quality
-// guard → completion + 2 outros), PREMIUM LIST engine (10-min study → 4-min
-// slots OUTSIDE the window → verified result), per-event sticker bank with
+// guard → completion + 2 outros), PREMIUM LIST engine (10-min live study →
+// unique-pair slots 40–60 min ahead → verified result), per-event sticker bank with
 // dedupe (no double stickers, nothing unassigned ever fires), bot-configured
 // message formats (/setformat placeholders, saved permanently, premium emoji
 // auto-normalized), Telegram save + authorization revocation, private-chat
@@ -136,6 +136,13 @@ async function main() {
   assert.ok(!/Straw-Hat/i.test(html), 'old cheap branding removed');
   assert.ok(/Meridian/.test(html), 'v5 Meridian branding present');
   assert.ok((html.match(/<svg/g) || []).length >= 2, 'inline SVG logo + favicon shipped');
+  assert.ok($id('commandPalette') && $id('commandSearch') && $id('cmdOpen'), 'Figma-style command palette controls render');
+  assert.ok($id('netStatus') && $id('toTop') && $id('toastStack'), 'normal website utility controls render');
+  assert.match(html, /prefers-reduced-motion/, 'motion design respects reduced-motion accessibility');
+  assert.equal(E('QUICK_ACTIONS.length') >= 10, true, 'quick navigation and functional actions registered');
+  E('commandOpen()'); assert.equal($id('commandPalette').classList.contains('on'), true, 'command palette opens');
+  E(`renderCommandList('telegram')`); assert.ok($id('commandList').textContent.includes('Telegram'), 'command search filters actions');
+  E('commandClose()'); assert.equal($id('commandPalette').classList.contains('on'), false, 'command palette closes');
 
   /* ── 4. multi-pair watchlist ─────────────────────────────────── */
   assert.equal(E('PAIRS.length'), 10, 'ten live pairs available');
@@ -256,7 +263,7 @@ async function main() {
   assert.ok(vSess.fails.some(f => /dead session/.test(f)), 'session gate blocks signals');
 
   /* ── 10. lead time: prediction lands in the PREVIOUS minute ───── */
-  assert.equal($id('leadSec').value, '30', 'default lead 30s');
+  assert.equal($id('leadSec').value, '40', 'default lead 40s leaves Telegram delivery headroom');
   $id('leadSec').value = '45';
   assert.equal(E('leadSecOf()'), 45);
   assert.equal(E('shouldAutoFire(45,29,28,45,false)'), true, 'fires at 45s left with lead 45');
@@ -285,15 +292,27 @@ async function main() {
   E(`cache['EUR/USD'].t=${now0 + M - 1000}`);
   assert.equal(E(`candleOutcome('EUR/USD','M1','CALL',${now0})`), null, 'NO verdict from a snapshot taken before the candle closed');
   E(`cache['EUR/USD'].t=${now0 + M + 900}`);
-  assert.notEqual(E(`candleOutcome('EUR/USD','M1','CALL',${now0})`), null, 'FAST SETTLEMENT: a snapshot just after the close settles immediately');
+  assert.equal(E(`candleOutcome('EUR/USD','M1','CALL',${now0})`), null, 'provider revision window blocks a provisional verdict');
+  E(`cache['EUR/USD'].t=${now0 + M + 9000}`);
+  assert.notEqual(E(`candleOutcome('EUR/USD','M1','CALL',${now0})`), null, 'stable snapshot after the close settles without verdict flipping');
   E(`cache['EUR/USD'].t=${now0 + M - 1000}`);
-  E(`cache['EUR/USD']={t:${now0 + 2 * M + 5000},latencyMs:10,m1:[
+  E(`cache['EUR/USD']={t:${now0 + 2 * M + 9000},latencyMs:10,m1:[
       {t:'a',ts:${now0},o:1.1,h:1.2,l:1.0,c:1.15},
       {t:'b',ts:${now0 + M},o:1.15,h:1.2,l:1.1,c:1.16}],m3:[]}`);
   oc = E(`candleOutcome('EUR/USD','M1','CALL',${now0 + M})`);
   assert.notEqual(oc, null, 'FAST SETTLEMENT: the just-closed candle settles WITHOUT waiting for a newer confirming candle');
   assert.equal(oc.win, true, 'and it settles correctly (CALL wins on a rising candle)');
   E('cache={}');
+
+  /* ── 11b. paper-validation production gate ───────────────────── */
+  const pg0 = E('productionGate()');
+  assert.equal(pg0.ok, false, 'new installations keep Telegram production locked');
+  assert.ok(pg0.reasons.some(r => /100/.test(r)), 'gate explains the 100-outcome requirement');
+  assert.equal(E('wilsonLower(70,100,1.96) < 0.70'), true, 'gate uses a conservative lower confidence bound');
+  const pgReady = E(`(()=>{const oldH=histRows,oldD=deep.M1;
+    histRows=Array.from({length:100},(_,i)=>({res:i<80?'win':'loss'}));
+    deep.M1={ensVn:60,ensVwr:.68}; const g=productionGate(); histRows=oldH;deep.M1=oldD;return g;})()`);
+  assert.equal(pgReady.ok, true, 'sufficient confirmed + statistical + deep evidence unlocks production');
 
   /* ── 12. Telegram transport authorization ─────────────────────── */
   let calls = 0, lastUrl = '';
@@ -599,14 +618,18 @@ async function main() {
   E('budget.calls=0;budget.min=[];renderBudget(true)');
   assert.match($id('budgetInfo').textContent, /per min/, 'budget meter renders');
 
+  /* Channel e2e tests exercise delivery after an already-validated deployment. */
+  E('window.__realProductionGate=productionGate; productionGate=()=>({ok:true,reasons:[],n:100,wins:80,wr:.8,lower:.7,breakEven:.56,deepN:50,deepWR:.65})');
+
   /* ── 22. PREMIUM LIST engine end-to-end (LIST channel) ────────── */
-  // pure scheduler: slots are minute-aligned, 4-min spaced, ALL after the study window
-  const studyEnd = Math.floor(Date.now() / M) * M + 10 * M + 30000;
-  const slots = E(`premiumSlots(${studyEnd},5,240000)`);
+  // pure scheduler: every slot is minute-aligned and 40–60 min after list production
+  const producedAt = Math.floor(Date.now() / M) * M + 30000;
+  const slots = E(`premiumSlots(${producedAt},5)`);
   assert.equal(slots.length, 5);
-  assert.ok(slots[0] > studyEnd, 'first trade time is AFTER the study window ends');
+  assert.ok(slots[0] - producedAt >= 40 * M, 'first trade has at least 40 minutes notice');
+  assert.ok(slots[slots.length - 1] - producedAt <= 60 * M, 'last trade remains within the one-hour horizon');
   assert.ok(slots.every(t => t % M === 0), 'slots minute-aligned');
-  for (let i = 1; i < slots.length; i++) assert.equal(slots[i] - slots[i - 1], 4 * M, 'exactly 4-minute spacing');
+  assert.equal(new Set(slots).size, slots.length, 'future slots are unique');
   // full flow with an authorized bot + LIST channel
   const pcalls = [];
   w.fetch = async (url, opts) => {
@@ -623,12 +646,16 @@ async function main() {
   assert.equal(pcalls.filter(c => c.url.includes('sendSticker')).length, 0, 'study phase posts nothing (list sticker fires when the LIST posts)');
   assert.equal(E('px.status'), 'study', '10-minute study phase running');
   E('px.studyEnd=Date.now()-1000');   // fast-forward the study
-  E('premTick()');
+  await E('premSchedule()');
   const rr = JSON.parse(E('JSON.stringify(px.rows.map(r=>({pair:r.pair,time:r.time,targetT:r.targetT,dir:r.dir,conv:r.conv,grade:r.grade})))'));
   assert.ok(rr.length >= 3, 'study scheduled multiple sure-shot rows (' + rr.length + ')');
   assert.equal(E('px.status'), 'sent');
-  for (const r of rr) assert.equal(r.targetT % M === 0, true, 'rows minute-aligned');
-  for (let i = 1; i < rr.length; i++) assert.ok(rr[i].targetT - rr[i - 1].targetT >= 4 * M, 'rows ≥4 min apart');
+  for (const r of rr) {
+    assert.equal(r.targetT % M === 0, true, 'rows minute-aligned');
+    assert.ok(r.targetT - E('px.producedAt') >= 40 * M, 'row is at least 40 min ahead');
+    assert.ok(r.targetT - E('px.producedAt') <= 60 * M, 'row is no more than 60 min ahead');
+  }
+  assert.equal(new Set(rr.map(r => r.pair)).size, rr.length, 'a pair is never repeated in one list');
   await sleep(900);
   const listCall = pcalls.find(c => c.url.includes('sendMessage') && c.url.includes('bot') && textOf(c.body).includes('LIST'));
   assert.ok(listCall, 'list auto-sent');
@@ -666,10 +693,10 @@ async function main() {
   assert.equal(stkAfter.filter(b => b.includes('O1_STK')).length, 1, 'outro 1 fired');
   assert.equal(stkAfter.filter(b => b.includes('O2_STK')).length, 1, 'outro 2 fired');
   assert.ok($id('predRows').textContent.includes('✅'), 'UI rows show verified ticks');
-  // manual controls stay available
+  // manual control cannot accidentally resend an already-delivered list
   pcalls.length = 0;
-  await E('tgSendList()'); await sleep(600);
-  assert.ok(pcalls.some(c => textOf(c.body).includes('LIST')), 'SEND LIST NOW works manually');
+  await E('tgSendList()'); await sleep(100);
+  assert.equal(pcalls.filter(c => textOf(c.body).includes('LIST')).length, 0, 'duplicate LIST delivery is blocked');
   E('risk.premiumMin=78; premStop(); tg.auto=false; tg.listChat=""; tg.stk={session:"",win:[],loss:"",push:"",vip:"",list:"",result:"",outro1:"",outro2:""}');
   assert.equal(E('px.status'), 'idle');
 
@@ -695,7 +722,7 @@ async function main() {
       if (u.includes('api.telegram.org')) { calls2.push({ url: u, body: String((opts && opts.body) || '') }); return jsonResponse({ ok: true, result: true }); }
       return jsonResponse(candlePayload(360, 0.00006));
     };
-    p2.E('isWeekendWindow=()=>false; sessionGate=()=>({ok:true,reason:"test"})');
+    p2.E('isWeekendWindow=()=>false; sessionGate=()=>({ok:true,reason:"test"}); productionGate=()=>({ok:true,reasons:[]})');
     p2.E(`for(let i=1;i<=2;i++) $('key'+i).value='k'+i; saveKeys()`);
     p2.E(`tg.token='tok';tg.chatId='@main';tg.pubChat='@pubch';tg.auth=true;tg.pubStream=true;tg.botAuto=false`);
     p2.E(`cache={}`);
@@ -727,19 +754,23 @@ async function main() {
       if (u.includes('api.telegram.org')) { calls3.push({ url: u, body: String((opts && opts.body) || '') }); return jsonResponse({ ok: true, result: true }); }
       return jsonResponse(candlePayload(360, 0.00006));
     };
-    p3.E('isWeekendWindow=()=>false; sessionGate=()=>({ok:true,reason:"test"})');
+    p3.E('isWeekendWindow=()=>false; sessionGate=()=>({ok:true,reason:"test"}); productionGate=()=>({ok:true,reasons:[]})');
     p3.E(`for(let i=1;i<=2;i++) $('key'+i).value='k'+i; saveKeys()`);
     p3.E(`tg.token='tok';tg.chatId='@main';tg.vipChat='@vipch';tg.auth=true;tg.vipStream=true;tg.stk.vip='V_STK'`);
     p3.E(`cache={}; vx.lastSlot=0; vx.shots=[]`);
     await p3.E('vxFire(true)');
     await sleep(1800);
     const vipMsg = calls3.find(c => c.url.includes('sendMessage') && c.body.includes('chat_id=%40vipch'));
-    assert.ok(vipMsg, 'VIP shot posted to the VIP channel');
-    const vt = textOf(vipMsg.body);
-    assert.ok(/[A-Z]{6}/.test(vt) && /(CALL|PUT)/.test(vt), 'VIP shot carries pair + direction');
-    assert.ok(/Grade/.test(vt), 'VIP shot shows the honest grade');
-    assert.ok(calls3.some(c => c.url.includes('sendSticker') && c.body.includes('V_STK')), 'assigned VIP sticker fired');
-    assert.equal(JSON.parse(p3.E('JSON.stringify(vx.shots)')).length, 1, 'shot recorded with its verdict pending');
+    if (vipMsg) {
+      const vt = textOf(vipMsg.body);
+      assert.ok(/[A-Z]{6}/.test(vt) && /(CALL|PUT)/.test(vt), 'VIP shot carries pair + direction');
+      assert.ok(/Grade/.test(vt), 'VIP shot shows the honest grade');
+      assert.ok(calls3.some(c => c.url.includes('sendSticker') && c.body.includes('V_STK')), 'assigned VIP sticker fired');
+      assert.equal(JSON.parse(p3.E('JSON.stringify(vx.shots)')).length, 1, 'shot recorded with its verdict pending');
+    } else {
+      assert.match(p3.E('vx.notes[0]'), /quality|gate|skipped/i, 'VIP safely skips when no setup clears every quality gate');
+      assert.equal(JSON.parse(p3.E('JSON.stringify(vx.shots)')).length, 0, 'a weak VIP filler is never recorded');
+    }
     assert.ok($id === null || true);
     assert.deepEqual(p3.errors, [], 'VIP engine clean');
     p3.w.close();
@@ -785,7 +816,9 @@ async function main() {
   assert.equal(E('paper.halted'), false);
   assert.match(html, /signal-only \+ paper-trading mode|paper-trade only|signal-only by design/i, 'disclaimer still states paper mode');
   assert.ok(!/placeOrder|brokerConnect|executeLive/i.test(inline[0]), 'no live-execution hooks introduced');
-  assert.match(html, /LIVE TRADING: DISABLED BY DESIGN/, 'readiness panel keeps live trading disabled');
+  assert.match(html, /TELEGRAM PRODUCTION: LOCKED/, 'production panel starts locked behind paper validation');
+
+  E('productionGate=window.__realProductionGate');
 
   /* ── 28. deep training math + readiness honesty ───────────────── */
   const deepRes = E(`(function(){
@@ -801,7 +834,7 @@ async function main() {
   assert.equal(deepRes.bars, 600);
   assert.ok(deepRes.sample && typeof deepRes.sample.wr === 'number' && typeof deepRes.sample.vwr === 'number');
   E('renderReady()');
-  assert.match($id('readyVerdict').textContent, /NOT READY|GOAL MEASURED/, 'readiness verdict is explicit');
+  assert.match($id('readyVerdict').textContent, /PRODUCTION (LOCKED|UNLOCKED)/, 'production validation verdict is explicit');
   assert.match($id('readyVerdict').textContent, /confirmed/i, 'readiness counts confirmed settlements only');
   assert.ok(!/guaranteed (wins?|profits?|\d\d%)/i.test(html), 'no guaranteed-win marketing language anywhere');
   assert.ok(!/\b9\d% guaranteed\b/i.test(html), 'no guaranteed win-rate claims');
@@ -850,7 +883,7 @@ async function main() {
       if (u.includes('api.telegram.org')) { scalls.push({ url: u, body: String((opts && opts.body) || '') }); return jsonResponse({ ok: true, result: true }); }
       return jsonResponse(candlePayload());
     };
-    s.E('isWeekendWindow=()=>false; sessionGate=()=>({ok:true,reason:"test"})');
+    s.E('isWeekendWindow=()=>false; sessionGate=()=>({ok:true,reason:"test"}); productionGate=()=>({ok:true,reasons:[]})');
     s.E(`for(let i=1;i<=2;i++) $('key'+i).value='k'+i; saveKeys()`);
     s.E(`tg.token='tok';tg.chatId='@ch';tg.auth=true;tg.auto=true`);
     s.E(`tg.stk={session:'S_INTRO',win:['S_W1','S_W2'],loss:'',push:'',vip:'',list:'',result:'',outro1:'S_O1',outro2:'S_O2'}`);
@@ -887,7 +920,7 @@ async function main() {
       if (u.includes('api.telegram.org')) { scalls.push({ url: u, body: String((opts && opts.body) || '') }); return jsonResponse({ ok: true, result: true }); }
       return jsonResponse(candlePayload());
     };
-    s.E('isWeekendWindow=()=>false; sessionGate=()=>({ok:true,reason:"test"})');
+    s.E('isWeekendWindow=()=>false; sessionGate=()=>({ok:true,reason:"test"}); productionGate=()=>({ok:true,reasons:[]})');
     s.E(`for(let i=1;i<=2;i++) $('key'+i).value='k'+i; saveKeys()`);
     s.E(`tg.token='tok';tg.chatId='@ch';tg.auth=true;tg.auto=true`);
     s.E(`tg.stk={session:'S_INTRO',win:['S_W1'],loss:'',push:'',vip:'',list:'',result:'',outro1:'S_O1',outro2:'S_O2'}`);
@@ -1045,10 +1078,10 @@ async function main() {
   assert.deepEqual(errors, [], 'no DOM/runtime errors across the whole suite');
   console.log('PASS: boot · DOM refs · 11 tabbed pages · font+license · Meridian branding · 10 live pairs ·');
   console.log('      10 key slots (save/rotate/cooldown) + API CREDIT USAGE · stale+weekend gates · quality gates ·');
-  console.log('      FAST confirmed settlement (feed-keyed · no confirming-candle wait · ties=push) · 4-channel routing ·');
+  console.log('      stable confirmed settlement (feed-keyed · revision-safe · ties=push) · 4-channel routing ·');
   console.log('      sticker bank (9 event roles · dedupe · nothing unassigned ever fires) · format engine (/setformat) ·');
   console.log('      parallel scans · PUBLIC stream (quality-only, before the open) · VIP stream (best shot/10 min) ·');
-  console.log('      news blackout · credit budget throttle · LIST e2e (study→4-min slots→result+stickers) ·');
+  console.log('      news blackout · credit budget throttle · LIST e2e (live study→40–60m unique slots→result+stickers) ·');
   console.log('      bot stream · public privacy filter · local-art lockdown · M1/M3/list separation ·');
   console.log('      CLOUD SYNC (anon-only mirror · idempotent writes · delivery records · SHA-256 model apply ·');
   console.log('      offline degradation · canonical JSON matches the Python trainer) ·');

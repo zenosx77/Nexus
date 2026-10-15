@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="NEXUS Glass v5.1 Meridian — multi-pair, multi-agent M1 + M3 signal engine with 4 Telegram channels (PUBLIC 1-min stream · VIP 10-min shots · LIST · MAIN), bot-configured message formats, per-event sticker bank, fast confirmed settlement, quality-first signals, paper trading and deep backtesting. Signal-only; no live execution.">
+<meta name="description" content="NEXUS Glass v5.2 Meridian — multi-pair, multi-agent M1 + M3 signal engine with 4 Telegram channels (PUBLIC 1-min stream · VIP 10-min shots · LIST · MAIN), bot-configured message formats, per-event sticker bank, revision-safe confirmed settlement, quality-first signals, paper trading and deep backtesting. Signal-only; no live execution.">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.twelvedata.com https://api.telegram.org https://*.supabase.co; img-src data: https:; font-src 'self'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
-<title>NEXUS Glass v5.1 — Meridian · Multi-Pair Signal & Channel Engine</title>
+<title>NEXUS Glass v5.2 — Meridian · Multi-Pair Signal & Channel Engine</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2300e5ff'/><stop offset='.55' stop-color='%233d7bff'/><stop offset='1' stop-color='%23a06bff'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='%23070c18'/><g stroke='url(%23g)' stroke-width='5' stroke-linecap='round'><path d='M26 72V52'/><path d='M46 72V40'/><path d='M66 72V30'/></g><g fill='url(%23g)'><rect x='20' y='55' width='12' height='13' rx='3'/><rect x='40' y='44' width='12' height='20' rx='3'/><rect x='60' y='34' width='12' height='26' rx='3'/></g><path d='M22 44 L42 32 L58 38 L80 16' fill='none' stroke='%23ffffff' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/><path d='M70 16 H80 V26' fill='none' stroke='%23ffffff' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 <style>
   /* ── Self-hosted typeface: Inter Variable (latin subset, wght 100-900).
@@ -292,7 +292,7 @@
   .ready-cell b { display:block; font-size:15px; margin-top:3px; color:var(--txt); font-family:monospace; }
   .goalbar { height:10px; border-radius:6px; background:rgba(255,255,255,.08); overflow:hidden; margin-top:10px; position:relative; }
   .goalbar i { display:block; height:100%; background:linear-gradient(90deg,#ff5c7a,#ffd54f 55%,#00e5a0); border-radius:6px; }
-  .goalbar .mark95 { position:absolute; left:95%; top:-3px; bottom:-3px; width:2px; background:#fff; opacity:.85; }
+  .goalbar .mark95 { position:absolute; left:70%; top:-3px; bottom:-3px; width:2px; background:#fff; opacity:.85; }
   /* ── optional LOCAL-ONLY crew art banner (public site never fetches it) ── */
   .heroArt { height:130px; border-radius:20px; margin-bottom:14px; border:1px solid var(--glass-brd);
              background-size:cover; background-position:center 32%; position:relative; overflow:hidden;
@@ -300,6 +300,48 @@
   .heroArt::after { content:'LOCAL CREW ART — not part of the public build'; position:absolute; right:8px; bottom:6px;
                     font-size:9px; letter-spacing:1px; color:rgba(255,255,255,.75); background:rgba(5,8,16,.55);
                     padding:3px 8px; border-radius:8px; backdrop-filter:blur(6px); }
+
+  /* ── Figma-style interaction layer: polished motion + utility controls ── */
+  @keyframes pageReveal { from { opacity:0; transform:translateY(8px); filter:blur(3px); } to { opacity:1; transform:none; filter:none; } }
+  @keyframes toastIn { from { opacity:0; transform:translate(-50%,12px) scale(.96); } to { opacity:1; transform:translate(-50%,0) scale(1); } }
+  @keyframes orbFloat { 0%,100% { transform:translate3d(0,0,0) scale(1); } 50% { transform:translate3d(16px,-18px,0) scale(1.06); } }
+  @keyframes rippleOut { from { transform:scale(0); opacity:.42; } to { transform:scale(4); opacity:0; } }
+  .orb { animation:orbFloat 13s ease-in-out infinite alternate; will-change:transform; }
+  .o2 { animation-delay:-4s; animation-duration:16s; } .o3 { animation-delay:-8s; animation-duration:18s; }
+  .page.on { animation:pageReveal .28s cubic-bezier(.22,1,.36,1) both; }
+  .page.on .glass:nth-child(2) { animation-delay:.04s; }
+  .page.on .glass:nth-child(3) { animation-delay:.08s; }
+  .page.on .glass:nth-child(4) { animation-delay:.12s; }
+  .glass { transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease; }
+  @media (hover:hover) and (pointer:fine) {
+    .glass:hover { transform:translateY(-2px); border-color:rgba(112,180,255,.24); box-shadow:0 14px 42px rgba(0,0,0,.42); }
+    button:hover:not(:disabled) { filter:brightness(1.1); transform:translateY(-1px); }
+  }
+  button { position:relative; overflow:hidden; transition:transform .16s ease,filter .16s ease,box-shadow .16s ease; }
+  button:active:not(:disabled) { transform:scale(.975); }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline:2px solid var(--acc); outline-offset:2px; }
+  .ui-ripple { position:absolute; width:48px; height:48px; border-radius:50%; pointer-events:none; background:rgba(255,255,255,.55); animation:rippleOut .55s ease-out forwards; }
+  .utility-dock { position:fixed; right:max(14px,calc((100vw - 520px)/2 - 54px)); bottom:18px; z-index:70; display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
+  .utility-btn { width:42px; height:42px; padding:0; border-radius:14px; color:var(--txt); background:rgba(10,17,31,.92); border:1px solid rgba(255,255,255,.16); box-shadow:0 8px 24px rgba(0,0,0,.42); backdrop-filter:blur(14px); }
+  .utility-btn.hidden { opacity:0; transform:translateY(8px); pointer-events:none; }
+  .net-pill { border-radius:12px; padding:7px 10px; color:var(--win); background:rgba(5,15,24,.9); border:1px solid rgba(0,229,160,.25); box-shadow:0 8px 24px rgba(0,0,0,.32); font-size:9px; font-weight:800; letter-spacing:.7px; }
+  .net-pill.offline { color:var(--loss); border-color:rgba(255,92,122,.35); }
+  .command-backdrop { position:fixed; inset:0; z-index:100; display:none; align-items:flex-start; justify-content:center; padding:12vh 14px 20px; background:rgba(1,4,10,.72); backdrop-filter:blur(9px); }
+  .command-backdrop.on { display:flex; animation:pageReveal .18s ease-out both; }
+  .command-box { width:min(500px,100%); border-radius:20px; padding:12px; background:rgba(10,16,29,.98); border:1px solid rgba(135,190,255,.25); box-shadow:0 28px 90px rgba(0,0,0,.65); }
+  .command-head { display:flex; align-items:center; gap:9px; border:1px solid rgba(255,255,255,.13); border-radius:13px; padding:0 11px; background:rgba(255,255,255,.045); }
+  .command-head input { margin:0; padding:12px 2px; border:0; background:transparent; }
+  .command-kbd { color:var(--sub); border:1px solid rgba(255,255,255,.15); border-radius:6px; padding:2px 6px; font-size:9px; }
+  .command-list { display:flex; flex-direction:column; gap:5px; margin-top:9px; max-height:52vh; overflow:auto; }
+  .command-item { width:100%; border:1px solid transparent; border-radius:11px; padding:10px 11px; text-align:left; color:var(--txt); background:transparent; display:flex; align-items:center; gap:10px; }
+  .command-item:hover,.command-item.active { background:rgba(0,198,255,.1); border-color:rgba(0,198,255,.2); }
+  .command-item small { margin-left:auto; color:var(--sub); }
+  .toast-stack { position:fixed; left:50%; bottom:22px; z-index:120; width:min(430px,calc(100vw - 28px)); pointer-events:none; }
+  .ui-toast { transform:translateX(-50%); margin-left:50%; width:max-content; max-width:100%; border-radius:13px; padding:10px 14px; color:var(--txt); background:rgba(11,19,34,.96); border:1px solid rgba(119,182,255,.27); box-shadow:0 12px 38px rgba(0,0,0,.55); font-size:12px; animation:toastIn .25s cubic-bezier(.22,1,.36,1) both; }
+  .ui-toast + .ui-toast { margin-top:7px; }
+  body.ui-busy .topbar::after { content:''; position:absolute; left:10px; right:10px; bottom:0; height:2px; border-radius:2px; background:linear-gradient(90deg,transparent,var(--acc),var(--acc2),transparent); background-size:180% 100%; animation:sheen 1s linear infinite; }
+  @media (max-width:650px){ .utility-dock { right:12px; bottom:12px; } .net-pill { display:none; } }
+  @media (prefers-reduced-motion:reduce){ .orb { transform:none!important; } }
 </style>
 </head>
 <body>
@@ -325,7 +367,7 @@
     </svg></div>
     <div class="brand">
       <h1>NEXUS</h1>
-      <p id="brandSub">Glass v5.1 · Meridian · 4 channels · M1+M3 · paper-first</p>
+      <p id="brandSub">Glass v5.2 · Meridian · 4 channels · M1+M3 · paper-first</p>
     </div>
     <span class="pulse idle" id="pulse" title="live heartbeat — pulses while the engine runs"></span>
     <div class="toplive">
@@ -420,7 +462,7 @@
       </div>
       <div class="two" style="margin-top:8px">
         <div><span class="mini" style="display:block;text-align:left">⏱ SIGNAL LEAD — seconds before candle close</span>
-          <input type="number" id="leadSec" min="5" max="55" step="5" value="30" title="Prediction for the next candle is issued this many seconds before the current candle closes"></div>
+          <input type="number" id="leadSec" min="10" max="55" step="5" value="40" title="Prediction for the next candle is issued this many seconds before the current candle closes. 40 seconds leaves delivery headroom."></div>
         <div><span class="mini" style="display:block;text-align:left">🧭 M5 CONFIRMATION (+1 credit/scan)</span>
           <label class="switch" style="margin-top:8px"><input type="checkbox" id="m5conf" checked><span class="slider"></span></label></div>
       </div>
@@ -537,18 +579,18 @@
       </div>
       <span class="t" style="margin-top:10px"><span class="num">1</span> LIST ENGINE <span class="tail"><span class="chip" id="premChip">idle</span></span></span>
       <div class="mini" style="text-align:left;line-height:1.55">
-        One click → <b>10-minute market study</b> → schedules <b>sure-shot windows 4 minutes apart</b> (none inside the study window) → sends the list to the <b>LIST channel</b> → verifies every outcome from confirmed candle closes → sends <b>one RESULT message with ✅/❌ ticks</b>.
+        One click → <b>10-minute live market study</b> → publishes one deduplicated list whose trade windows are <b>40–60 minutes ahead</b> (at least 20 minutes of notice) → verifies every outcome from stable, confirmed candle closes → sends <b>one RESULT message with ✅/❌/➖ ticks</b>.
       </div>
       <div class="prem-phase" id="premPhase">phase: idle</div>
       <div class="prem-progress"><i id="premBar"></i></div>
       <div class="mini" id="premStudy" style="text-align:left">study log: waiting to start</div>
       <div id="predRows" style="margin-top:10px"><div class="mini" style="text-align:center;padding:8px">No predictions yet — press START PREMIUM LIST.</div></div>
       <div class="batch-summary" id="predSummary">✅ = Win (0)  |  ❌ = Loss (0)  |  ➖ = Push (0)</div>
-      <div class="mini" id="winLeft" style="margin-top:6px">⏳ all trade times sit outside the 10-min study window · 4-min spacing</div>
+      <div class="mini" id="winLeft" style="margin-top:6px">⏳ list windows are 40–60 minutes after production · each pair appears at most once</div>
       <button class="b-vio b-big" id="premStart" style="margin-top:10px" onclick="premStart(true)">📊 START PREMIUM LIST — 10-min study → scheduled list → auto result</button>
       <button class="b-danger" id="premStop" style="width:100%;margin-top:8px" onclick="premStop()">■ STOP / RESET ENGINE</button>
       <div class="two" style="margin-top:10px">
-        <div><span class="mini" style="display:block;text-align:left">LIST SIZE (max scheduled signals)</span><input type="number" id="predSize" min="3" max="12" value="7"></div>
+        <div><span class="mini" style="display:block;text-align:left">LIST SIZE (unique pairs, max 10)</span><input type="number" id="predSize" min="3" max="10" value="7"></div>
         <div><span class="mini" style="display:block;text-align:left">DAILY AUTO-START TIME</span><input type="time" id="predTime" value="14:00"></div>
       </div>
       <div class="toggle" style="margin-top:2px">
@@ -786,10 +828,10 @@
     </div>
 
     <div class="glass" id="sec-ready">
-      <span class="t"><span class="num">3</span> LIVE-TRADING READINESS <span class="tail"><span class="chip warn" id="readyChip">LIVE TRADING: DISABLED BY DESIGN</span></span></span>
-      <div class="mini" style="text-align:left;line-height:1.55">Your goal: <b>max 1 loss in 20 trades (95%)</b> before ever thinking about live execution. This meter tracks the <b>measured</b>, confirmed win rate against that bar — no marketing numbers, only settled candles with ≥100-trade samples.</div>
+      <span class="t"><span class="num">3</span> PRODUCTION VALIDATION GATE <span class="tail"><span class="chip warn" id="readyChip">TELEGRAM PRODUCTION: LOCKED</span></span></span>
+      <div class="mini" style="text-align:left;line-height:1.55">Telegram signal production stays locked until NEXUS has <b>100 confirmed paper outcomes</b>, at least <b>70% measured wins</b>, a statistically positive lower bound above break-even, and a <b>50+ trade profitable deep validation</b>. Local paper signals continue collecting evidence. Passing these gates reduces risk; it still cannot make future losses impossible.</div>
       <div class="goalbar"><i id="readyBar" style="width:0%"></i><span class="mark95"></span></div>
-      <div class="mini" style="margin-top:4px;text-align:left">0% ————————— <b>95% goal (white mark)</b> —— 100%</div>
+      <div class="mini" style="margin-top:4px;text-align:left">0% ——————— <b>70% minimum production WR</b> ————— 100%</div>
       <div class="ready-grid">
         <div class="ready-cell">CONFIRMED LIVE WR<b id="readyWR">—</b></div>
         <div class="ready-cell">CONFIRMED SAMPLE<b id="readyN">0 / 100</b></div>
@@ -928,16 +970,31 @@
   <div class="clock" id="clock"></div>
   <div class="mini" id="feedTzNote" style="display:none;margin-top:4px"></div>
   <p class="disclaimer">⚠️ NEXUS never guarantees profits — no system can, and no setting makes losses impossible. It is a decision-support tool in <b>signal-only + paper-trading mode</b>; it does not click, place, or automate real trades.<br>Binary options carry a very high risk of losing money. Preserving capital comes first: respect the daily stop-loss, cooldowns, session guards and position limits. Past performance — real or backtested — does not predict future results. Trade responsibly.</p>
-  <div class="ver">NEXUS Glass v5.1 · Meridian edition · multi-pair · M1 + M3 · PUBLIC + VIP + LIST + SESSION channels · per-event stickers · fast confirmed settlement (ties = push)<br>Typeface: Inter (self-hosted, variable) — © The Inter Project Authors, SIL Open Font License 1.1 · license: assets/fonts/INTER-OFL-LICENSE.txt</div>
+  <div class="ver">NEXUS Glass v5.2 · Meridian edition · multi-pair · M1 + M3 · PUBLIC + VIP + LIST + SESSION channels · per-event stickers · revision-safe confirmed settlement (ties = push)<br>Typeface: Inter (self-hosted, variable) — © The Inter Project Authors, SIL Open Font License 1.1 · license: assets/fonts/INTER-OFL-LICENSE.txt</div>
 </div>
+
+<!-- Figma-style utility layer: command palette, connectivity, toast feedback -->
+<div class="utility-dock" aria-label="Quick utilities">
+  <div class="net-pill" id="netStatus" role="status">● ONLINE</div>
+  <button class="utility-btn" id="cmdOpen" type="button" title="Quick actions (Ctrl/⌘ K)" aria-label="Open quick actions">⌘</button>
+  <button class="utility-btn hidden" id="toTop" type="button" title="Back to top" aria-label="Back to top">↑</button>
+</div>
+<div class="command-backdrop" id="commandPalette" role="dialog" aria-modal="true" aria-labelledby="commandTitle">
+  <div class="command-box">
+    <div class="command-head"><span aria-hidden="true">⌕</span><input id="commandSearch" type="search" placeholder="Jump to a page or run an action…" autocomplete="off" aria-label="Search quick actions"><span class="command-kbd">ESC</span></div>
+    <div class="mini" id="commandTitle" style="text-align:left;margin:8px 4px 0">QUICK ACTIONS · Ctrl/⌘ K</div>
+    <div class="command-list" id="commandList"></div>
+  </div>
+</div>
+<div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
 
 <script src="keys.js"></script>
 <script>
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════
-NEXUS Glass v5.1 · MERIDIAN — multi-pair · M1+M3 · 4 channels
+NEXUS Glass v5.2 · MERIDIAN — multi-pair · M1+M3 · 4 channels
 (PUBLIC 1-min stream · VIP 10-min shots · LIST · MAIN) · bot-configured
-formats · per-event sticker bank · fast confirmed settlement (ties =
+formats · per-event sticker bank · revision-safe confirmed settlement (ties =
 push) · quality-first signals · deep training · paper-first.
 🔑 PERMANENT API KEYS — optional; the normal path is the 10 key slots
    in the UI (one-click save to this browser's localStorage — never
@@ -1100,6 +1157,31 @@ function pEstimate(score,grade){ /* calibrated by grade once enough paper trades
   return Math.min(0.9,Math.max(0.35,score/100*0.72+0.12));
 }
 function evEstimate(pEst){ return pEst*(paper.payout/100)-(1-pEst)-paper.frictionPct/100; }
+function wilsonLower(w,n,z){ /* conservative lower confidence bound; prevents a lucky short run unlocking production */
+  if(!n) return 0; z=z||1.96;
+  const p=w/n, zz=z*z, den=1+zz/n;
+  return (p+zz/(2*n)-z*Math.sqrt((p*(1-p)+zz/(4*n))/n))/den;
+}
+function productionGate(){
+  const dec=histRows.filter(r=>r.res==='win'||r.res==='loss');
+  const wins=dec.filter(r=>r.res==='win').length, wr=dec.length?wins/dec.length:0;
+  const lower=wilsonLower(wins,dec.length,1.96);
+  const breakEven=(1+paper.frictionPct/100)/(1+paper.payout/100);
+  const d=deep&&deep.M1;
+  const reasons=[];
+  if(dec.length<100) reasons.push('confirmed paper sample '+dec.length+'/100');
+  if(wr<0.70) reasons.push('measured WR '+Math.round(wr*100)+'% < 70%');
+  if(lower<=breakEven) reasons.push('95% lower bound '+Math.round(lower*100)+'% ≤ '+Math.round(breakEven*100)+'% break-even');
+  if(!d||d.ensVn<50) reasons.push('deep validation '+(d?d.ensVn:0)+'/50 trades');
+  else if(d.ensVwr<=breakEven) reasons.push('deep WR '+Math.round(d.ensVwr*100)+'% ≤ break-even');
+  return {ok:!reasons.length,reasons,n:dec.length,wins,wr,lower,breakEven,deepN:d?d.ensVn:0,deepWR:d?d.ensVwr:0};
+}
+function requireProduction(kind,logFn){
+  const g=productionGate(); if(g.ok) return true;
+  const msg='🔒 '+kind+' blocked by paper-validation gate — '+g.reasons.join(' · ');
+  (logFn||tgLog)(msg); pushNote('sys',msg); renderReady();
+  return false;
+}
 function paperResolve(sig,res){ /* settle paper position at candle close — res: 'win'|'loss'|'push' */
   ensureDay();
   const stake=sig.stake||0;
@@ -1283,7 +1365,10 @@ function showPage(k){
   if(!PAGES.includes(k)) k='dash';
   curPage=k;
   for(const p of PAGES){ const el=$('page-'+p); if(el) el.classList.toggle('on',p===k); }
-  document.querySelectorAll('#pageTabs button').forEach(b=>b.classList.toggle('active',b.getAttribute('data-page')===k));
+  document.querySelectorAll('#pageTabs button').forEach(b=>{
+    const active=b.getAttribute('data-page')===k; b.classList.toggle('active',active);
+    if(active) try{ b.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'}); }catch(e){/* older browser */}
+  });
   store.set('nx_page',k);
   try{ window.scrollTo({top:0,behavior:'instant'}); }catch(e){ try{ window.scrollTo(0,0); }catch(e2){/* env without scrolling */} }
   if(k==='dash'){ notesSeen=Date.now(); store.set('nx_notesSeen',notesSeen); renderNotes(); }
@@ -1611,7 +1696,7 @@ function sanitizePublic(s){ /* strip anything sensitive before a public post */
 function shouldAutoFire(secLeft,minute,lastMin,lead,isBusy){
   return secLeft<=lead && secLeft>0 && lastMin!==minute && !isBusy;
 }
-function leadSecOf(){ const el=$('leadSec'); return Math.min(55,Math.max(5,+(el&&el.value)||30)); }
+function leadSecOf(){ const el=$('leadSec'); return Math.min(55,Math.max(10,+(el&&el.value)||40)); }
 function nonstopOn(){ const el=$('nonstop'); return !!(el&&el.checked); }
 
 /* ---------- freshness + weekend gate: reject stale/closed-market candles BEFORE predicting ---------- */
@@ -2110,7 +2195,8 @@ function validateSetup(fx,vol,regime,opt){ /* validation filter: reject weak / u
   if(fx.conf<regime.thr*0.85) fails.push('below regime threshold');
   if(fx.agree<2) fails.push('agents disagree');
   if(fx.conflict>1) fails.push('too many conflicting agents');
-  if(opt.ttOpen!=null&&opt.ttOpen<4) warns.push('tight entry window ('+opt.ttOpen.toFixed(0)+'s) — latency risk');
+  if(opt.ttOpen!=null&&opt.ttOpen<10) fails.push('delivery window too late ('+opt.ttOpen.toFixed(0)+'s before open)');
+  else if(opt.ttOpen!=null&&opt.ttOpen<20) warns.push('tight delivery window ('+opt.ttOpen.toFixed(0)+'s before open)');
   if(opt.dataLagMs>2500) warns.push('data lag '+Math.round(opt.dataLagMs)+'ms');
   const pEst=pEstimate(opt.score,opt.grade), ev=evEstimate(pEst);
   if(ev<=0) fails.push('negative EV at '+paper.payout+'% payout');
@@ -2126,15 +2212,17 @@ function validateSetup(fx,vol,regime,opt){ /* validation filter: reject weak / u
    • close == open is a PUSH (tie): stake refunded, never a LOSS
    ═══════════════════════════════════════════════════════════════════ */
 function nextTargetFromFeed(lastTs,tfMs){ return Math.floor(lastTs/tfMs)*tfMs+tfMs; }
+const SETTLE_STABLE_MS=8000; /* provider closes can revise for a few seconds; never publish a provisional verdict */
 function candleData(pair,tf,targetT){
   const ck=cache[pair]; if(!ck||!targetT) return null;
   const tfMs=TFS[tf].ms;
-  if(ck.t < targetT+tfMs+800) return null;                /* snapshot predates the target close → wait a beat */
+  if(ck.t < targetT+tfMs+SETTLE_STABLE_MS) return null;
   const series = tf==='M3' ? ck.m3 : ck.m1;
   const idx=series.findIndex(cv=>cv.ts===targetT);
   if(idx<0) return null;
   const t=series[idx];
-  return {o:t.o,c:t.c,ts:t.ts};
+  if(!isFinite(t.o)||!isFinite(t.c)||t.o<=0||t.c<=0) return null;
+  return {o:t.o,c:t.c,ts:t.ts,confirmedAt:ck.t};
 }
 function candleOutcome(pair,tf,dir,targetT){
   const t=candleData(pair,tf,targetT);
@@ -2153,13 +2241,16 @@ function resolveSignal(sig,res,out){ /* single settlement path for every stream 
   /* self-learning (pushes teach nothing — skipped) */
   if(res!=='push'&&sig.votes){
     for(const s in sig.votes){
+      const voted=sig.votes[s]; if(!voted) continue;
       const m=mem[sig.tf]&&mem[sig.tf][s]; if(!m) continue;
-      if(sig.votes[s]===sig.dir) m.w++;
-      else if(sig.votes[s]) m.l++;
+      /* A strategy learns from whether ITS direction won. Previously every
+         strategy aligned with the emitted direction was credited even when
+         the actual signal lost, poisoning the weights toward losing setups. */
+      const strategyWon=(voted===sig.dir)===(res==='win');
+      if(strategyWon) m.w++; else m.l++;
       if(sig.regime){
         const r=memBucket(sig.tf,sig.regime,s);
-        if(sig.votes[s]===sig.dir) r.w++;
-        else if(sig.votes[s]) r.l++;
+        if(strategyWon) r.w++; else r.l++;
       }
     }
     saveMem();
@@ -2222,7 +2313,7 @@ function settlementFetches(){
   if(vx&&Array.isArray(vx.shots)) for(const r of vx.shots) if(!r.out) pend.push({pair:r.pair,tf:'M1',targetT:r.targetT});
   const due=new Map();
   for(const p of pend){
-    if(now < p.targetT+TFS[p.tf].ms+2200) continue;      /* not due yet */
+    if(now < p.targetT+TFS[p.tf].ms+SETTLE_STABLE_MS) continue; /* wait through provider revision window */
     if(candleData(p.pair,p.tf,p.targetT)) continue;      /* already settleable from cache */
     due.set(p.pair,p);                                   /* one fetch per pair is enough */
   }
@@ -2303,7 +2394,7 @@ function sxClaim(sig){
   sx.status='waiting'; saveSx(); renderSess();
   sxLog('⚡ SIGNAL #'+(sx.wins+sx.losses+sx.pushes+1)+' claimed — '+sigLine(sig)+' · score '+Math.round(sig.score||0));
   pushNote('session','🎯 session signal live — '+sigLine(sig));
-  if(tgReady()){
+  if(tgReady()&&requireProduction('SESSION signal',sxLog)){
     tgSendTo('main',msgSignal(sig))
       .then(()=>tgLog('🎯 session signal sent → '+chatLabel('main')))
       .catch(e=>tgLog('❌ session signal failed: '+sanitizeErr(e.message)));
@@ -2437,12 +2528,13 @@ function renderSess(){
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   📊 PREMIUM LIST ENGINE — 10-min market study → sure-shot windows
-   4 min apart (NONE inside the study window) → list to the LIST
-   channel → verified outcomes → one RESULT + assigned stickers.
+   📊 PREMIUM LIST ENGINE — 10-min live market study → unique-pair
+   windows 40–60 min after list production → LIST channel → stable
+   confirmed outcomes → one idempotent RESULT + assigned stickers.
    ═══════════════════════════════════════════════════════════════════ */
-const STUDY_MS=600000;    /* 10-minute study */
-const PREM_GAP_MS=240000; /* 4-minute spacing between trade times */
+const STUDY_MS=600000;          /* 10-minute live study */
+const PREM_MIN_AHEAD_MS=2400000;/* first row 40 min after production */
+const PREM_MAX_AHEAD_MS=3600000;/* every row stays within one hour */
 const DEF_PX={status:'idle',studyStart:0,studyEnd:0,size:7,rows:[],listSent:false,resultSent:false,introSent:false,notes:[],pairDrift:{},lastSampleMin:-1};
 let px=loadJSON('nx_px',null)||Object.assign({},DEF_PX);
 if(!Array.isArray(px.rows)) px.rows=[];
@@ -2467,10 +2559,10 @@ function premStart(manual){
   if(['intro','study','sent'].includes(px.status)){
     pushNote('premium','📊 premium engine already running ('+px.status+')'); return; }
   px=Object.assign({},DEF_PX,{status:'intro',studyStart:Date.now(),studyEnd:Date.now()+STUDY_MS,
-    size:Math.min(12,Math.max(3,+($('predSize').value)||7)),pairDrift:{},lastSampleMin:-1,notes:[]});
+    size:Math.min(10,Math.max(3,+($('predSize').value)||7)),pairDrift:{},lastSampleMin:-1,notes:[]});
   savePx(); renderPred();
-  premLog('📊 PREMIUM LIST started — 10-minute market study, then up to '+px.size+' sure-shot signals 4 min apart');
-  pushNote('premium','📊 PREMIUM study started — list scheduled in 10 min');
+  premLog('📊 PREMIUM LIST started — 10-minute live study, then up to '+px.size+' unique-pair signals 40–60 min ahead');
+  pushNote('premium','📊 PREMIUM live study started — future list publishes in 10 min');
   (async()=>{
     if(!tgReady()) premLog('⚠ Telegram not authorized — running locally. Authorize to broadcast the list.');
     if(px.status!=='intro') return;
@@ -2483,15 +2575,14 @@ function premStop(){
   savePx(); renderPred();
   premLog('■ premium engine reset');
 }
-function premiumSlots(studyEnd,size,gapMs){ /* minute-aligned trade times, ALL outside the study window */
+function premiumSlots(producedAt,size){ /* minute-aligned windows, all 40–60 min after production */
   const out=[];
-  const bound=t=>Math.ceil(t/60000)*60000;
-  for(let k=1;k<=size;k++){
-    let t=bound(studyEnd+gapMs*k);
-    if(out.length&&t<=out[out.length-1]) t=out[out.length-1]+60000;
-    out.push(t);
-  }
-  return out;
+  const n=Math.min(10,Math.max(1,size|0));
+  const first=Math.ceil((producedAt+PREM_MIN_AHEAD_MS)/60000)*60000;
+  const last=Math.floor((producedAt+PREM_MAX_AHEAD_MS)/60000)*60000;
+  const step=n===1?0:Math.max(60000,Math.floor((last-first)/(n-1)/60000)*60000);
+  for(let k=0;k<n;k++) out.push(k===n-1?last:first+step*k);
+  return [...new Set(out)].filter(t=>t>=first&&t<=last);
 }
 function aggCloses(series,bucketMs){ /* aggregate M1 → higher TF closes (no extra credits); drops the forming bucket */
   const g=new Map();
@@ -2533,7 +2624,7 @@ function projectConv(pair,targetT){ /* multi-timeframe consensus conviction 0-10
   const dir=posW>=negW?'CALL':'PUT';
   let conv=(Math.max(posW,negW)/tot)*100;
   const minsAhead=Math.max(0,(targetT-Date.now())/60000);
-  conv*=Math.max(0.75,1-minsAhead/240);                 /* trend-persistence decay with distance */
+  conv*=Math.max(0.90,1-minsAhead/600);                 /* modest long-horizon uncertainty penalty; hard floor still applies */
   if(dir==='CALL'&&rs>82) conv*=0.85;                   /* overextension penalty */
   if(dir==='PUT'&&rs<18) conv*=0.85;
   return {dir,conv:Math.min(99,conv)};
@@ -2543,7 +2634,7 @@ function premTick(){
   if(px.status==='study'){
     if(now>=px.studyEnd){ premSchedule(); return; }
     const minIdx=Math.floor((now-px.studyStart)/60000);
-    if(minIdx!==px.lastSampleMin&&minIdx>=0){ px.lastSampleMin=minIdx; premStudySample(minIdx); }
+    if(minIdx!==px.lastSampleMin&&minIdx>=0&&!premSampleBusy){ px.lastSampleMin=minIdx; savePx(); premStudySample(minIdx); }
   }
   if(px.status==='sent'){
     settlePrem();
@@ -2557,55 +2648,68 @@ function premTick(){
   }
   if(px.status==='study'||px.status==='sent') renderPred();
 }
-function premStudySample(minIdx){
-  const parts=[];
-  for(const p of watch()){
-    const ck=cache[p]; if(!ck||!ck.m1||ck.m1.length<2) continue;
-    const last=ck.m1[ck.m1.length-1], prev=ck.m1[ck.m1.length-2];
-    const d=Math.sign(last.c-prev.c)||0;
-    px.pairDrift[p]=(px.pairDrift[p]||0)+d;
-    const cv=projectConv(p,Date.now()+PREM_GAP_MS*2);
-    if(cv.dir) parts.push(PAIRCODE(p)+(cv.dir==='CALL'?'↑':'↓')+Math.round(cv.conv));
-  }
-  savePx();
-  premLog('🔬 study min '+(minIdx+1)+'/10 · '+(parts.length?parts.join(' · '):'awaiting fresh candles'));
-}
-function pickPremiumRows(floorScore){ /* walk the 4-min grid AFTER the study window; take the best qualifying pair per slot */
-  const horizon=premiumSlots(px.studyEnd,px.size+8,PREM_GAP_MS);
-  const rows=[]; const perPair={};
-  for(const ts of horizon){
-    if(rows.length>=px.size) break;
-    let best=null;
-    for(const p of watch()){
-      if((perPair[p]||0)>=3) continue;
-      const cv=projectConv(p,ts);
-      if(!cv.dir||cv.conv<floorScore) continue;
-      if(!best||cv.conv>best.conv) best={pair:p,dir:cv.dir,conv:cv.conv};
+let premSampleBusy=false;
+async function premStudySample(minIdx){
+  if(premSampleBusy||px.status!=='study') return;
+  premSampleBusy=true;
+  const wl=watch(), parts=[];
+  try{
+    /* A premium study must observe ten fresh snapshots, not re-score the
+       single cache captured when START was pressed. Failed pairs are skipped. */
+    await Promise.all(wl.map(p=>apiTimeSeries(p,{maxAge:0,quiet:true}).catch(()=>null)));
+    for(const p of wl){
+      const ck=cache[p]; if(!ck||!ck.m1||ck.m1.length<2||!candleGate(ck.m1).ok) continue;
+      const last=ck.m1[ck.m1.length-1], prev=ck.m1[ck.m1.length-2];
+      const d=Math.sign(last.c-prev.c)||0;
+      px.pairDrift[p]=(px.pairDrift[p]||0)+d;
+      const cv=projectConv(p,Date.now()+PREM_MIN_AHEAD_MS);
+      if(cv.dir) parts.push(PAIRCODE(p)+(cv.dir==='CALL'?'↑':'↓')+Math.round(cv.conv));
     }
-    if(!best) continue;
-    perPair[best.pair]=(perPair[best.pair]||0)+1;
-    rows.push({rowId:ts+'-'+PAIRCODE(best.pair),pair:best.pair,tf:'M1',time:hhmmOf(ts),targetT:ts,
-      dir:best.dir,conv:Math.round(best.conv),grade:gradeOf(best.conv),out:null,o:null,c:null});
-  }
-  return rows;
+    savePx();
+    premLog('🔬 live sample '+(minIdx+1)+'/10 · '+(parts.length?parts.join(' · '):'no fresh qualifying candles'));
+  } finally { premSampleBusy=false; }
 }
-function premSchedule(){
-  const floorScore=Math.max(60,+(risk.premiumMin||78));
-  let rows=pickPremiumRows(floorScore);
-  let relaxed=false;
-  if(!rows.length&&floorScore>62){ relaxed=true; rows=pickPremiumRows(Math.max(62,floorScore-6)); }  /* one transparent relaxation pass */
-  px.rows=rows;
-  if(!rows.length){
-    px.status='idle'; savePx(); renderPred();
-    premLog('⛔ no window passed the '+floorScore+' conviction floor (even relaxed) — list NOT sent (quality over quantity)');
-    pushNote('premium','⛔ premium study found no sure-shot windows — nothing sent');
-    return;
+function pickPremiumRows(floorScore,producedAt){ /* one unique pair per future slot — never repeat the same trade */
+  const slots=premiumSlots(producedAt,Math.min(px.size,watch().length));
+  const candidates=[];
+  for(const p of watch()){
+    const gate=cache[p]?candleGate(cache[p].m1):{ok:false};
+    if(!gate.ok) continue;
+    /* Score at the centre of the requested horizon; assign the strongest
+       unique pair to the earliest slot so subscribers get maximum notice. */
+    const cv=projectConv(p,producedAt+(PREM_MIN_AHEAD_MS+PREM_MAX_AHEAD_MS)/2);
+    if(cv.dir&&cv.conv>=floorScore) candidates.push({pair:p,dir:cv.dir,conv:cv.conv});
   }
-  px.status='sent'; savePx(); renderPred();
-  premLog('📋 LIST SCHEDULED — '+rows.length+' signals · first '+rows[0].time+' · last '+rows[rows.length-1].time+' · none inside the study window'+(relaxed?' · ⚠ relaxed floor '+(floorScore-6):''));
-  pushNote('premium','📋 premium list scheduled: '+rows.length+' signals · 4-min spacing'+(relaxed?' (relaxed floor)':''));
-  if(tgReady()&&tg.auto&&!px.listSent) tgSendList();
-  else if(!tgReady()) premLog('⚠ authorize Telegram to broadcast (SEND LIST NOW works after authorization)');
+  candidates.sort((a,b)=>b.conv-a.conv);
+  return candidates.slice(0,slots.length).map((best,i)=>({
+    rowId:slots[i]+'-'+PAIRCODE(best.pair),pair:best.pair,tf:'M1',time:hhmmOf(slots[i]),targetT:slots[i],
+    dir:best.dir,conv:Math.round(best.conv),grade:gradeOf(best.conv),out:null,o:null,c:null
+  }));
+}
+let premScheduleBusy=false;
+async function premSchedule(){
+  if(premScheduleBusy||px.status!=='study') return;
+  premScheduleBusy=true;
+  try{
+    /* Final just-in-time refresh: scheduling from a stale study cache was the
+       main reason premium could produce no list or an obsolete direction. */
+    await Promise.all(watch().map(p=>apiTimeSeries(p,{maxAge:0,quiet:true}).catch(()=>null)));
+    const producedAt=Date.now();
+    const floorScore=Math.max(60,+(risk.premiumMin||78));
+    const rows=pickPremiumRows(floorScore,producedAt);
+    px.rows=rows;
+    if(!rows.length){
+      px.status='idle'; savePx(); renderPred();
+      premLog('⛔ no unique pair passed the '+floorScore+' conviction floor — list NOT sent (the floor is never relaxed)');
+      pushNote('premium','⛔ premium study found no qualified future windows — no loss-prone filler was sent');
+      return;
+    }
+    px.status='sent'; px.producedAt=producedAt; savePx(); renderPred();
+    premLog('📋 FUTURE LIST READY — '+rows.length+' unique pairs · first '+rows[0].time+' · last '+rows[rows.length-1].time+' · all 40–60 min ahead');
+    pushNote('premium','📋 premium future list ready: '+rows.length+' unique-pair signals · 40–60 min notice');
+    if(tgReady()&&tg.auto&&!px.listSent) tgSendList();
+    else if(!tgReady()) premLog('⚠ authorize Telegram to broadcast (SEND LIST NOW works after authorization)');
+  } finally { premScheduleBusy=false; }
 }
 function settlePrem(){
   if(!px||!px.rows||!px.rows.length) return;
@@ -2658,13 +2762,13 @@ function renderPred(){
   if(wlEl){
     if(px.status==='study'){
       const left=Math.max(0,px.studyEnd-now);
-      wlEl.textContent='⏳ study window closes in '+Math.floor(left/60000)+'m '+pad(Math.floor(left%60000/1000))+'s — first trade time is 4 min after that';
+      wlEl.textContent='⏳ live study closes in '+Math.floor(left/60000)+'m '+pad(Math.floor(left%60000/1000))+'s — every listed trade will be 40–60 min after production';
     } else if(rows.length){
       const pending=rows.filter(r=>!r.out);
       wlEl.textContent=pending.length
         ? '⏳ next verification: '+pending[0].time+' ('+PAIRCODE(pending[0].pair)+') · last trade '+rows[rows.length-1].time
         : '✅ all outcomes confirmed from real candle closes';
-    } else wlEl.textContent='⏳ all trade times sit outside the 10-min study window · 4-min spacing';
+    } else wlEl.textContent='⏳ list windows are 40–60 minutes after production · each pair appears at most once';
   }
   renderPremNotes();
 }
@@ -2861,7 +2965,10 @@ const STK_ROLES=[
   {id:'result',label:'🏁 RESULT'},
   {id:'outro1',label:'🏁 OUTRO 1'},
   {id:'outro2',label:'🏁 OUTRO 2'}];
-const stkDone=new Set();   /* once-keys — an event never fires its sticker twice */
+let stkDoneRows=loadJSON('nx_stkDone',[]); if(!Array.isArray(stkDoneRows)) stkDoneRows=[];
+const stkDone=new Set(stkDoneRows.slice(-300)); /* survives reload: a delivered event never fires twice */
+const stkInFlight=new Set();
+function saveStkDone(){ store.set('nx_stkDone',JSON.stringify([...stkDone].slice(-300))); }
 function stkPick(role){
   if(role==='win'){ const b=(tg.stk.win||[]).filter(Boolean); return b.length?b[Math.floor(Math.random()*b.length)]:null; }
   const v=tg.stk[role]; return v||null;
@@ -2870,13 +2977,20 @@ async function tgSticker(role,chatKind,onceKey){
   if(!tgReady()){ return false; }
   const fid=stkPick(role);
   if(!fid) return false;                                     /* unassigned → silence, by design */
-  if(onceKey){ const k=role+'|'+onceKey; if(stkDone.has(k)) return false; stkDone.add(k); }
+  let dedupeKey='';
+  if(onceKey){
+    dedupeKey=role+'|'+onceKey;
+    if(stkDone.has(dedupeKey)||stkInFlight.has(dedupeKey)) return false;
+    stkInFlight.add(dedupeKey);
+  }
   try{
     await tgCall('sendSticker',{chat_id:chatFor(chatKind),sticker:fid,protect_content:tg.protect?'true':'false'});
+    if(dedupeKey){ stkDone.add(dedupeKey); saveStkDone(); }
     tgLog('🎭 '+role+' sticker → '+chatLabel(chatKind));
     sbRecordDelivery(chatKind,'sticker','sent',null,'[sticker '+role+']',chatFor(chatKind));
     return true;
   }catch(e){ tgLog('❌ '+role+' sticker failed: '+sanitizeErr(e.message)); return false; }
+  finally{ if(dedupeKey) stkInFlight.delete(dedupeKey); }
 }
 let stPending=[];
 function stickerLabel(st){ return (st.emoji?st.emoji+' ':'')+(st.is_animated?'animated':st.is_video?'video':'static')+' · '+String(st.set_name||'custom'); }
@@ -2970,20 +3084,28 @@ function msgStats(){
     +'Paper balance: <b>'+paper.balance.toFixed(2)+'</b> · today P/L: <b>'+paper.plToday.toFixed(2)+'</b>\n'
     +'Closed: <b>'+n+'</b> · decisive win rate: <b>'+(dec?Math.round(w/dec*100):0)+'%</b>';
 }
+let listSending=false;
 async function tgSendList(){
+  if(listSending) return;
   if(!(px.rows||[]).length){ tgLog('⚠ no premium rows to send — start the LIST engine first'); return; }
+  if(px.listSent){ tgLog('ℹ this premium list was already delivered — duplicate blocked'); return; }
+  if(!requireProduction('premium LIST')) return;
+  listSending=true;
   try{
     await tgSendTo('list',msgList()); px.listSent=true; savePx();
-    tgLog('✅ list sent ('+px.rows.length+' rows) → '+chatLabel('list'));
-    pushNote('premium','📤 list sent ('+px.rows.length+' signals)');
+    tgLog('✅ list sent once ('+px.rows.length+' unique rows) → '+chatLabel('list'));
+    pushNote('premium','📤 list sent once ('+px.rows.length+' unique signals)');
     await tgSticker('list','list','px-list-'+px.studyStart);
     renderPred();
   }catch(e){ tgLog('❌ list failed: '+sanitizeErr(e.message)); }
+  finally{ listSending=false; }
 }
 let resultSending=false;
 async function tgSendResult(){
   if(resultSending) return;
   if(!(px.rows||[]).length){ tgLog('⚠ no premium rows — nothing to send'); return; }
+  if(px.resultSent){ tgLog('ℹ this result was already delivered — duplicate blocked'); return; }
+  if(!px.rows.every(r=>r.out)){ tgLog('⚠ result not sent — waiting for every confirmed candle'); return; }
   resultSending=true;
   try{
     await tgSendTo('list',msgResult());
@@ -3009,7 +3131,7 @@ function botAddRow(sig){
 function botDispatch(sig){ /* plain live scan signals only — session/VIP/public have their own streams */
   if(!sig) return;
   botAddRow(sig);
-  if(tg.botAuto&&tgReady()){
+  if(tg.botAuto&&tgReady()&&requireProduction('MAIN signal')){
     sig.botSent=true; saveOpen();
     tgSendTo('main',msgSignal(sig))
       .then(()=>tgLog('🤖 bot signal sent ('+sigLine(sig)+') → MAIN'))
@@ -3055,6 +3177,7 @@ async function pubOnSettled(sig,res,out){
 let pubBusy=false;
 async function pubFire(slot){
   if(pubBusy) return;
+  if(!requireProduction('PUBLIC signal',pubLogMsg)){ pubSkip('paper-validation gate locked'); return; }
   if(!budgetAllows()){ pubSkip('API budget guard'); return; }
   pubBusy=true;
   try{
@@ -3106,7 +3229,7 @@ function pubTick(){
   if(isWeekendWindow()) return;
   const now=new Date();
   const secLeft=60-now.getUTCSeconds();
-  const lead=Math.min(25,Math.max(8,leadSecOf()));
+  const lead=Math.min(50,Math.max(20,leadSecOf())); /* start early enough for multi-pair fetch + Telegram latency */
   if(secLeft>lead) return;
   const slot=Math.floor(Date.now()/60000);
   if(pubStat.lastMin===slot) return;
@@ -3129,6 +3252,7 @@ function vipLog(m){
 }
 function vxFire(manual){
   if(vx.firing) return Promise.resolve();
+  if(!requireProduction('VIP signal',vipLog)) return Promise.resolve();
   vx.firing=true;
   return (async()=>{
     try{
@@ -3160,12 +3284,17 @@ function vxFire(manual){
         const fx=fuse(vote,agTrend(i,x),agMomentum(i,x),agPattern(i,x),agStructure(i,x));
         if(!fx.dir) continue;                                  /* hard safety gates only — best available wins */
         const vol=agVol(i,x);
-        const score=scoreOf(fx,vol);
-        if(!best||score>best.score) best={pair,dir:fx.dir,score,grade:gradeOf(score),fx,vol,regime,vote};
+        const score=scoreOf(fx,vol), grade=gradeOf(score);
+        const targetT=nextTargetFromFeed(series[series.length-1].ts,TFS.M1.ms);
+        const vd=validateSetup(fx,vol,regime,{doji:false,marketOpen:null,minScore:Math.max(risk.minScore,72),
+          ttOpen:(targetT-Date.now())/1000,dataLagMs:cd.latencyMs||0,score,grade,gate,
+          sessOk:sess.ok,sessReason:sess.reason,famN:famCount(vote.votes,fx.dir),atrPct:regime.atrPct,m5:null});
+        if(!vd.pass) continue;
+        if(!best||score>best.score) best={pair,dir:fx.dir,score,grade,fx,vol,regime,vote,targetT};
       }
-      if(!best){ vipLog('⛔ no clean direction this window — shot skipped (never a filler)'); return; }
+      if(!best){ vipLog('⛔ no setup passed the VIP quality/EV/timing gates — shot skipped (never a filler)'); return; }
       const sig=emitSignal({pair:best.pair,tf:'M1',dir:best.dir,score:best.score,grade:best.grade,
-        fx:best.fx,vol:best.vol,regime:best.regime,vote:best.vote,origin:'vip'});
+        fx:best.fx,vol:best.vol,regime:best.regime,vote:best.vote,targetT:best.targetT,origin:'vip'});
       if(!sig){ vipLog('⚠ a signal for that candle is already open — shot skipped'); return; }
       vx.shots.unshift({id:sig.id,pair:sig.pair,time:sig.time,dir:sig.dir,grade:sig.grade,
         score:Math.round(sig.score),targetT:sig.targetT,out:null,o:null,c:null});
@@ -3721,10 +3850,12 @@ function backtestSeries(series,tf){
       sessOk:sess.ok,sessReason:sess.reason,famN:famCount(vote.votes,fx.dir),atrPct:regime.atrPct,m5:m5bias(i)});
     if(!vd.pass){ filtered++; continue; }
     const e=o[i+1],cl=c[i+1];
-    const res=cl>e?'win':cl<e?'loss':'push';
+    const push=cl===e;
+    const won=!push&&(fx.dir==='CALL'?cl>e:cl<e);
+    const res=push?'push':won?'win':'loss';
     const stake=1;
-    const pl=res==='push'?0:((res==='win'?stake*paper.payout/100:-stake)-stake*paper.frictionPct/100);
-    trades.push({dir:fx.dir,win:res==='win',res,pl,grade,agents:agentMap(fx),score,reg:regime.label,hb:hourBand(series[i].ts)});
+    const pl=res==='push'?0:((won?stake*paper.payout/100:-stake)-stake*paper.frictionPct/100);
+    trades.push({dir:fx.dir,win:won,res,pl,grade,agents:agentMap(fx),score,reg:regime.label,hb:hourBand(series[i].ts)});
   }
   return summarizeBT(trades,filtered,n);
 }
@@ -3885,14 +4016,14 @@ function renderReady(){
   set('readyDeep',dwr!=null?Math.round(dwr*100)+'% ('+d.ensVn+' trades)':'— (run deep training)');
   const shown=wr!=null?wr:(pwr!=null?pwr:0);
   const bar=$('readyBar'); if(bar) bar.style.width=Math.min(100,shown*100)+'%';
-  const v=$('readyVerdict'); if(!v) return;
-  const goal=0.95;
-  if(dec.length<100)
-    v.textContent='NOT READY — '+dec.length+'/100 confirmed settlements collected. Only confirmed, feed-verified verdicts count (pushes excluded). Live trading stays DISABLED by design in this build.';
-  else if(wr>=goal)
-    v.textContent='GOAL MEASURED — '+Math.round(wr*100)+'% over '+dec.length+' confirmed trades. Even so: this app is signal-only by design; wiring real money needs broker APIs, regulation and legal review — and small samples regress. Keep every guard enabled.';
-  else
-    v.textContent='NOT READY — measured '+Math.round(wr*100)+'% over '+dec.length+' confirmed trades vs the 95% goal (≤1 loss in 20). Honest levers: re-run deep training weekly, raise the premium floor, trade only A+/A grades, and let the session quality guard stop bad conditions.';
+  const v=$('readyVerdict'), chip=$('readyChip'); if(!v) return;
+  const g=productionGate();
+  if(chip){ chip.textContent=g.ok?'TELEGRAM PRODUCTION: UNLOCKED':'TELEGRAM PRODUCTION: LOCKED'; chip.className='chip '+(g.ok?'ok':'warn'); }
+  if(g.ok){
+    v.textContent='PRODUCTION UNLOCKED — '+g.wins+'/'+g.n+' wins ('+Math.round(g.wr*100)+'%), conservative lower bound '+Math.round(g.lower*100)+'%, deep validation '+Math.round(g.deepWR*100)+'% over '+g.deepN+' trades. Telegram signal streams may run, but future losses remain possible.';
+  } else {
+    v.textContent='PRODUCTION LOCKED — '+g.reasons.join(' · ')+'. Local paper scanning remains active so the engine can collect honest evidence; Telegram signal/list output is suppressed.';
+  }
 }
 
 /* ---------- settings wiring + init ---------- */
@@ -4023,7 +4154,7 @@ $('vipStream').addEventListener('change',e=>{ tg.vipStream=e.target.checked; sav
   tgLog(tg.vipStream?('💎 VIP stream ON — best shot every 10 min → '+chatLabel('vip')):'💎 VIP stream off'); });
 
 /* ---------- scan controls ---------- */
-$('leadSec').value=store.get('nx_lead')||'30';
+$('leadSec').value=store.get('nx_lead')||'40';
 $('leadSec').addEventListener('change',e=>{ store.set('nx_lead',String(leadSecOf())); e.target.value=String(leadSecOf());
   setStatus('ok','⏱ signal lead set to '+leadSecOf()+'s — the next candle is called that early inside the previous minute'); });
 $('m5conf').checked=store.get('nx_m5')!=='0';
@@ -4411,6 +4542,68 @@ function sbInit(){
   if(sbReady()){ sbLoadModel(); sbLoadPerf(); sbLoadFresh(); sbLoadDeliv(); }
 }
 
+/* ── Figma-style product polish: command palette, motion feedback, network state ── */
+function uiToast(text,life){
+  const host=$('toastStack'); if(!host) return;
+  const el=document.createElement('div'); el.className='ui-toast'; el.textContent=String(text);
+  host.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translate(-50%,8px)';
+    setTimeout(()=>el.remove(),220); },life||2400);
+}
+const QUICK_ACTIONS=[
+  {label:'Dashboard',hint:'Page',icon:'🎛',run:()=>showPage('dash')},
+  {label:'Signals',hint:'Page',icon:'⚡',run:()=>showPage('sig')},
+  {label:'Session',hint:'Page',icon:'🎯',run:()=>showPage('sess')},
+  {label:'VIP shots',hint:'Page',icon:'💎',run:()=>showPage('vip')},
+  {label:'Premium list',hint:'Page',icon:'📊',run:()=>showPage('prem')},
+  {label:'Telegram setup',hint:'Page',icon:'📨',run:()=>showPage('tg')},
+  {label:'Results',hint:'Page',icon:'📈',run:()=>showPage('res')},
+  {label:'Brain & training',hint:'Page',icon:'🧠',run:()=>showPage('brain')},
+  {label:'Data & keys',hint:'Page',icon:'🗄',run:()=>showPage('data')},
+  {label:'Cloud sync',hint:'Page',icon:'☁',run:()=>showPage('cloud')},
+  {label:'Scan market now',hint:'Action',icon:'↻',run:()=>{ showPage('sig'); runScan(true); }},
+  {label:'Export confirmed history',hint:'CSV',icon:'⇩',run:()=>exportCSV()},
+  {label:'Run deep backtest',hint:'Action',icon:'◫',run:()=>{ showPage('brain'); deepBacktest(); }}
+];
+let commandMatches=[],commandIndex=0;
+function renderCommandList(query){
+  const host=$('commandList'); if(!host) return;
+  const q=String(query||'').trim().toLowerCase();
+  commandMatches=QUICK_ACTIONS.filter(a=>!q||(a.label+' '+a.hint).toLowerCase().includes(q));
+  commandIndex=Math.min(commandIndex,Math.max(0,commandMatches.length-1)); host.textContent='';
+  if(!commandMatches.length){ const e=document.createElement('div'); e.className='empty-note'; e.textContent='No matching action'; host.appendChild(e); return; }
+  commandMatches.forEach((a,i)=>{
+    const b=document.createElement('button'); b.type='button'; b.className='command-item'+(i===commandIndex?' active':'');
+    const icon=document.createElement('span'); icon.textContent=a.icon;
+    const lab=document.createElement('span'); lab.textContent=a.label;
+    const hint=document.createElement('small'); hint.textContent=a.hint;
+    b.append(icon,lab,hint); b.addEventListener('click',()=>runCommand(i)); host.appendChild(b);
+  });
+}
+function commandOpen(){ const p=$('commandPalette'),s=$('commandSearch'); if(!p||!s)return;
+  p.classList.add('on'); document.body.style.overflow='hidden'; s.value=''; commandIndex=0; renderCommandList(''); setTimeout(()=>s.focus(),0); }
+function commandClose(){ const p=$('commandPalette'); if(p)p.classList.remove('on'); document.body.style.overflow=''; }
+function runCommand(i){ const a=commandMatches[i]; if(!a)return; commandClose(); a.run(); uiToast(a.icon+' '+a.label); }
+function initProductPolish(){
+  const net=$('netStatus'), top=$('toTop'), pal=$('commandPalette'), search=$('commandSearch'), opener=$('cmdOpen');
+  const network=()=>{ if(!net)return; const on=navigator.onLine!==false; net.textContent=on?'● ONLINE':'● OFFLINE'; net.classList.toggle('offline',!on); if(!on)uiToast('Network offline — local data and saved settings remain available',3500); };
+  network(); window.addEventListener('online',()=>{network();uiToast('Connection restored');}); window.addEventListener('offline',network);
+  if(opener) opener.addEventListener('click',commandOpen);
+  if(pal) pal.addEventListener('click',e=>{if(e.target===pal)commandClose();});
+  if(search){ search.addEventListener('input',()=>{commandIndex=0;renderCommandList(search.value);});
+    search.addEventListener('keydown',e=>{ if(e.key==='ArrowDown'){e.preventDefault();commandIndex=Math.min(commandIndex+1,commandMatches.length-1);renderCommandList(search.value);}
+      else if(e.key==='ArrowUp'){e.preventDefault();commandIndex=Math.max(0,commandIndex-1);renderCommandList(search.value);}
+      else if(e.key==='Enter'){e.preventDefault();runCommand(commandIndex);} }); }
+  document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();commandOpen();} else if(e.key==='Escape')commandClose(); });
+  const scrollUi=()=>{if(top)top.classList.toggle('hidden',window.scrollY<320);};
+  window.addEventListener('scroll',scrollUi,{passive:true}); scrollUi();
+  if(top) top.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  document.addEventListener('pointerdown',e=>{ const b=e.target.closest&&e.target.closest('button'); if(!b||b.disabled)return;
+    const r=b.getBoundingClientRect(),d=document.createElement('span'); d.className='ui-ripple';
+    d.style.left=(e.clientX-r.left-24)+'px'; d.style.top=(e.clientY-r.top-24)+'px'; b.appendChild(d); setTimeout(()=>d.remove(),600); });
+  const scan=$('btnRun'); if(scan&&window.MutationObserver){ new MutationObserver(()=>document.body.classList.toggle('ui-busy',scan.disabled)).observe(scan,{attributes:true,attributeFilter:['disabled']}); }
+}
+
 initTabs();
 showPage(store.get('nx_page')||'dash');
 renderKeyInputs();
@@ -4428,9 +4621,10 @@ if(tg.listen&&tgReady()) tgListenLoop();
 if(sx.status==='hunting'&&!sx.huntStart) sx.huntStart=Date.now();   /* resume the hunt after reload */
 loadLocalArt();
 sbInit();
+initProductPolish();
 setInterval(()=>{ livePairsRender(); renderTopLive(); },5000);       /* pair grid ages refresh without hogging the main tick */
 setInterval(()=>{ if(sbReady()&&curPage==='cloud'&&document.visibilityState!=='hidden'){ sbLoadFresh(); sbLoadDeliv(); } },60000);
-setStatus('wait','NEXUS v5.1 Meridian ready — 10 pairs · 26 strategies · 4 channels (PUBLIC · VIP · LIST · MAIN) · fast verdicts. Flip the streams on the TELEGRAM page.');
+setStatus('wait','NEXUS v5.2 Meridian ready — 10 pairs · 26 strategies · 4 channels (PUBLIC · VIP · LIST · MAIN) · fast verdicts. Flip the streams on the TELEGRAM page.');
 </script>
 </body>
 </html>
