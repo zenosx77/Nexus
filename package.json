@@ -11,7 +11,7 @@
     "test:workflows": "node --test tests/workflows.test.cjs",
     "check:secrets": "node tools/check-secrets.cjs",
     "test:quota": "node --test tests/shared-quota.test.cjs",
-    "test:postgres": "node --test tests/quota-postgres.test.cjs",
+    "test:postgres": "node --test --test-reporter=tap --test-reporter-destination=stdout --test-reporter=./tools/github-test-reporter.cjs --test-reporter-destination=stderr tests/quota-postgres.test.cjs",
     "lint:workflows": "node tools/lint-workflows.cjs"
   },
   "devDependencies": {
