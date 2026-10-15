@@ -1,0 +1,79 @@
+name: Deploy and verify NEXUS relay
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - 'package*.json'
+      - 'tests/relay-deployment.test.cjs'
+      - 'supabase/functions/**'
+      - 'supabase/config.toml'
+      - 'tools/deploy-relay.cjs'
+      - 'tools/verify-relay*.cjs'
+      - 'supabase/verify/**'
+      - '.github/workflows/deploy-relay.yml'
+  workflow_dispatch:
+    inputs:
+      verify_market:
+        description: 'One market request (key failover may spend multiple credits; DB quota enforced)'
+        type: boolean
+        default: false
+      verify_telegram:
+        description: 'Send one clearly labelled test to the explicitly configured private admin chat'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: nexus-relay-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.NEXUS_RELAY_DEPLOY_ENABLED == 'true')
+    environment: supabase-production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_PROJECT_REF: rxswndsebvaqztshbmlc
+      NEXUS_ALLOWED_ORIGINS: https://zenosx77.github.io
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm --prefix server ci --ignore-scripts
+      - run: npm test
+      - name: Verify existing database security and shared quota (read only)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node tools/verify-relay-database.cjs
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1
+        with:
+          version: 2.121.0
+      - name: Check credentials, synchronize supplied secrets, deploy existing function
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          TWELVEDATA_KEYS: ${{ secrets.TWELVEDATA_KEYS }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_MAIN_CHAT: ${{ secrets.TELEGRAM_MAIN_CHAT }}
+          TELEGRAM_PUBLIC_CHAT: ${{ secrets.TELEGRAM_PUBLIC_CHAT }}
+          TELEGRAM_VIP_CHAT: ${{ secrets.TELEGRAM_VIP_CHAT }}
+          TELEGRAM_LIST_CHAT: ${{ secrets.TELEGRAM_LIST_CHAT }}
+          TELEGRAM_ADMIN_CHAT: ${{ secrets.TELEGRAM_ADMIN_CHAT }}
+          NEXUS_TELEGRAM_ADMIN_USER_IDS: ${{ secrets.NEXUS_TELEGRAM_ADMIN_USER_IDS }}
+          NEXUS_VERIFY_ADMIN_ACCESS_TOKEN: ${{ secrets.NEXUS_VERIFY_ADMIN_ACCESS_TOKEN }}
+          NEXUS_VERIFY_TELEGRAM: ${{ inputs.verify_telegram || false }}
+        run: node tools/deploy-relay.cjs
+      - name: Verify actual authenticated session and read-only Cloud Sync access
+        env:
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          NEXUS_VERIFY_MARKET: ${{ inputs.verify_market || false }}
+          NEXUS_VERIFY_TELEGRAM: ${{ inputs.verify_telegram || false }}
+          NEXUS_VERIFY_ADMIN_ACCESS_TOKEN: ${{ secrets.NEXUS_VERIFY_ADMIN_ACCESS_TOKEN }}
+          TELEGRAM_ADMIN_CHAT: ${{ secrets.TELEGRAM_ADMIN_CHAT }}
+        run: node tools/verify-relay.cjs
