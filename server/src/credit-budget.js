@@ -1,7 +1,7 @@
-// ── Twelve Data request budget ─────────────────────────────────────────
-// Each one-symbol data request reserves one credit in Supabase before the
-// provider is contacted. The reservation RPC is atomic and survives restarts.
-// The api_usage endpoint is intentionally not routed through this module.
+// ── Twelve Data request budgets ─────────────────────────────────────────
+// Each paid one-symbol data request reserves one credit in Supabase before
+// the provider is contacted. Worker and browser-relay scopes are separate.
+// api_usage is intentionally free and does not spend either credit budget.
 
 import { config } from './config.js';
 import { db } from './db.js';
@@ -18,7 +18,7 @@ export class TwelveDataBudgetError extends Error {
   }
 }
 
-let dailyBlockedUntil = 0;
+const dailyBlockedUntil = { worker: 0, browser: 0 };
 
 export function nextUtcMidnightMs(now = Date.now()) {
   const next = new Date(now);
@@ -54,11 +54,10 @@ export function recommendedIngestIntervalSeconds(
   return Math.max(minimum, rateLimitSpacing);
 }
 
-/** Reserve one paid Twelve Data request; fail closed if the guard is offline. */
-export async function reserveTwelveDataCredit() {
+async function reserveCredit({ scope, rpc, dailyLimit, minuteLimit, extra = {} }) {
   const now = Date.now();
-  if (now < dailyBlockedUntil) {
-    throw new TwelveDataBudgetError('daily-limit', 'Twelve Data daily credit limit reached; requests resume at 00:00 UTC.', dailyBlockedUntil - now);
+  if (now < dailyBlockedUntil[scope]) {
+    throw new TwelveDataBudgetError('daily-limit', `Twelve Data ${scope} daily credit limit reached; requests resume at 00:00 UTC.`, dailyBlockedUntil[scope] - now);
   }
 
   let client;
@@ -70,9 +69,10 @@ export async function reserveTwelveDataCredit() {
 
   let data, error;
   try {
-    ({ data, error } = await client.rpc('reserve_twelvedata_credit', {
-      p_daily_limit: config.twelveDataDailyCreditLimit,
-      p_minute_limit: config.twelveDataMinuteCreditLimit,
+    ({ data, error } = await client.rpc(rpc, {
+      p_daily_limit: dailyLimit,
+      p_minute_limit: minuteLimit,
+      ...extra,
     }));
   } catch (err) {
     throw new TwelveDataBudgetError('guard-unavailable', `Twelve Data credit guard unavailable; request blocked: ${err.message}`);
@@ -85,13 +85,39 @@ export async function reserveTwelveDataCredit() {
   if (!result || result.allowed !== true) {
     const reason = result && result.reason || 'guard-unavailable';
     const retryAfterMs = Math.max(0, Number(result && result.retry_after_ms) || 0);
-    if (reason === 'daily-limit') dailyBlockedUntil = nextUtcMidnightMs(now);
+    if (reason === 'daily-limit') dailyBlockedUntil[scope] = nextUtcMidnightMs(now);
     const message = reason === 'daily-limit'
-      ? `Twelve Data daily credit limit reached (${config.twelveDataDailyCreditLimit}/UTC day); requests resume at 00:00 UTC.`
-      : reason === 'minute-limit'
-        ? `Twelve Data per-minute request limit reached (${config.twelveDataMinuteCreditLimit}/minute).`
-        : 'Twelve Data credit reservation failed; request blocked (fail closed).';
+      ? `Twelve Data ${scope} daily credit limit reached (${dailyLimit}/UTC day); requests resume at 00:00 UTC.`
+      : reason === 'settlement-reserve'
+        ? 'Twelve Data routine browser budget reached its 80% cap; remaining credits are reserved for settlement requests.'
+        : reason === 'minute-limit'
+          ? `Twelve Data ${scope} per-minute request limit reached (${minuteLimit}/minute).`
+          : 'Twelve Data credit reservation failed; request blocked (fail closed).';
     throw new TwelveDataBudgetError(reason, message, retryAfterMs);
   }
   return result;
+}
+
+/** Reserve one worker request; fail closed if the persistent guard is offline. */
+export function reserveTwelveDataCredit() {
+  return reserveCredit({
+    scope: 'worker', rpc: 'reserve_twelvedata_credit',
+    dailyLimit: config.twelveDataDailyCreditLimit,
+    minuteLimit: config.twelveDataMinuteCreditLimit,
+  });
+}
+
+/** Reserve one authenticated browser-relay request in its own persistent pool. */
+export function reserveTwelveDataBrowserCredit(category = 'scan', scanReserve = 0) {
+  const safeCategory = ['scan', 'ticker', 'settlement'].includes(category) ? category : 'scan';
+  const safeScanReserve = Math.max(0, Math.min(
+    config.twelveDataBrowserMinuteCreditLimit,
+    Math.floor(Number(scanReserve) || 0),
+  ));
+  return reserveCredit({
+    scope: 'browser', rpc: 'reserve_twelvedata_browser_credit',
+    dailyLimit: config.twelveDataBrowserDailyCreditLimit,
+    minuteLimit: config.twelveDataBrowserMinuteCreditLimit,
+    extra: { p_category: safeCategory, p_scan_reserve: safeScanReserve },
+  });
 }

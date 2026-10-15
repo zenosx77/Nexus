@@ -1,9 +1,12 @@
 # NEXUS × Supabase — end-to-end setup
 
-This wires the optional cloud layer onto the existing site **without changing any
-working logic**: the browser stays the live prediction source and only *mirrors*;
-all heavy/secret work happens server-side. Nothing here is required — with no
-config the site runs exactly as before.
+This wires shared Supabase storage and the authenticated server relay to the
+existing site while preserving its strategies, weights, UI, browser/worker credit
+limits, and signal engines. The browser remains the live prediction source and
+mirrors its records into the existing **shared/anonymous** schema; this does not
+make predictions or delivery rows user-owned. Market-data and Telegram secrets
+are server-only. Without the relay, local strategy/paper state remains available,
+but server-backed market data and Telegram transport are unavailable.
 
 Architecture and design decisions: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
 
@@ -19,11 +22,12 @@ Architecture and design decisions: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md
 | Node 18+ | the worker | your server / machine |
 | Python 3.9+ | the trainer (stdlib only) | your server / machine |
 
-> **Key rule (enforced everywhere):** the **service-role key**, market-data keys and
-> the bot token exist only in `server/.env` / `trainer/.env` (gitignored). The browser
-> only ever sees the **anon public key**, which row-level security limits to
-> insert-only writes plus monitoring reads. The deploy guard refuses to publish if
-> service-role material ever appears in the site.
+> **Key rule:** the **service-role key**, Twelve Data keys, Telegram bot token, and
+> private chat destinations exist only in host environment files such as `server/.env`
+> and `trainer/.env` (gitignored). The browser uses only the public Supabase anon key
+> for the intentional shared mirror and the authenticated relay session; it never
+> calls Twelve Data or Telegram directly. The Pages build guard blocks credential-bearing
+> artifacts.
 
 ## 1. Database — apply the migrations
 
@@ -38,9 +42,15 @@ supabase/migrations/0005_rls.sql         row-level security (anon = insert-only 
 supabase/migrations/0006_retention.sql   prune functions
 supabase/migrations/0007_twelvedata_credit_budget.sql
                                          persistent atomic worker credit guard
+supabase/migrations/0008_cloud_security_and_browser_budget.sql
+                                         browser relay budget + grants/SECURITY DEFINER hardening
 ```
 
-Then create the **private** Storage bucket: Dashboard → Storage → `models` (private).
+Review and apply the migrations in order in the target project; no migration is applied
+by this repository automatically. Then create the **private** Storage bucket: Dashboard
+→ Storage → `models` (private). Enable anonymous sign-ins in Supabase Auth so the app
+can obtain a short-lived bearer session for the relay. This Auth session does not change
+the public/shared ownership model.
 
 Verify (SQL editor):
 
@@ -56,9 +66,17 @@ select release_job_lock('setup-check','manual');
 cd server
 npm install
 cp .env.example .env        # fill in SUPABASE_URL, SERVICE-ROLE key, Twelve Data keys, Telegram
-npm run once               # one full pass: ingest → evaluate → telegram → alerts → risk → housekeeping
-npm start                  # continuous loop (keep alive with PM2/systemd on an always-on host)
+npm run once               # one full worker pass, then exit
+npm run api                # separate authenticated relay process, binds 0.0.0.0:NEXUS_API_PORT (default 8787)
+npm start                  # continuous worker loop (supervise separately with PM2/systemd)
 ```
+
+For the relay, set `NEXUS_ALLOWED_ORIGINS` to exact browser origins (scheme + hostname,
+no path; never `*`) and terminate TLS at the host proxy. Configure the same API base URL
+in the app’s CLOUD page. Telegram sending/polling is restricted to Supabase Auth user
+UUIDs listed in `NEXUS_TELEGRAM_ADMIN_USER_IDS`; the app displays its current UUID after
+connection so the operator can provision an allowlist entry. Keep provider, bot, and
+service-role values in the host’s environment only.
 
 For a restart-on-crash/background process on an always-on Linux VPS:
 
@@ -68,12 +86,13 @@ npm install
 cp .env.example .env       # fill in the credentials on the server only
 npm install --global pm2
 pm2 start npm --name nexus-worker -- start
+pm2 start npm --name nexus-api -- run api
 pm2 save
 pm2 startup                # run PM2's one-time startup command
 pm2 logs nexus-worker
 ```
 
-**Credit controls:** migration `0007_twelvedata_credit_budget.sql` adds an atomic Supabase-backed guard. The worker defaults to 700 paid requests per UTC day and 6 per minute; it persists reservations across restarts, fails closed if it cannot reserve, and spaces live ingestion to use at most 80% of the daily cap (20% stays available for retries/backfill). Change `TWELVEDATA_DAILY_CREDIT_LIMIT`, `TWELVEDATA_PER_MINUTE_LIMIT`, `INGEST_MIN_INTERVAL_SECONDS`, and `INGEST_PAIRS` in `server/.env` to match the provider plan. With 10 active pairs, the safe default is a slow rotating feed (roughly 26 minutes per pair), not a 1-minute real-time stream. The browser's DATA page has a separate local cap; both budgets are independent, so use the free per-key `api_usage` check to monitor combined account spend.
+**Credit controls:** migrations `0007_twelvedata_credit_budget.sql` and `0008_cloud_security_and_browser_budget.sql` add atomic, persistent Supabase-backed reservations. The worker defaults to 700 paid requests per UTC day and 6/minute; the browser relay defaults to 700/day and 7/minute. The pools are independent and global within each pool, not multiplied by provider key count. Both fail closed if reservation fails. Worker live ingestion uses at most 80% of its pool (the remainder is available for backfill/retries); routine browser requests stop at 80% so the browser can settle pending signals, while the hard 700/day and 7/minute caps remain absolute. Change the `TWELVEDATA_*_CREDIT_LIMIT` variables in `server/.env` only to match the actual provider plan. `INGEST_MIN_INTERVAL_SECONDS` and `INGEST_PAIRS` tune worker cadence. With 10 active pairs, worker defaults are a slow rotating feed (roughly 26 minutes per pair), not a 1-minute real-time stream. The DATA page’s local counter is only a secondary per-browser guard; the shared SQL reservation is authoritative. The free server-side `api_usage` lookup can reconcile each server-managed provider account (aliases are masked).
 
 The worker:
 - ingests **completed** 1-minute candles in a credit-paced rotating batch of active pairs
@@ -120,32 +139,42 @@ What one `run` does:
 
 ## 4. Browser (CLOUD page)
 
-1. Open the site → **CLOUD page** → paste project URL + **anon public key**
-   (Dashboard → Settings → API → `anon` `public`) → **SAVE & CONNECT**.
-   (Optional: put `window.NEXUS_SB_URL` / `window.NEXUS_SB_ANON` in your local `keys.js`.)
-2. Keep **record predictions + delivery results** on. From now on every emitted signal
-   is mirrored (insert-only) together with its per-strategy votes, and every completed
-   Telegram send/failure is recorded.
-3. **CLOUD MODEL → APPLY CLOUD MODEL TO BRAIN** — appears once a model is deployed.
-   The page re-computes the artifact's SHA-256 with `crypto.subtle` and refuses on any
-   mismatch; on success it merges the weights into the brain (`deep[tf].strats[s].vwr/vtrades`).
-   It is never silent and never changes prediction logic — re-run
-   **TRAIN THE DATA AT MAX** to return to local weights.
-4. The other panels show simulated performance (clearly labelled), worker feed health
-   and the delivery log. Everything degrades gracefully: no config = no cloud calls.
+1. Open the site → **CLOUD page** → enter the HTTPS NEXUS API relay base URL, Supabase
+   project URL, and **anon public key** (Dashboard → Settings → API → anon public) →
+   **SAVE & CONNECT**. Do not put provider, bot, or service-role credentials in the page.
+2. Enable anonymous sign-ins in Supabase Auth. The page creates/restores an Auth session
+   for authenticated relay requests. To enable Telegram controls, add the displayed
+   Supabase Auth user UUID to `NEXUS_TELEGRAM_ADMIN_USER_IDS` on the server and configure
+   the bot/destinations there. Channel aliases are returned to the browser; private chat
+   IDs and tokens are not.
+3. Keep **record predictions** on if you want the existing shared prediction mirror.
+   Delivery audit rows and retryable payloads are recorded by the authenticated server
+   relay when this option is enabled; anonymous roles cannot create retryable deliveries.
+   Signals and delivery records remain shared/anonymous, not per-user-owned.
+4. **CLOUD MODEL → APPLY CLOUD MODEL TO BRAIN** appears once a model is deployed. The
+   page recomputes the artifact SHA-256 and refuses on mismatch; success merges weights
+   into the existing brain without changing strategy logic. Re-run **TRAIN THE DATA AT MAX**
+   to return to local weights.
+5. The other panels show simulated performance, safe market-feed freshness, and a
+   restricted delivery status log. Without Supabase migrations or a configured server,
+   relay-backed market data and Telegram cannot operate; local strategy/paper state remains.
 
 ## 5. Deployment / operations checklist
 
-- [ ] migrations 0001–0007 applied in order; `models` bucket private
-- [ ] RLS verified: anon can INSERT `predictions` / `telegram_deliveries` but never
-      UPDATE/DELETE anything (0005 policies)
-- [ ] `server/.env` + `trainer/.env` created, never committed (gitignored)
-- [ ] worker running under PM2/systemd on an always-on host — watch `ingestion_runs` and supervisor logs
-- [ ] trainer scheduled (`train.py run`), `training.auto_promote` still `false`
-- [ ] ops alerts arriving in `TELEGRAM_OPS_CHAT`
-- [ ] CLOUD page connected with the anon key; signals appear in `predictions`
-- [ ] GitHub Pages deploys still pass the credential guard
-      (`tools/check-public.cjs` — also refuses service-role keys now)
+- [ ] migrations 0001–0008 reviewed and applied in order; `models` bucket private
+- [ ] Verify anon/authenticated access is read/insert-only where intended; admin tables,
+      delivery base rows, budgets, and maintenance SECURITY DEFINER functions are private
+- [ ] Anonymous Auth sign-in enabled; API relay CORS uses exact production browser origins
+- [ ] `server/.env` + `trainer/.env` created on hosts, never committed (gitignored)
+- [ ] API relay and worker run as separate supervised services; inspect logs and health routes
+- [ ] Telegram admin UUID allowlist and server-side bot destinations verified
+- [ ] trainer scheduled (`train.py run`) only when explicitly approved; auto-promote remains false
+- [ ] CLOUD page connected with public anon key; verify shared prediction mirror is unchanged
+- [ ] GitHub Pages deploy passes `tools/check-public.cjs` with no credentials in public output
+
+**This repository checkout has not verified a live Supabase migration ledger, Auth settings,
+Storage bucket, staging rows, or the production origin/proxy. Do not treat the checklist as
+completed until each item is checked against a safe staging project.**
 
 ## 6. Backup / recovery
 

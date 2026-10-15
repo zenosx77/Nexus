@@ -1,10 +1,14 @@
 # never commit real API keys
 keys.js
 
-# server worker / trainer secrets (Supabase service-role key, Twelve Data keys, bot token)
-server/.env
+# Local secret-bearing environment files (keep *.example templates trackable)
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
 server/config.json
-trainer/.env
 
 # model artifacts + archived datasets (live in Supabase Storage / your machine only)
 *.model.json

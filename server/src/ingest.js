@@ -6,83 +6,25 @@
 
 import { config, log } from './config.js';
 import { db, upsertChunked, withJobLock } from './db.js';
-import { reserveTwelveDataCredit, TwelveDataBudgetError, ingestBatchSize,
+import { TwelveDataBudgetError, ingestBatchSize,
   recommendedIngestIntervalSeconds, nextUtcMidnightMs } from './credit-budget.js';
+import { requestTwelveData } from './twelvedata.js';
 import { validateCandle, detectGaps, classifyAgainstStored, MINUTE_MS } from './validate.js';
 import { computeFeatures } from './features.js';
 
+export { providerHealth, markKeyFailure, markKeySuccess, providerHealthy } from './twelvedata.js';
+
 const TF = '1m';   // market_candles.timeframe domain (see 0001_core.sql)
 
-// ── provider health (in-memory; persisted per-run in ingestion_runs) ────
-export const providerHealth = {
-  // key → { ok, failures, lastOkAt, cooldownUntil, lastError }
-};
-
-function keyState(key) {
-  if (!providerHealth[key]) {
-    providerHealth[key] = { ok: true, failures: 0, lastOkAt: 0, cooldownUntil: 0, lastError: null };
-  }
-  return providerHealth[key];
-}
-
-function availableKey() {
-  const now = Date.now();
-  for (const key of config.twelveDataKeys) {
-    if (keyState(key).cooldownUntil <= now) return key;
-  }
-  return null;
-}
-
-export function markKeyFailure(key, err) {
-  const st = keyState(key);
-  st.ok = false;
-  st.failures += 1;
-  st.lastError = String(err && err.message || err).slice(0, 300);
-  st.cooldownUntil = Date.now() + Math.min(st.failures * 60_000, 15 * 60_000);  // backoff 1→15 min
-}
-
-export function markKeySuccess(key) {
-  const st = keyState(key);
-  st.ok = true; st.failures = 0; st.lastOkAt = Date.now(); st.cooldownUntil = 0; st.lastError = null;
-}
-
-export function providerHealthy() {
-  const now = Date.now();
-  const seen = Object.keys(providerHealth);
-  if (seen.length) return seen.some(k => providerHealth[k].cooldownUntil <= now);
-  return config.twelveDataKeys.length > 0;   // no failures recorded yet — optimistic
-}
-
-/** Fetch candles from Twelve Data with key rotation. Throws when all keys are cooling down. */
+/** Fetch candles from the shared server-only provider client. */
 export async function fetchCandles(pairCode, outputsize = config.ingestOutputsize) {
-  const symbol = pairCode.replace('/', '');                    // EUR/USD → EURUSD
-  let lastErr = null;
-  for (let attempt = 0; attempt < Math.max(1, config.twelveDataKeys.length); attempt++) {
-    const key = availableKey();
-    if (!key) throw new Error(`all ${config.twelveDataKeys.length} API keys in cooldown (last: ${lastErr})`);
-    const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=1min`
-      + `&outputsize=${outputsize}&apikey=${key}`;
-    try {
-      await reserveTwelveDataCredit();          // atomic persistent reservation, before any paid request
-      const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok || body.status === 'error') {
-        const err = new Error(`twelvedata ${res.status}: ${body.message || 'HTTP error'}`);
-        markKeyFailure(key, err);
-        lastErr = err.message;
-        continue;
-      }
-      const values = Array.isArray(body.values) ? body.values : [];
-      if (!values.length) throw new Error(`twelvedata: no values for ${pairCode}`);
-      markKeySuccess(key);
-      return values;                                            // newest first
-    } catch (err) {
-      if (err instanceof TwelveDataBudgetError) throw err; // denied before provider access; do not cool down the key
-      markKeyFailure(key, err);
-      lastErr = err.message;
-    }
-  }
-  throw new Error(`twelvedata fetch failed for ${pairCode}: ${lastErr}`);
+  const symbol = pairCode.replace('/', '');
+  const { data } = await requestTwelveData('time_series', {
+    symbol, interval: '1min', outputsize,
+  }, 'worker');
+  const values = Array.isArray(data.values) ? data.values : [];
+  if (!values.length) throw new Error(`Twelve Data returned no candles for ${pairCode}`);
+  return values; // newest first
 }
 
 /** Normalise provider rows → validated candles (order preserved, unsorted). */
@@ -172,17 +114,11 @@ export async function backfillGap(pair, gap, opts = {}) {
   const now = opts.now ?? Date.now();
   const count = Math.min(gap.count, 5000);
   const symbol = pair.replace('/', '');
-  const key = availableKey();
-  if (!key) return { error: 'no API key available' };
   const start = new Date(gap.from).toISOString().replace(/:\d+\.\d+Z$/, '');
-  const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=1min`
-    + `&start_date=${encodeURIComponent(start)}&outputsize=${count}&apikey=${key}`;
   try {
-    await reserveTwelveDataCredit();            // backfills share the same persistent daily/minute caps
-    const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok || body.status === 'error') { markKeyFailure(key, body.message || res.status); return { error: body.message || `HTTP ${res.status}` }; }
-    markKeySuccess(key);
+    const { data: body } = await requestTwelveData('time_series', {
+      symbol, interval: '1min', start_date: start, outputsize: count,
+    }, 'worker'); // backfills share the persistent worker budget
     const { accepted } = normaliseAndValidate(body.values || [], now);
     const rows = accepted.map(c => ({
       pair_code: pair, timeframe: TF, ts: new Date(c.ts).toISOString(),
@@ -195,7 +131,6 @@ export async function backfillGap(pair, gap, opts = {}) {
     if (err instanceof TwelveDataBudgetError) {
       return { error: err.message, budgetLimited: true, budgetReason: err.reason };
     }
-    markKeyFailure(key, err);
     return { error: err.message };
   }
 }

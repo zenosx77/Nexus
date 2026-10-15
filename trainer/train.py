@@ -23,6 +23,7 @@ Usage:
 import hashlib
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -42,7 +43,17 @@ def load_env_file(path=None):
                 if not line or line.startswith("#") or "=" not in line:
                     continue
                 key, _, val = line.partition("=")
-                key, val = key.strip(), val.strip().strip('"').strip("'")
+                key, val = key.strip(), val.strip()
+                quoted = ((val.startswith('"') and val.endswith('"'))
+                          or (val.startswith("'") and val.endswith("'")))
+                if quoted:
+                    val = val[1:-1]
+                else:
+                    # Match the worker loader: comments start at an unquoted
+                    # hash preceded by whitespace, not inside a token/value.
+                    comment = re.search(r"\s+#|^#", val)
+                    if comment:
+                        val = val[:comment.start()].strip()
                 if key and key not in os.environ:
                     os.environ[key] = val
     except OSError:

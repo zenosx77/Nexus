@@ -1,91 +1,97 @@
-# NEXUS server worker
+# NEXUS server worker + authenticated API relay
 
-Node.js worker that owns everything the public browser must never do:
-market-data ingestion, outcome evaluation, risk snapshots, Telegram retries,
-operational alerts, retention. Uses the Supabase **service-role key** — keep
-it on the server only (the site deploys publicly to GitHub Pages).
+The Node service has two independent modes:
+
+- **Worker** (`npm start`) — market-data ingestion, outcome evaluation, risk snapshots, Telegram retries/alerts, and retention.
+- **API relay** (`npm run api`) — authenticated browser requests to Twelve Data and Telegram. Provider keys, Telegram tokens/destinations, and the Supabase service-role key stay in the server process environment.
+
+The public GitHub Pages app never calls Twelve Data or Telegram directly and never receives their credentials. The browser may use the public Supabase anon key for the existing shared/anonymous prediction mirror. Delivery audit rows and retryable payloads are written by the authenticated relay with the server role, never inserted by anonymous browser clients. Prediction and delivery records are **not user-owned**.
 
 ## Setup
 
 ```bash
 cd server
 npm install
-cp .env.example .env    # fill in SUPABASE_URL + SERVICE_ROLE key (+ Twelve Data keys, Telegram)
+cp .env.example .env       # use real host values; never commit server/.env
 ```
 
-Apply the SQL migrations first (see `supabase/README.md`) and create the
-private `models` Storage bucket.
+Set the environment values on the server host. At minimum, the relay needs `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `TWELVEDATA_KEYS`, `NEXUS_ALLOWED_ORIGINS`, and the API port. Telegram requires `TELEGRAM_BOT_TOKEN`, destinations, and an allowlisted Supabase Auth user UUID in `NEXUS_TELEGRAM_ADMIN_USER_IDS`.
+
+Apply and verify the SQL migrations manually using `supabase/README.md`; **migration files are not proof that a hosted project has applied them**. The worker also uses a private Storage bucket named `models` only when archive/model workflows are enabled. Enable anonymous Supabase Auth sign-ins for the browser relay, and set the project’s allowed redirect/origin configuration appropriately.
+
+`NEXUS_ALLOWED_ORIGINS` is a comma-separated exact list of browser **origins** (scheme + host + optional port, no path); do not use `*`. For GitHub Pages, include the site origin such as `https://your-account.github.io`. Terminate TLS at the hosting proxy and forward to the API process. The API binds to `0.0.0.0`.
 
 ## Run
 
 ```bash
-npm start               # continuous loop: evaluation/retries/alerts each poll;
-                        #   quota-paced ingestion, risk every 5 min, backfill every 6h, housekeeping daily
-npm run once            # one full pass, then exit (cron-friendly)
-npm run ingest          # single job entrypoints, for debugging / scheduling:
-npm run evaluate        #   each is lock-protected (job_locks table) so running
-npm run telegram        #   two instances can never double-process
+npm run api              # authenticated HTTP relay on NEXUS_API_PORT (default 8787)
+npm start                # continuous worker loop (run as a separate supervised process)
+npm run once             # one full worker pass, then exit (cron-friendly)
+npm run ingest           # single job entrypoints, for debugging / scheduling:
+npm run evaluate         #   each is lock-protected (job_locks table)
+npm run telegram         #   two workers cannot double-process a locked job
 npm run alerts
-npm run backfill        # find + fill gaps from the last 24h
-npm run housekeeping    # prune logs/snapshots/candles (+ archive first when ARCHIVE_BEFORE_PRUNE=true)
-npm run settings-sync   # write effective non-secret settings to system_settings (dashboard)
-npm test                # unit tests (node:test, no network, no Supabase)
+npm run backfill         # find + fill gaps from the last 24h
+npm run housekeeping     # prune logs/snapshots/candles (+ archive first when enabled)
+npm run settings-sync    # write effective non-secret settings to system_settings
+npm test                 # unit tests (node:test, no network, no Supabase)
 ```
 
-## Twelve Data credit guard
-
-Apply migration `0007_twelvedata_credit_budget.sql` before running the worker. Every paid, one-symbol data request atomically reserves a credit in Supabase **before** calling Twelve Data. The daily and minute counters survive restarts and are shared by worker instances. If the reservation service is unavailable, the worker fails closed and sends no paid request.
-
-Defaults are **700 worker requests per UTC day** and **6 per minute**. Live ingestion uses at most 80% of the daily cap, leaving the rest for backfills/retries, and rotates through the active pairs at a cadence calculated from the pair count. With the default ten pairs, this is not a real-time feed: expect each pair to refresh roughly every 26 minutes. Raise the cap only to fit the actual Twelve Data plan; the `WORKER_POLL_SECONDS` setting still controls evaluations, Telegram retries and alerts independently. Override with `TWELVEDATA_DAILY_CREDIT_LIMIT`, `TWELVEDATA_PER_MINUTE_LIMIT`, `INGEST_MIN_INTERVAL_SECONDS`, or a smaller `INGEST_PAIRS` list in `server/.env`.
-
-The server counter covers **this worker only**. The browser has its own local credit cap; if both use the same Twelve Data account/key, check DATA → API CREDIT USAGE and leave room for both. Twelve Data's `api_usage` figures are authoritative for the provider account.
-
-### Keep the worker running 24/7
-
-A terminal `npm start` stops when you log out or the machine sleeps. On an always-on Linux VPS, run it under PM2:
+Use separate service definitions for `npm run api` and `npm start`. Do not run a continuous worker on a developer laptop that sleeps. Example PM2 commands (after reviewing host values):
 
 ```bash
-cd /path/to/Nexus/server
-npm install
-cp .env.example .env       # fill in real values; never commit this file
-npm install --global pm2
+pm2 start npm --name nexus-api -- run api
 pm2 start npm --name nexus-worker -- start
 pm2 save
-pm2 startup                # run the one-time command PM2 prints
-pm2 logs nexus-worker
+pm2 startup
 ```
 
-Use a VPS/container that does not sleep, and keep `server/.env` on that host. For systemd, set `WorkingDirectory` to `.../Nexus/server`, `ExecStart` to `npm start`, `Restart=always`, and a non-root `User`; the worker loads `server/.env` itself. The static website is separate: GitHub Pages serves the UI continuously, while an open browser tab is still required for browser-only scanning/Telegram engines.
+The static website and server are separate. The browser tab still runs NEXUS’s existing strategy, signal, and paper-trading engines; the API relay supplies only the market-data and Telegram transport. A configured relay does not itself prove the worker is online.
 
-## What each job does
+## API relay security
+
+- All browser routes except `/api/v1/health` require an authenticated Supabase Auth bearer session and an allowed `Origin`.
+- The app creates/restores an anonymous Auth session using the public anon key. It stores that browser session in `sessionStorage`; it is not a server secret and does not change the shared database ownership model.
+- Twelve Data operations/parameters are allowlisted. Keys are selected server-side and scrubbed from provider responses/errors. Paid requests reserve from an atomic Supabase budget **before** contacting the provider; a failed guard blocks the request.
+- `api_usage` is free and returns aliases such as `Server key 1`, never key material.
+- Telegram supports only sendMessage, sendSticker, getUpdates, and setMyCommands. The route resolves channel aliases on the server, filters incoming updates to configured chats, replaces chat IDs with aliases, and allows sending/polling only for user IDs in `NEXUS_TELEGRAM_ADMIN_USER_IDS`. Delivery attempts/payloads are inserted by the relay as server-managed rows; anonymous callers cannot create rows that the worker will retry.
+- API, Telegram, and usage rate limits are additional in-process controls; the persistent Twelve Data credit budget is the authoritative shared quota. Do not expose the relay without its origin allowlist and upstream proxy controls.
+
+## Twelve Data credit budgets
+
+Apply migrations `0007_twelvedata_credit_budget.sql` and `0008_cloud_security_and_browser_budget.sql` before enabling either worker or browser relay requests. The reservation RPC is atomic and shared across processes. If Supabase/database access is unavailable, paid calls fail closed.
+
+| Pool | Defaults | Purpose |
+|---|---:|---|
+| Worker | 700 calls/UTC day, 6/min | ingestion, gap-fill/backfill |
+| Browser relay | 700 calls/UTC day, 7/min | browser scans, ticker, settlements |
+
+The pools are separate, but each pool is global to the Supabase project and is **not multiplied by key count**. Set limits to fit the actual Twelve Data plan. Browser routine calls stop at 80% of the browser pool so settlement requests can use the reserved headroom; the absolute daily and minute caps still apply. The UI also keeps a local secondary guard, which is not authoritative. Free `api_usage` checks reserve no credit.
+
+Worker live ingestion uses at most 80% of its daily cap and rotates active pairs at a computed cadence. With the default ten pairs this is not a real-time feed; expect each pair to refresh roughly every 26 minutes. `WORKER_POLL_SECONDS` independently controls evaluations, retries, and alerts. Configure via `TWELVEDATA_DAILY_CREDIT_LIMIT`, `TWELVEDATA_PER_MINUTE_LIMIT`, `TWELVEDATA_BROWSER_DAILY_CREDIT_LIMIT`, `TWELVEDATA_BROWSER_PER_MINUTE_LIMIT`, `INGEST_MIN_INTERVAL_SECONDS`, or a smaller `INGEST_PAIRS` list.
+
+The worker and browser relay budgets do not reconcile provider usage from other machines. Twelve Data’s `api_usage` endpoint is the account-level source of truth.
+
+## What each worker job does
 
 | Job | Cadence | Behaviour |
 |---|---|---|
-| `ingest` | credit-paced (at most 80% of daily cap) | Fetch 1-min candles for a rotating batch of active pairs from Twelve Data (atomic credit reservation + key rotation/cooldown), keep **completed candles only**, upsert with duplicate/revision detection, compute `nexus-f1` feature snapshots, record an `ingestion_runs` row. Never writes fabricated prices — a provider failure writes nothing but a failed run row. |
-| `evaluate` | every poll | Evaluate predictions whose horizon elapsed: entry = open of target candle, exit = close of candle at `target + (horizon−1)·60s`. Direction-adjusted gross bps minus estimated costs (pair spread + slippage). Insert-only (PK = prediction_id) → no duplicate evaluations; corrections go through the audited update path. Missing candles after `EVALUATION_MAX_DELAY_MINUTES` → `invalid`. |
-| `telegram` | every poll | Retry deliveries the browser recorded as `failed`/`retrying` (max `TELEGRAM_RETRY_MAX` attempts). Retrying only explicit API failures guarantees no double-sends. |
-| `alerts` | every poll | Data lag, missing evaluations, delivery failures, w20 win-rate floor + losing-streak degradation — deduplicated per hour into `alert_log`, mirrored to the ops Telegram chat. |
-| `risk` | 5 min | Rolling w20/w100/all snapshots per scope (global / pair / model / strategy): win rate, expectancy, profit factor, max drawdown, streaks. Accuracy is stored separately from **simulated** net returns. |
-| `backfill` | 6 h | Detect gaps ≥3 min in the last 24 h per pair and fill them from provider history. |
-| `housekeeping` | 24 h | Sweep stale job locks, prune operational logs (90d), risk snapshots (hourly), candles (`RETENTION_DAYS`, default 180). With `ARCHIVE_BEFORE_PRUNE=true`, candles are gzip-archived to the private `models` bucket first — pruning is skipped for any pair whose archive upload fails. |
-
-## Safety properties
-
-- **Job locks** — every job takes `try_job_lock` (atomic upsert, TTL, owner-checked release). Multiple workers can run; only one executes a job at a time. Advisory PG locks don't survive Supabase's pooled REST connection — that's why locking is table-based.
-- **Idempotency** — candles upsert on `(pair, tf, ts)`; predictions are unique per `(pair, tf, target, strategy_version, is_shadow)`; outcomes insert-only on PK; risk snapshots dedupe on `(scope, window, as_of)`.
-- **No fabrication** — candles are validated (OHLC sanity, minute alignment, completed-only) before storage; rejected rows are counted, never "repaired".
-- **Bounded queries** — every pass has explicit limits (200 due predictions, 5000 outcome rows, 500-row upsert chunks, 25 retries).
+| `ingest` | credit-paced (at most 80% of worker daily cap) | Fetch 1-min candles for rotating active pairs, reserve one credit before each paid request, validate completed candles, upsert with duplicate/revision detection, compute `nexus-f1` features, record `ingestion_runs`. |
+| `evaluate` | every poll | Evaluate elapsed predictions using target-candle open/close, estimated spread/slippage, and insert-only outcomes; missing candles after the configured delay become invalid. |
+| `telegram` | every poll | Retry recorded `failed`/`retrying` delivery attempts up to `TELEGRAM_RETRY_MAX`. |
+| `alerts` | every poll | Data lag, missing evaluations, delivery failures, win-rate and losing-streak alerts, deduplicated in `alert_log` and sent to the ops chat. |
+| `risk` | 5 min | Rolling w20/w100/all snapshots per scope; accuracy remains separate from simulated returns. |
+| `backfill` | 6 h | Detect and fill gaps ≥3 min from provider history. |
+| `housekeeping` | 24 h | Sweep job locks and prune operational logs, risk snapshots, and candles. Optional archival is controlled by `ARCHIVE_BEFORE_PRUNE`. |
 
 ## External services
 
-| Service | Used for | Env |
+| Service | Used for | Environment |
 |---|---|---|
-| Supabase | database + storage | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
-| Twelve Data | 1-min forex candles | `TWELVEDATA_KEYS` (comma-separated, rotated) |
-| Telegram Bot API | retries + ops alerts | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_OPS_CHAT` |
+| Supabase | database + Auth + optional Storage | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| Twelve Data | worker + relay market data | `TWELVEDATA_KEYS` (comma-separated, rotated) |
+| Telegram Bot API | browser relay, worker retries, ops alerts | `TELEGRAM_BOT_TOKEN`, server-side chat destinations, `NEXUS_TELEGRAM_ADMIN_USER_IDS` |
 
 ## Tests
 
-`node --test test/` — pure logic only (candle validation, gap detection,
-outcome math, risk stats, feature computation, provider health, retention
-helpers). No network, no Supabase, no Telegram.
+`node --test test/` runs pure-logic tests without live network, Supabase, or Telegram credentials. Live migrations, CORS/proxy behavior, Auth settings, staging data, and provider quotas must be verified separately in a safe staging project before production use.

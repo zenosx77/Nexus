@@ -1,15 +1,12 @@
 #!/usr/bin/env node
-/* Credential guard for the published GitHub Pages site.
+/* Credential/transport guard for the public GitHub Pages artifact.
    Usage: node tools/check-public.cjs <public-dir>
-   Fails (exit 1) if the site would leak API keys or bot tokens:
+   Fails if the site would publish a key/token or bypass the server relay:
      - keys.js copied into the public dir (or present in repo root at build time)
-     - non-empty PERMANENT_KEYS entries embedded in the published HTML
-     - non-empty window.NEXUS_KEYS / NEXUS_TG_TOKEN / NEXUS_TG_CHAT assignments
-     - any Supabase SERVICE-ROLE key material (the anon key is public by design;
-       the service-role key is full database access and must never be deployed)
-   Documentation examples with empty strings ("") or the placeholder
-   ["your_key"] inside comments do NOT count as embedded credentials,
-   but any real-looking assignment does. */
+     - old browser key arrays or Telegram token/chat assignments
+     - Supabase service-role material
+     - direct Twelve Data or Telegram Bot API host references in browser code
+   The Supabase anon key and NEXUS API base URL are public configuration. */
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');
@@ -26,7 +23,11 @@ if (fs.existsSync('keys.js')) bad.push('keys.js present in repo root at build ti
 
 const html = fs.readFileSync(path.join(pub, 'index.html'), 'utf8');
 
-/* 1) in-file PERMANENT_KEYS array must be all empty strings */
+if (/https?:\/\/(?:api\.twelvedata\.com|api\.telegram\.org)/i.test(html)) {
+  bad.push('browser code contains a direct provider/Bot API host; route through the NEXUS server relay');
+}
+
+/* 1) legacy in-file PERMANENT_KEYS array must be all empty strings */
 const pk = html.match(/const PERMANENT_KEYS\s*=\s*\[([\s\S]*?)\];/);
 if (pk) {
   const vals = [...pk[1].matchAll(/"([^"]*)"/g)].map(m => m[1]).filter(v => v.trim());
@@ -48,6 +49,7 @@ for (const f of files) {
     /window\.NEXUS_KEYS\s*=\s*\[\s*"(?!your_key")[^"]+"/g,
     /window\.NEXUS_TG_TOKEN\s*=\s*"(?!")[^"]+"/g,
     /window\.NEXUS_TG_CHAT\s*=\s*"(?!yourchannel)[^"]+"/g,
+    /\b(?:TWELVEDATA_KEYS|TELEGRAM_BOT_TOKEN|SUPABASE_SERVICE_ROLE_KEY)\s*[:=]\s*["'](?!<|your_|placeholder)[^"']+/i,
     /* cloud: anon key is public BY DESIGN; service-role key material is fatal */
     /SUPABASE_SERVICE_ROLE/i,
     /service_role_key/i,

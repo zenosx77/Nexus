@@ -11,6 +11,7 @@
 //   alerts        one alert-check pass
 //   housekeeping  prune logs/snapshots/candles (+ archive first when enabled)
 //   settings-sync write effective non-secret settings to system_settings
+//   api           run the authenticated browser relay (separate process)
 import './env.js';
 import { config, log } from './config.js';
 import { db } from './db.js';
@@ -20,6 +21,7 @@ import { riskLocked } from './risk.js';
 import { telegramLocked } from './telegram.js';
 import { runAlertChecks } from './alerts.js';
 import { housekeepingLocked } from './housekeeping.js';
+import { createNexusApiServer } from './api.js';
 
 /** Run a job, never let one failure kill the loop. */
 async function safe(name, fn) {
@@ -66,6 +68,18 @@ async function loop() {
   setInterval(() => {}, 1 << 30);
 }
 
+/** Run the HTTP relay separately from the scheduled worker. */
+function apiServer() {
+  const server = createNexusApiServer();
+  return new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(config.apiPort, '0.0.0.0', () => {
+      log('info', `nexus API relay listening on 0.0.0.0:${config.apiPort}`);
+    });
+    server.once('close', resolve);
+  });
+}
+
 /** Write effective NON-SECRET settings to system_settings (dashboard-visible). */
 async function settingsSync() {
   const DBC = await db();
@@ -102,6 +116,7 @@ const commands = {
   alerts: () => runAlertChecks(),
   housekeeping: () => housekeepingLocked(),
   'settings-sync': settingsSync,
+  api: apiServer,
 };
 
 if (!commands[command]) {
