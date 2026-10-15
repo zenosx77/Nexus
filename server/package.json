@@ -19,7 +19,11 @@
     "housekeeping": "node src/index.js housekeeping",
     "settings-sync": "node src/index.js settings-sync",
     "api": "node src/index.js api",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "preflight": "node src/index.js preflight",
+    "job-ingest": "node src/index.js job-ingest",
+    "job-outcomes": "node src/index.js job-outcomes",
+    "job-backfill": "node src/index.js job-backfill"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0"

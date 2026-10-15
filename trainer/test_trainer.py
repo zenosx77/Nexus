@@ -267,5 +267,69 @@ class TestEnvLoader(unittest.TestCase):
         load_env_file("/nonexistent/.env")
 
 
+class TestIntegrityRegression(unittest.TestCase):
+    def test_uploaded_bytes_are_browser_canonical(self):
+        import hashlib
+        from unittest.mock import patch, MagicMock
+        from train import upload_artifact
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = canonical_json(FIXTURE_ARTIFACT).encode()
+        with patch('urllib.request.urlopen', return_value=response) as send:
+            import train
+            with patch.object(train, 'SB_URL', 'https://example.invalid'):
+                _, sha, nbytes = upload_artifact('test', FIXTURE_ARTIFACT)
+            request = send.call_args_list[0].args[0]
+            self.assertEqual(request.method, "POST")
+            self.assertEqual(request.get_header("X-upsert"), "false")
+            body = request.data
+        self.assertEqual(body.decode(), canonical_json(FIXTURE_ARTIFACT))
+        self.assertEqual(sha, FIXTURE_SHA)
+        self.assertEqual(nbytes, len(body))
+        self.assertEqual(sha, hashlib.sha256(body).hexdigest())
+
+    def test_invalid_wins_do_not_train_or_evaluate(self):
+        from train import eligible_record
+        r = rec('t1', 'CALL', 'win', AGENTS_WINNING_CALL)
+        for validity in (False, None, 'true', 1):
+            r['is_valid'] = validity
+            self.assertFalse(eligible_record(r))
+            self.assertEqual(compute_strategy_stats([r], min_trades=1), {})
+            self.assertEqual(evaluate_majority([r])['n'], 0)
+
+    def test_fetch_filters_before_split_count_and_hash(self):
+        from unittest.mock import patch
+        from train import fetch_dataset
+        good = rec('2026-01-01T00:00:00Z', 'CALL', 'win', AGENTS_WINNING_CALL)
+        rows = []
+        for i, (outcome, valid) in enumerate([('win',True),('loss',True),('win',False),('invalid',False),('neutral',True),(None,True)]):
+            rows.append({**good, 'created_at':'2025-12-31T23:59:00Z', 'id':str(i), 'trade_outcomes':{'outcome':outcome,'is_valid':valid}})
+        with patch('train.sb_request', return_value=rows):
+            records = fetch_dataset()
+        self.assertEqual(len(records), 2)
+        self.assertEqual([r['id'] for r in records], ['0','1'])
+
+    def test_browser_validates_whole_model_before_upload(self):
+        from train import browser_contract
+        import copy
+        for weight in ({'vwr':2,'vtrades':1}, {'vwr':0.5,'vtrades':1.1}, {'vwr':0.5,'vtrades':5001}):
+            artifact = copy.deepcopy(FIXTURE_ARTIFACT)
+            artifact['timeframes']['1m']['strats']['ema'] = weight
+            with self.assertRaises(ValueError): browser_contract(artifact, validate=True)
+        with self.assertRaises(ValueError): browser_contract({'kind':'strategy-weights','timeframes':{}}, validate=True)
+
+    def test_js_number_edges_and_unicode(self):
+        self.assertEqual(canonical_json({'x':1e-7,'y':1e-6,'z':-0.0,'s':'\x7f😀'}),
+                         '{"s":"\\u007f\\ud83d\\ude00","x":1e-7,"y":0.000001,"z":0}')
+
+    def test_split_purges_same_target_and_overlapping_horizons(self):
+        from train import purge_overlapping_labels
+        rows = [
+            {"target_open_ts":"2026-01-01T00:00:00Z", "evaluation_horizon":1},
+            {"target_open_ts":"2026-01-01T00:01:00Z", "evaluation_horizon":3},
+            {"target_open_ts":"2026-01-01T00:04:00Z", "evaluation_horizon":1},
+        ]
+        self.assertEqual(purge_overlapping_labels(rows, [rows[-1]]), [rows[0]])
+
+
 if __name__ == "__main__":
     unittest.main()

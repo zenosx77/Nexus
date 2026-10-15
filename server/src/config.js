@@ -59,14 +59,14 @@ export const config = {
   pairs: list('INGEST_PAIRS').length ? list('INGEST_PAIRS') : null, // null = all active pairs from DB
   ingestOutputsize: Math.min(5000, Math.max(60, num('INGEST_OUTPUTSIZE', 360))),
   ingestMinIntervalSeconds: Math.max(0, Math.floor(num('INGEST_MIN_INTERVAL_SECONDS', 60))),
-  twelveDataDailyCreditLimit: positiveInt('TWELVEDATA_DAILY_CREDIT_LIMIT', 700),
-  twelveDataMinuteCreditLimit: positiveInt('TWELVEDATA_PER_MINUTE_LIMIT', 6),
-  twelveDataBrowserDailyCreditLimit: positiveInt('TWELVEDATA_BROWSER_DAILY_CREDIT_LIMIT', 700),
-  twelveDataBrowserMinuteCreditLimit: positiveInt('TWELVEDATA_BROWSER_PER_MINUTE_LIMIT', 7),
+  twelveDataDailyCreditLimit: positiveInt('TWELVEDATA_DAILY_CREDIT_LIMIT', 700, 700),
+  twelveDataMinuteCreditLimit: positiveInt('TWELVEDATA_PER_MINUTE_LIMIT', 6, 6),
+  twelveDataBrowserDailyCreditLimit: positiveInt('TWELVEDATA_BROWSER_DAILY_CREDIT_LIMIT', 700, 700),
+  twelveDataBrowserMinuteCreditLimit: positiveInt('TWELVEDATA_BROWSER_PER_MINUTE_LIMIT', 6, 6),
 
   evaluationHorizon: Math.max(1, num('EVALUATION_HORIZON_CANDLES', 1)),
   evaluationGraceSeconds: num('EVALUATION_GRACE_SECONDS', 120),
-  evaluationMaxDelayMinutes: num('EVALUATION_MAX_DELAY_MINUTES', 30),
+  evaluationMaxDelayMinutes: Math.max(90, num('EVALUATION_MAX_DELAY_MINUTES', 90)),
 
   telegramRetryMax: num('TELEGRAM_RETRY_MAX', 3),
 

@@ -67,18 +67,13 @@ The public health route is liveness/configuration only: it does not verify datab
 
 ## Twelve Data credit budgets
 
-Apply migrations `0007_twelvedata_credit_budget.sql` and `0008_cloud_security_and_browser_budget.sql` before enabling either worker or browser relay requests. The reservation RPC is atomic and shared across processes. If Supabase/database access is unavailable, paid calls fail closed.
+Review migrations 0001–0009 and apply missing migrations **only after explicit approval**. The account-wide guard in 0009 is required by the updated relay/worker. One row lock serializes all scopes/API keys. Hard ceilings are 700/UTC day and six/rolling minute, conservatively implemented as 61 seconds plus a maximum 1000ms dispatch allowance. A reservation is never refunded, even on provider failure or ambiguous response. A missing/expired guard blocks provider transport.
 
-| Pool | Defaults | Purpose |
-|---|---:|---|
-| Worker | 700 calls/UTC day, 6/min | ingestion, gap-fill/backfill |
-| Browser relay | 700 calls/UTC day, 7/min | browser scans, ticker, settlements |
+The old worker/browser RPC names route through the same shared function; the service role can read but cannot directly insert/update/delete/truncate budget tables. Browser scan/settlement reserve rules and configurable lower scope limits remain secondary controls. `TWELVEDATA_*_CREDIT_LIMIT` values cannot increase the database hard ceilings.
 
-The pools are separate, but each pool is global to the Supabase project and is **not multiplied by key count**. Set limits to fit the actual Twelve Data plan. Browser routine calls stop at 80% of the browser pool so settlement requests can use the reserved headroom; the absolute daily and minute caps still apply. The UI also keeps a local secondary guard, which is not authoritative. Free `api_usage` checks reserve no credit.
+`INGEST_PAIRS` remains configurable. Scheduled ingestion handles at most six paid attempts each half hour: at most 288/day, below the 560 worker planning allowance. Ten active pairs typically refresh in roughly 60 minutes under the scheduled mode; deferred calls/shared competition can be slower. The legacy continuous loop retains credit pacing, not a guaranteed refresh SLA. Backfill is manual only. Every key/account consumer must use the same Supabase guard; external direct-key users are not controlled by it. Use the free provider usage lookup for reconciliation, never counter resets.
 
-Worker live ingestion uses at most 80% of its daily cap and rotates active pairs at a computed cadence. With the default ten pairs this is not a real-time feed; expect each pair to refresh roughly every 26 minutes. `WORKER_POLL_SECONDS` independently controls evaluations, retries, and alerts. Configure via `TWELVEDATA_DAILY_CREDIT_LIMIT`, `TWELVEDATA_PER_MINUTE_LIMIT`, `TWELVEDATA_BROWSER_DAILY_CREDIT_LIMIT`, `TWELVEDATA_BROWSER_PER_MINUTE_LIMIT`, `INGEST_MIN_INTERVAL_SECONDS`, or a smaller `INGEST_PAIRS` list.
-
-The worker and browser relay budgets do not reconcile provider usage from other machines. Twelve Data’s `api_usage` endpoint is the account-level source of truth.
+A fresh 0009 installation reserves all 700 for its current UTC day and blocks at least 61 seconds to avoid granting unknown legacy usage twice. Stop all consumers before cutover; restart only after quarantine and verification. See [deployment report](../docs/DEPLOYMENT_VERIFICATION.md) for approval gates and safe rollback.
 
 ## What each worker job does
 
@@ -89,7 +84,7 @@ The worker and browser relay budgets do not reconcile provider usage from other 
 | `telegram` | every poll | Retry recorded `failed`/`retrying` delivery attempts up to `TELEGRAM_RETRY_MAX`. |
 | `alerts` | every poll | Data lag, missing evaluations, delivery failures, win-rate and losing-streak alerts, deduplicated in `alert_log` and sent to the ops chat. |
 | `risk` | 5 min | Rolling w20/w100/all snapshots per scope; accuracy remains separate from simulated returns. |
-| `backfill` | 6 h | Detect and fill gaps ≥3 min from provider history. |
+| `backfill` | manual only | Detect and fill gaps ≥3 min from provider history. |
 | `housekeeping` | 24 h | Sweep job locks and prune operational logs, risk snapshots, and candles. Optional archival is controlled by `ARCHIVE_BEFORE_PRUNE`. |
 
 ## External services
@@ -103,3 +98,7 @@ The worker and browser relay budgets do not reconcile provider usage from other 
 ## Tests
 
 `npm test` runs logic plus loopback HTTP tests with fake Auth/database/provider/Bot transports; no hosted Supabase or provider access and no real credentials are used. Root `npm test` also runs disposable PGlite migrations/role tests, the trainer/browser suites and the public artifact scan. See the runbook for limitations: PGlite is not a hosted or multi-connection verification, and Telegram delivery is not exactly once. Live migrations, CORS/proxy behavior, Auth settings, staging data, and provider quotas must be verified separately in a safe staging project before production use.
+
+## Scheduled deployment
+
+See [the verified implementation report and phone runbook](../docs/DEPLOYMENT_VERIFICATION.md). Scheduled jobs are separate from `loop`/`once`, never generate predictions or send Telegram, and require production approval. Backfill is now manual in every worker mode. Migration 0009 supplies the shared account cap locally; hosted installation, all-consumer cutover and verification remain blockers to activation.

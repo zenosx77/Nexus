@@ -867,7 +867,7 @@
         <button class="b-ghost" style="padding:9px" onclick="resetCreditLimits()">↺ SAFE DEFAULTS</button>
       </div>
       <div class="mini" id="creditLimitMsg" style="margin-top:6px;text-align:left">Loading local credit limits…</div>
-      <div class="mini" style="text-align:left">The meter above is a local secondary guard. CHECK asks the server to read each provider account's <b>api_usage</b> endpoint (0 credits); aliases are masked. The authoritative shared browser-relay guard defaults to <b>700 paid calls/day + 7/min</b>, not multiplied by key count. At 60% scans slow; at 80% routine scans stop and the reserve is for settlements; at 100% all browser-relay paid calls stop until UTC midnight. The worker keeps its separate <b>700/day + 6/min</b> limit.</div>
+      <div class="mini" style="text-align:left">The meter above is a local secondary guard. CHECK asks the server to read each provider account's <b>api_usage</b> endpoint (0 credits); aliases are masked. The authoritative shared account guard caps <b>all workers and browser relays together at 700 paid calls/UTC day + 6/min</b>, not multiplied by key count. At 60% scans slow; at 80% routine scans stop and the reserve is for settlements; at 100% all browser-relay paid calls stop until UTC midnight. The database uses a rolling window with a dispatch safety margin; retries and key failovers consume the same account quota. Local counters do not show other clients' usage.</div>
     </div>
 
     <div class="glass" id="sec-feeds">
@@ -1359,7 +1359,7 @@ function renderPerf(){ /* win rate, EV after costs, drawdown, attribution */
    Provider key count never changes the authoritative server cap.
    20% of the daily cap is reserved for pending settlements.
    ═══════════════════════════════════════════════════════════════════ */
-const DEFAULT_CREDIT_LIMITS={daily:700,minute:7};
+const DEFAULT_CREDIT_LIMITS={daily:700,minute:6};
 function readCreditLimits(){
   const raw=loadJSON('nx_credit_limits',null)||{};
   const n=(v,def,max)=>Number.isFinite(+v)?Math.min(max,Math.max(0,Math.floor(+v))):def;
@@ -4390,6 +4390,21 @@ function sbCanonical(v){
   if(Array.isArray(v)) return '['+v.map(sbCanonical).join(',')+']';
   return '{'+Object.keys(v).sort().map(k=>sbCanonicalStr(k)+':'+sbCanonical(v[k])).join(',')+'}';
 }
+function sbValidateArtifact(payload){
+  const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+  const safe=k=>!['__proto__','prototype','constructor'].includes(k);
+  if(!object(payload)||payload.kind!=='strategy-weights'||!object(payload.timeframes)) throw new Error('invalid model shape');
+  let count=0;
+  for(const [tf,block] of Object.entries(payload.timeframes)){
+    if(!['1m','3m'].includes(tf)||!object(block)||!object(block.strats)) throw new Error('invalid model timeframe');
+    for(const [name,w] of Object.entries(block.strats)){
+      if(!safe(name)||!object(w)||!Number.isFinite(w.vwr)||w.vwr<0||w.vwr>1||!Number.isInteger(w.vtrades)||w.vtrades<0||w.vtrades>5000) throw new Error('invalid strategy weight');
+      count++;
+    }
+  }
+  if(!count) throw new Error('artifact carries no usable strategy weights');
+  return true;
+}
 function sbUtf8(str){
   if(typeof TextEncoder!=='undefined') return new TextEncoder().encode(str);
   const out=[];                                   /* manual UTF-8 for old engines */
@@ -4518,6 +4533,7 @@ async function sbApplyModel(){
     if(!payload||!payload.timeframes||typeof payload.timeframes!=='object') throw new Error('artifact carries no timeframes');
     const sha=await sbSha256Hex(sbCanonical(payload));
     if(sha!==String(model.artifact_sha256||'')) throw new Error('checksum mismatch — artifact rejected (registry sha '+String(model.artifact_sha256).slice(0,12)+'… vs computed '+sha.slice(0,12)+'…)');
+    sbValidateArtifact(payload); // validate the entire model before mutating any weights
     const tfMap={'1m':'M1','3m':'M3'};
     let applied=0; const tfSeen=[];
     for(const tk in payload.timeframes){

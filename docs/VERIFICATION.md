@@ -1,5 +1,7 @@
 # Backend preparation verification — 2026-10-15
 
+> **2026-10-15 update:** For current quota behavior, test evidence, migration 0009, approval gates and cutover/rollback, use [DEPLOYMENT_VERIFICATION.md](DEPLOYMENT_VERIFICATION.md). Independent browser/worker quota descriptions and earlier test totals below are historical, not current activation instructions.
+
 ## Scope and outcome
 
 Repository-only preparation on `arena/7034b734-nexus`. No backend was deployed, no hosted database was contacted/migrated, no credentials were rotated, no production settings/Pages workflow were changed, and no continuous worker was started. The approved tests used short-lived loopback HTTP servers, fake transports and disposable in-memory PostgreSQL.

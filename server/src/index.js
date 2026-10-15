@@ -1,7 +1,7 @@
 // ── NEXUS worker entrypoint ─────────────────────────────────────────────
 // CLI:  node src/index.js <command>
 //   loop          run forever (default) — ingest/evaluate/telegram/alerts each
-//                 cycle, risk every 5 min, backfill every 6h, housekeeping daily
+//                 cycle, risk every 5 min, housekeeping daily; backfill is manual
 //   once          run one full pass of everything and exit (cron-friendly)
 //   ingest        one ingestion pass
 //   backfill      find + fill gaps from the last 24h
@@ -13,6 +13,7 @@
 //   settings-sync write effective non-secret settings to system_settings
 //   api           run the authenticated browser relay (separate process)
 import './env.js';
+import { runJob } from './jobs.js';
 import { config, log } from './config.js';
 import { db } from './db.js';
 import { runIngest, backfillLocked } from './ingest.js';
@@ -45,7 +46,6 @@ async function once() {
   await safe('settings-sync', settingsSync);
   await cycle();
   await safe('risk', riskLocked);
-  await safe('backfill', () => backfillLocked());
   await safe('housekeeping', housekeepingLocked);
 }
 
@@ -54,14 +54,13 @@ async function loop() {
   await once();
   // `once()` already ran each maintenance task; schedule the next run relative
   // to now instead of repeating backfill/housekeeping on the very first poll.
-  let riskAt = Date.now(), backfillAt = riskAt, housekeepAt = riskAt;
+  let riskAt = Date.now(), housekeepAt = riskAt;
   const minute = 60_000;
   // istanbul ignore next
   setInterval(async () => {
     const now = Date.now();
     await cycle();
     if (now - riskAt > 5 * minute) { riskAt = now; await safe('risk', riskLocked); }
-    if (now - backfillAt > 6 * 60 * minute) { backfillAt = now; await safe('backfill', () => backfillLocked()); }
     if (now - housekeepAt > 24 * 60 * minute) { housekeepAt = now; await safe('housekeeping', housekeepingLocked); }
   }, config.pollSeconds * 1000).unref();
   // keep the process alive (setInterval is unref'd for clean testability)
@@ -108,6 +107,7 @@ async function settingsSync() {
 const command = process.argv[2] || 'loop';
 const commands = {
   loop, once,
+  ...Object.fromEntries(['preflight','job-ingest','job-outcomes','job-backfill'].map(name => [name, () => runJob(name)])),
   ingest: () => runIngest('live'),
   backfill: () => backfillLocked(),
   evaluate: () => evaluateLocked(),

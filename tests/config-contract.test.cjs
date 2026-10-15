@@ -15,7 +15,7 @@ test('environment template exactly covers actual server configuration names, wit
   assert.deepEqual(entries.map(m => m[1]).sort(), [...actual].sort(), 'no invented or missing environment variables');
   const values = Object.fromEntries(entries.map(m => [m[1], m[2].split(/\s+#/)[0].trim()]));
   assert.equal(values.TWELVEDATA_BROWSER_DAILY_CREDIT_LIMIT, '700');
-  assert.equal(values.TWELVEDATA_BROWSER_PER_MINUTE_LIMIT, '7');
+  assert.equal(values.TWELVEDATA_BROWSER_PER_MINUTE_LIMIT, '6');
   assert.equal(values.TWELVEDATA_DAILY_CREDIT_LIMIT, '700');
   assert.equal(values.TWELVEDATA_PER_MINUTE_LIMIT, '6');
   for (const name of ['SUPABASE_SERVICE_ROLE_KEY', 'TWELVEDATA_KEYS', 'TELEGRAM_BOT_TOKEN',

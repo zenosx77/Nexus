@@ -104,8 +104,13 @@ export async function ingestPair(pair, opts = {}) {
       pair_code: pair, timeframe: TF, ts: new Date(snap.ts).toISOString(),
       feature_version: snap.feature_version, features: snap.features,
     }, { onConflict: 'pair_code,timeframe,ts,feature_version' });
-    if (fErr) log('warn', `features upsert failed for ${pair}`, fErr.message);
+    if (fErr) throw new Error('feature upsert failed');
   }
+  const { data: check, error: checkError } = await DBC.from('market_candles')
+    .select('open,high,low,close').eq('pair_code', pair).eq('timeframe', TF)
+    .eq('ts', to).single();
+  if (checkError || !check || ['open','high','low','close'].some(k => Number(check[k]) !== newest[k])) throw new Error('ingestion candle readback failed');
+  run.verified = true;
   return run;
 }
 
@@ -126,7 +131,12 @@ export async function backfillGap(pair, gap, opts = {}) {
       volume: c.volume, source: 'twelvedata-backfill', revised: false,
     }));
     const upserted = rows.length ? await upsertChunked('market_candles', rows, 'pair_code,timeframe,ts') : 0;
-    return { fetched: (body.values || []).length, upserted };
+    if (!rows.length) throw new Error('backfill returned no valid candles');
+    const DBC = await db();
+    const { data: check, error } = await DBC.from('market_candles').select('ts')
+      .eq('pair_code', pair).eq('timeframe', TF).in('ts', rows.map(r => r.ts));
+    if (error || check?.length !== rows.length) throw new Error('backfill readback failed');
+    return { fetched: (body.values || []).length, upserted, verified: true };
   } catch (err) {
     if (err instanceof TwelveDataBudgetError) {
       return { error: err.message, budgetLimited: true, budgetReason: err.reason };
@@ -155,7 +165,7 @@ async function recordRun(kind, res) {
     latency_ms: res.latencyMs == null ? null : Math.round(res.latencyMs),
     error: res.error,
   });
-  if (error) log('warn', `ingestion_runs insert failed for ${res.pair}`, error.message);
+  if (error) throw new Error('ingestion audit write failed');
 }
 
 let activePairCache = { at: 0, pairs: null };
@@ -254,9 +264,10 @@ export async function backfillRecent(pairsOverride = null, lookbackHours = 24) {
   const fromTs = toTs - lookbackHours * 3_600_000;
   const out = [];
   for (const pair of pairs) {
-    const { data } = await DBC.from('market_candles')
+    const { data, error } = await DBC.from('market_candles')
       .select('ts').eq('pair_code', pair).eq('timeframe', TF)
       .gte('ts', new Date(fromTs).toISOString()).order('ts', { ascending: true });
+    if (error) throw new Error('backfill gap read failed');
     const gapList = detectGaps((data || []).map(r => Date.parse(r.ts)), fromTs, toTs - MINUTE_MS);
     for (const gap of gapList.filter(g => g.count >= 3)) {          // ignore 1–2 min blips
       const res = await backfillGap(pair, gap);

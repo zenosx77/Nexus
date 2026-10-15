@@ -43,6 +43,7 @@ supabase/migrations/0006_retention.sql   prune functions
 supabase/migrations/0007_twelvedata_credit_budget.sql
                                          persistent atomic worker credit guard
 supabase/migrations/0008_cloud_security_and_browser_budget.sql
+supabase/migrations/0009_shared_account_quota.sql
                                          browser relay budget + grants/SECURITY DEFINER hardening
 ```
 
@@ -92,7 +93,7 @@ pm2 startup                # run PM2's one-time startup command
 pm2 logs nexus-worker
 ```
 
-**Credit controls:** migrations `0007_twelvedata_credit_budget.sql` and `0008_cloud_security_and_browser_budget.sql` add atomic, persistent Supabase-backed reservations. The worker defaults to 700 paid requests per UTC day and 6/minute; the browser relay defaults to 700/day and 7/minute. The pools are independent and global within each pool, not multiplied by provider key count. Both fail closed if reservation fails. Worker live ingestion uses at most 80% of its pool (the remainder is available for backfill/retries); routine browser requests stop at 80% so the browser can settle pending signals, while the hard 700/day and 7/minute caps remain absolute. Change the `TWELVEDATA_*_CREDIT_LIMIT` variables in `server/.env` only to match the actual provider plan. `INGEST_MIN_INTERVAL_SECONDS` and `INGEST_PAIRS` tune worker cadence. With 10 active pairs, worker defaults are a slow rotating feed (roughly 26 minutes per pair), not a 1-minute real-time stream. The DATA page’s local counter is only a secondary per-browser guard; the shared SQL reservation is authoritative. The free server-side `api_usage` lookup can reconcile each server-managed provider account (aliases are masked).
+**Credit controls:** migration `0009_shared_account_quota.sql` adds the mandatory account-wide guard: 700 paid calls/UTC day and six/rolling minute across worker, browser, retries and failover keys. Prior 0007/0008 counters become secondary scope limits, not independent allowances. Initial installation intentionally exhausts its current UTC day and adds a 61-second quarantine. Stop all consumers and obtain explicit approval before applying. Never restore the older RPC definitions or reset budget tables. The server requires a versioned RPC and fails closed when unavailable. Review [the cutover procedure](docs/DEPLOYMENT_VERIFICATION.md), run both read-only 0008/0009 verifiers, verify the private `models` bucket, and inventory all account consumers before production activation. No hosted application of this migration has been verified.
 
 The worker:
 - ingests **completed** 1-minute candles in a credit-paced rotating batch of active pairs
@@ -109,7 +110,7 @@ The worker:
   win-rate degradation, losing streaks) to `TELEGRAM_OPS_CHAT`;
 - prunes old data (retention) with optional gzip archival to the `models` bucket first.
 
-Tests: `cd server && npm test` (logic and loopback HTTP; fake database/provider/Bot transports, no hosted access). Root `npm test` additionally exercises migrations 0001–0008 in disposable PGlite. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) before any live staging steps; migration files do not prove hosted state.
+Tests: `cd server && npm test` (logic and loopback HTTP; fake database/provider/Bot transports, no hosted access). Root `npm test` additionally exercises migrations 0001–0009 in disposable PGlite. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) before any live staging steps; migration files do not prove hosted state.
 
 ## 3. Trainer (self-learning)
 
@@ -161,7 +162,7 @@ What one `run` does:
 
 ## 5. Deployment / operations checklist
 
-- [ ] migrations 0001–0008 reviewed and applied in order; `models` bucket private
+- [ ] migrations 0001–0009 reviewed and applied in order; `models` bucket private
 - [ ] Verify anon/authenticated access is read/insert-only where intended; admin tables,
       delivery base rows, budgets, and maintenance SECURITY DEFINER functions are private
 - [ ] Anonymous Auth sign-in enabled; API relay CORS uses exact production browser origins

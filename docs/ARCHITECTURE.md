@@ -1,5 +1,7 @@
 # NEXUS · Current Architecture & Security Boundaries
 
+> **2026-10-15 update:** For current quota behavior, test evidence, migration 0009, approval gates and cutover/rollback, use [DEPLOYMENT_VERIFICATION.md](DEPLOYMENT_VERIFICATION.md). Independent browser/worker quota descriptions and earlier test totals below are historical, not current activation instructions.
+
 **Updated:** 2026-10-15 · **Working branch:** `arena/c7c0db30-nexus`
 
 ## 1. Components and data flow

@@ -1,17 +1,24 @@
 {
   "private": true,
   "scripts": {
-    "test": "npm run test:browser && npm run test:server && npm run test:trainer && npm run test:security && npm run check:public",
+    "test": "npm run test:browser && npm run test:server && npm run test:trainer && npm run test:security && npm run check:public && npm run test:workflows && npm run check:secrets && npm run test:quota && npm run lint:workflows",
     "test:browser": "node tests/smoke.cjs",
     "test:server": "npm --prefix server test",
     "test:trainer": "python3 -m unittest discover -s trainer -p \"test_*.py\"",
     "test:security": "node --test tests/migrations.test.cjs tests/public-guard.test.cjs tests/config-contract.test.cjs",
     "build:public": "node tools/build-public.cjs",
-    "check:public": "npm run build:public && node tools/check-public.cjs .cache/public"
+    "check:public": "npm run build:public && node tools/check-public.cjs .cache/public",
+    "test:workflows": "node --test tests/workflows.test.cjs",
+    "check:secrets": "node tools/check-secrets.cjs",
+    "test:quota": "node --test tests/shared-quota.test.cjs",
+    "test:postgres": "node --test --test-reporter=tap --test-reporter-destination=stdout --test-reporter=./tools/github-test-reporter.cjs --test-reporter-destination=stderr tests/quota-postgres.test.cjs",
+    "lint:workflows": "node tools/lint-workflows.cjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.10",
-    "jsdom": "26.1.0"
+    "@kjanat/actionlint": "1.17.0",
+    "jsdom": "26.1.0",
+    "pg": "8.16.3"
   },
   "engines": {
     "node": ">=22"
