@@ -26,3 +26,17 @@ test('verification CI runs real PostgreSQL without production secrets',()=>{
   assert.doesNotMatch(s,/secrets\.|pull_request_target|SUPABASE|TWELVEDATA_KEYS|TELEGRAM/);
   for(const [,ref] of s.matchAll(/uses: ([^\s]+)/g)) assert.match(ref,/@[a-f0-9]{40}$/);
 });
+
+test('Pages and verification install both locked dependency trees before npm test',()=>{
+  for (const file of ['deploy-pages.yml','verify.yml']) {
+    const s=fs.readFileSync(`.github/workflows/${file}`,'utf8');
+    const rootInstall=s.indexOf('- run: npm ci --ignore-scripts');
+    const serverInstall=s.indexOf('- run: npm --prefix server ci --ignore-scripts');
+    const tests=s.indexOf('- run: npm test');
+    assert.notEqual(rootInstall,-1,`${file} must install root locked dependencies`);
+    assert.notEqual(serverInstall,-1,`${file} must install server locked dependencies`);
+    assert.notEqual(tests,-1,`${file} must run npm test`);
+    assert.ok(rootInstall<serverInstall,`${file} must install root dependencies before server dependencies`);
+    assert.ok(serverInstall<tests,`${file} must install server dependencies before npm test`);
+  }
+});

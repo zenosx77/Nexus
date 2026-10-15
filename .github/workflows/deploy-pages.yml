@@ -29,6 +29,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --ignore-scripts
+      - run: npm --prefix server ci --ignore-scripts
       - run: npm test
       - name: Prepare public site
         run: |
