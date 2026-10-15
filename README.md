@@ -59,14 +59,11 @@ Full migration, host, auth, and verification instructions: **[SUPABASE_SETUP.md]
 
 ## Credit controls
 
-The authoritative quota reservations are persistent and server-side:
+After approved migration **0009**, one locked PostgreSQL account row enforces **700 paid requests per UTC day and six per rolling minute across ALL workers, browser relays, retries and API-key failovers**. The rolling window is conservatively 61 seconds with a maximum one-second dispatch permit. No key or process gets an independent account allocation.
 
-| Pool | Default cap | Purpose |
-|---|---:|---|
-| Worker | **700 paid calls/UTC day, 6/minute** | ingestion and backfill |
-| Browser relay | **700 paid calls/UTC day, 7/minute** | scans, ticker, and settlements |
+Scope settings may only lower these hard ceilings. Browser routine requests still preserve settlement headroom; worker ingestion retains its 560/day planning allowance, but neither scope owns a guaranteed allocation of the shared 700. The public UI counter is secondary and cannot observe other clients' usage. Free `api_usage` reads do not reserve paid credits.
 
-Each pool is shared across its processes and is not multiplied by provider key count. Routine browser calls pause at 80% so pending settlements can use reserved headroom; the hard daily/minute caps remain absolute. The worker uses up to 80% of its own daily pool for live ingestion. Free `api_usage` checks consume no paid credits. The DATA page’s local counter is only a secondary browser guard; persistent SQL reservations are authoritative. Configure provider limits in `server/.env` to fit the actual plan. Review `server/README.md` for the separate pool and cadence details.
+**Do not activate on 0007/0008 alone.** The updated server requires the versioned shared RPC and fails closed if unavailable, malformed or slow. Migration 0009 intentionally quarantines its installation day; no budget counters may be reset to bypass this. Every consumer of the provider account must use this same database and updated server. See [the approval-gated deployment report](docs/DEPLOYMENT_VERIFICATION.md).
 
 ## Telegram setup
 
@@ -79,7 +76,7 @@ Browser timers still require an open, awake page for the existing client-side st
 
 ## Cloud data semantics
 
-The cloud mirror intentionally remains **shared/anonymous**: browser-originated predictions remain shared records, and delivery attempts remain shared operational records under the existing schema. Delivery payloads are written only by the authenticated server relay; anonymous clients can read only the restricted status view and cannot forge retryable rows. Do not interpret these records as per-user ownership. `0008_cloud_security_and_browser_budget.sql` hardens direct public privileges and maintenance function execution and adds a separate browser relay budget, while keeping the existing prediction/read model and engines intact.
+The cloud mirror intentionally remains **shared/anonymous**: browser-originated predictions remain shared records, and delivery attempts remain shared operational records under the existing schema. Delivery payloads are written only by the authenticated server relay; anonymous clients can read only the restricted status view and cannot forge retryable rows. Do not interpret these records as per-user ownership. `0008_cloud_security_and_browser_budget.sql` hardens direct public privileges and maintenance function execution and adds the historical browser scope budget (0009 subsequently places both scopes under one shared account cap), while keeping the existing prediction/read model and engines intact.
 
 Simulated performance shown anywhere is a signal-quality metric, never realized account profit.
 

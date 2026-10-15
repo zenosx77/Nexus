@@ -1,5 +1,7 @@
 # Backend deployment preparation — staging first
 
+> **2026-10-15 update:** For current quota behavior, test evidence, migration 0009, approval gates and cutover/rollback, use [DEPLOYMENT_VERIFICATION.md](DEPLOYMENT_VERIFICATION.md). Independent browser/worker quota descriptions and earlier test totals below are historical, not current activation instructions.
+
 **Status (2026-10-15):** the confirmed deployment is GitHub Pages only. No backend host is configured or verified; hosted Supabase migration 0008 is **unconfirmed**. This document is a preparation/runbook, not authorization to deploy. Repository tests use mocks and disposable in-memory PostgreSQL only. No production settings, migrations or credentials have been changed.
 
 ## 1. Hosting recommendation and process separation
