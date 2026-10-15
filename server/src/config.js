@@ -1,3 +1,4 @@
+import process from 'node:process';
 // ── NEXUS worker + authenticated relay configuration ────────────────────
 // Secret values come only from the host environment (or server/.env locally).
 // The static browser app receives no generated provider or Telegram credentials.

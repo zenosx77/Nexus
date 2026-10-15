@@ -92,6 +92,45 @@ test('shared quota real PostgreSQL independent-connection verification',async t=
       assert.equal(results.filter(r=>r.status==='rejected'&&r.reason.reason==='minute-limit').length,18);
     }finally{config.twelveDataKeys=old;}
   });
+  await t.test('independent Edge handlers and workers contend for the SAME six SQL reservations', async () => {
+    await reset(db);
+    const { config } = await import('../server/src/config.js');
+    const { requestTwelveData } = await import('../server/src/twelvedata.js');
+    const { createEdgeHandler } = await import('../supabase/functions/nexus-relay/handler.js');
+    const old = config.twelveDataKeys;
+    config.twelveDataKeys = ['offline-edge-quota'];
+    let paid = 0;
+    const deps = {
+      db: async () => ({ rpc: async (name, p) => {
+        assert.equal(name, 'reserve_twelvedata_account_credit');
+        const r = await pool.query('select reserve_twelvedata_account_credit($1,$2,$3,$4,$5) as result',
+          [p.p_scope, p.p_daily_limit, p.p_minute_limit, p.p_category ?? 'scan', p.p_scan_reserve ?? 0]);
+        return { data: r.rows[0].result };
+      } }),
+      fetch: async () => { paid++; return { ok: true, json: async () => ({ price: '1.1' }) }; },
+    };
+    try {
+      const results = await Promise.all(Array.from({ length: 24 }, async (_, i) => {
+        if (i % 2) {
+          try { await requestTwelveData('price', { symbol: 'EUR/USD' }, 'worker', {}, deps); return 200; }
+          catch (e) { assert.equal(e.reason, 'minute-limit'); return 429; }
+        }
+        const handler = createEdgeHandler({
+          config: { ...config, allowedOrigins: ['https://pages.example.test'] },
+          db: async () => ({ auth: { getUser: async () => ({ data: { user: { id: `user-${i}` } } }) } }),
+          requestTwelveData: (...args) => requestTwelveData(...args, deps),
+        });
+        const response = await handler(new Request('https://offline.test/functions/v1/nexus-relay/api/v1/market', {
+          method: 'POST', headers: { origin: 'https://pages.example.test', authorization: 'Bearer offline', 'content-type': 'application/json' },
+          body: JSON.stringify({ operation: 'price', params: { symbol: 'EUR/USD' } }),
+        }));
+        return response.status;
+      }));
+      assert.equal(paid, 6);
+      assert.equal(results.filter(status => status === 200).length, 6);
+      assert.equal(results.filter(status => status === 429).length, 18);
+    } finally { config.twelveDataKeys = old; }
+  });
   // Each invocation starts a genuinely new worker process and new DB session.
   // No local/provider cache survives between invocations. The provider is fake.
   const child = (scope, mode = 'normal') => new Promise((resolve, reject) => {

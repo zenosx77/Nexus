@@ -1,5 +1,7 @@
 # NEXUS Glass v5.2 · Meridian
 
+> **Supabase Edge hosting:** see the [Edge relay runbook](docs/SUPABASE_EDGE_RELAY.md) for the prepared GitHub Pages + Supabase option, shared 0009 quota prerequisites, secrets, verification and rollback. Not deployed.
+
 A single-file, glassmorphic **multi-pair M1/M3 signal research engine** for binary-options-style candle prediction — built around **4 Telegram channels** (PUBLIC · VIP · LIST · MAIN), bot-configured message formats, an event sticker bank, revision-safe candle settlement, and quality-first paper signals.
 
 > ⚠️ **Signal-only + paper-trading.** NEXUS never places, clicks, or automates real trades. No system can guarantee a win rate. Binary options carry a very high risk of loss.

@@ -1,3 +1,4 @@
+import process from 'node:process';
 // ── minimal .env loader (no dependency) ─────────────────────────────────
 // Loads server/.env when present. Real environment variables always win.
 // Must be the first import of config.js so env vars exist at config build time.

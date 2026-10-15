@@ -1,5 +1,7 @@
 # NEXUS × Supabase — end-to-end setup
 
+> **Supabase Edge hosting:** see the [Edge relay runbook](docs/SUPABASE_EDGE_RELAY.md) for the prepared GitHub Pages + Supabase option, shared 0009 quota prerequisites, secrets, verification and rollback. Not deployed.
+
 This wires shared Supabase storage and the authenticated server relay to the
 existing site while preserving its strategies, weights, UI, browser/worker credit
 limits, and signal engines. The browser remains the live prediction source and

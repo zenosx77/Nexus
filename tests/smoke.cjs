@@ -339,25 +339,38 @@ async function main() {
     deep.M1={ensVn:60,ensVwr:.68}; const g=productionGate(); histRows=oldH;deep.M1=oldD;return g;})()`);
   assert.equal(pgReady.ok, true, 'sufficient confirmed + statistical + deep evidence unlocks production');
 
+  for (const base of ['https://relay.example.test', 'https://nexus-test.supabase.co/functions/v1/nexus-relay', 'https://nexus-test.supabase.co/functions/v1/nexus-relay/']) {
+    assert.equal(E(`validNexusApiBase(${JSON.stringify(base)})`), true);
+  }
+  for (const base of ['https://example.test/other', 'https://example.test/functions/v1/other', 'https://example.test/functions/v1/nexus-relay/extra', 'https://example.test/functions/v1/nexus-relay?key=x', 'https://user@example.test', 'http://example.test']) {
+    assert.equal(E(`validNexusApiBase(${JSON.stringify(base)})`), false);
+  }
   /* ── 11c. real browser Auth/relay transport, not pre-seeded session shortcuts ─ */
   {
     const isolated=boot();
     const requests=[];
-    isolated.E(`sbCfg={api:'https://relay.example.test',url:'https://nexus-test.supabase.co',anon:'${'A'.repeat(40)}',record:true};
+    isolated.E(`sbCfg={api:'https://nexus-test.supabase.co/functions/v1/nexus-relay',url:'https://nexus-test.supabase.co',anon:'${'A'.repeat(40)}',record:true};
       nexusApiEndpoint=sbCfg.api; nexusSessionStorageClear();`);
     isolated.w.fetch=async(url,opts)=>{
       const u=String(url); requests.push({url:u,opts});
+      if(u.endsWith('/api/v1/health')) return jsonResponse({ok:true,provider:{configured:true,healthy:true,keyCount:1},browserBudget:{dailyLimit:700,perMinuteLimit:6},telegram:{configured:false,channels:{}}});
       if(u.endsWith('/auth/v1/signup')) return jsonResponse({access_token:'fresh-auth',refresh_token:'fresh-refresh',expires_in:3600});
       if(u.includes('/auth/v1/token?grant_type=refresh_token')) return jsonResponse({access_token:'refreshed-auth',refresh_token:'next-refresh',expires_in:3600});
       if(u.endsWith('/api/v1/session')) return jsonResponse({ok:true,userId:'test-user',telegramAdmin:false,telegramChannels:{}});
       if(u.endsWith('/api/v1/market')) return jsonResponse({data:{price:'1.1'}});
       throw new Error('Unexpected browser network target: '+u);
     };
+    await isolated.E('checkNexusRelay()');
+    assert.equal(requests[0].url,'https://nexus-test.supabase.co/functions/v1/nexus-relay/api/v1/health');
+    assert.equal(isolated.E('nexusRelayHealth.browserBudget.perMinuteLimit'),6);
+    assert.equal(requests.length,1,'health does not authenticate or spend provider credits');
+    requests.length=0;
     const first=await isolated.E(`jget(BASE+'price?symbol=EUR%2FUSD&apikey=legacy-must-not-forward',null,'scan')`);
     assert.equal(first.price,'1.1');
     assert.equal(requests[0].url,'https://nexus-test.supabase.co/auth/v1/signup');
     assert.equal(requests[0].opts.headers.apikey,'A'.repeat(40));
     const paid=requests.find(r=>r.url.endsWith('/api/v1/market'));
+    assert.equal(paid.url,'https://nexus-test.supabase.co/functions/v1/nexus-relay/api/v1/market');
     assert.equal(paid.opts.headers.authorization,'Bearer fresh-auth');
     assert.equal(paid.opts.headers['content-type'],'application/json');
     const payload=JSON.parse(paid.opts.body);
