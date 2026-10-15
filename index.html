@@ -909,7 +909,7 @@
       </div>
       <div class="two" style="margin-top:10px">
         <div><span class="mini" style="display:block;text-align:left">🔒 NEXUS API RELAY URL (PUBLIC ADDRESS)</span>
-          <input type="url" id="nexusApiUrl" placeholder="https://your-nexus-api.example.com" autocomplete="url" spellcheck="false"></div>
+          <input type="url" id="nexusApiUrl" placeholder="https://yourproject.supabase.co/functions/v1/nexus-relay" autocomplete="url" spellcheck="false"></div>
         <div><span class="mini" style="display:block;text-align:left">☁ SUPABASE PROJECT URL</span>
           <input type="url" id="sbUrl" placeholder="https://yourproject.supabase.co" autocomplete="url" spellcheck="false"></div>
       </div>
@@ -1037,7 +1037,7 @@ let nexusApiSession=null, nexusSessionInfo=null, nexusRelayHealth=null, nexusSes
 function nexusApiBase(){ return String(nexusApiEndpoint||'').trim().replace(/\/+$/,''); }
 function validNexusApiBase(value){
   try{ const u=new URL(value), local=u.hostname==='localhost'||u.hostname==='127.0.0.1';
-    return (u.protocol==='https:'||(u.protocol==='http:'&&local))&&u.pathname==='/'&&!u.username&&!u.password&&!u.search&&!u.hash; }
+    return (u.protocol==='https:'||(u.protocol==='http:'&&local))&&(u.pathname==='/'||/^\/functions\/v1\/nexus-relay\/?$/.test(u.pathname))&&!u.username&&!u.password&&!u.search&&!u.hash; }
   catch(_){ return false; }
 }
 function nexusSessionStorageGet(){ try{ return JSON.parse(sessionStorage.getItem(NEXUS_SESSION_KEY)||'null'); }catch(_){ return null; } }

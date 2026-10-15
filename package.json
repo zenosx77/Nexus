@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "test": "npm run test:browser && npm run test:server && npm run test:trainer && npm run test:security && npm run check:public && npm run test:workflows && npm run check:secrets && npm run test:quota && npm run lint:workflows",
+    "test": "npm run test:browser && npm run test:server && npm run test:trainer && npm run test:security && npm run check:public && npm run test:workflows && npm run check:secrets && npm run test:quota && npm run lint:workflows && npm run test:edge",
     "test:browser": "node tests/smoke.cjs",
     "test:server": "npm --prefix server test",
     "test:trainer": "python3 -m unittest discover -s trainer -p \"test_*.py\"",
@@ -12,11 +12,13 @@
     "check:secrets": "node tools/check-secrets.cjs",
     "test:quota": "node --test tests/shared-quota.test.cjs",
     "test:postgres": "node --test --test-reporter=tap --test-reporter-destination=stdout --test-reporter=./tools/github-test-reporter.cjs --test-reporter-destination=stderr tests/quota-postgres.test.cjs",
-    "lint:workflows": "node tools/lint-workflows.cjs"
+    "lint:workflows": "node tools/lint-workflows.cjs",
+    "test:edge": "deno check --frozen --config supabase/functions/nexus-relay/deno.json supabase/functions/nexus-relay/index.ts && deno test --frozen -A --config supabase/functions/nexus-relay/deno.json server/test/api.test.js server/test/relay-budget.test.js"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.10",
     "@kjanat/actionlint": "1.17.0",
+    "deno": "2.9.6",
     "jsdom": "26.1.0",
     "pg": "8.16.3"
   },

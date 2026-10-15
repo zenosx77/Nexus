@@ -1,5 +1,12 @@
 // Real loopback HTTP, fake Auth/database/provider/Bot transports only.
-import test from 'node:test';
+import nodeTest from 'node:test';
+import { createEdgeHandler } from '../../supabase/functions/nexus-relay/handler.js';
+const test = (name, run) => {
+  for (const adapter of ['node', 'edge']) nodeTest(`${adapter}: ${name}`, t => {
+    t.adapter = adapter;
+    return run(t);
+  });
+};
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { createNexusApiServer } from '../src/api.js';
@@ -13,7 +20,7 @@ async function fixture(t, overrides = {}) {
   const settings = { ...config, allowedOrigins: [origin], telegramAdminUserIds: ['admin'],
     telegramBotToken: 'fake-bot', telegramChats: { main: 'fake-private-chat', admin: 'fake-admin-chat' },
     apiUserRateLimitPerMinute: 100, telegramRateLimitPerMinute: 100, cloudSyncEnabled: true };
-  const server = createNexusApiServer({ config: settings,
+  const options = { config: settings,
     db: async () => ({ auth: { getUser: async token => {
       calls.auth.push(token);
       if (token === 'unavailable') throw new Error('fake auth unavailable');
@@ -26,14 +33,17 @@ async function fixture(t, overrides = {}) {
     providerStatus: () => ({ configured: true, healthy: true, keyCount: 1 }),
     getTwelveDataUsage: async () => [{ key: 'Server key 1', used: 2, limit: 700 }],
     ...overrides,
-  });
-  server.listen(0, '127.0.0.1');
-  await once(server, 'listening');
-  t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));
-  const url = `http://127.0.0.1:${server.address().port}`;
+  };
+  const server = t.adapter === 'node' ? createNexusApiServer(options) : null;
+  const edge = createEdgeHandler(options);
+  if (server) server.listen(0, '127.0.0.1');
+  if (server) await once(server, 'listening');
+  if (server) t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));
+  const url = server ? `http://127.0.0.1:${server.address().port}` : 'https://offline.example.test/nexus-relay';
+  const send = server ? fetch : (url, init) => edge(new Request(url, init));
   const request = async (path = '/api/v1/market', body = market, options = {}) => {
     const { headers, ...rest } = options;
-    const response = await fetch(url + path, { method: body === undefined ? 'GET' : 'POST',
+    const response = await send(url + path, { method: body === undefined ? 'GET' : 'POST',
       headers: { origin, authorization: 'Bearer user', 'content-type': 'application/json', ...headers },
       ...(body === undefined ? {} : { body: typeof body === 'string' ? body : JSON.stringify(body) }), ...rest });
     const data = response.status === 204 ? null : await response.json();
@@ -198,4 +208,21 @@ test('Telegram polling filters private destinations and strips identities/secret
   assert.equal(r.data.result[0].message.from.id, undefined);
   assert.equal(r.data.result[1].message, undefined);
   assert.equal(/fake-private-chat|unconfigured|sb_secret_|private unrelated/.test(JSON.stringify(r.data)), false);
+});
+
+
+test('strict schemas reject extra destinations, SQL, flags and URL stickers before dispatch', async t => {
+  const f = await fixture(t);
+  for (const body of [{ ...market, url: 'https://evil.test' }, { ...market, sql: 'select 1' },
+    { ...market, category: 'other' }, { ...market, scanReserve: '6' }]) {
+    assert.equal((await f.request('/api/v1/market', body)).status, 400);
+  }
+  for (const body of [
+    { method: 'sendMessage', channel: 'main', text: 'hello', chat_id: 'other' },
+    { method: 'sendMessage', channel: 'main', text: 'hello', protect_content: 'false' },
+    { method: 'sendSticker', channel: 'main', sticker: 'https://evil.test/file.webp' },
+    { method: 'getUpdates', allowed_updates: ['unknown'] },
+    { method: 'setMyCommands', commands: [{ command: 'help', description: 'Help', extra: 'no' }] },
+  ]) assert.equal((await f.request('/api/v1/telegram', body, { headers: { authorization: 'Bearer admin' } })).status, 400);
+  assert.equal(f.calls.market.length + f.calls.telegram.length, 0);
 });

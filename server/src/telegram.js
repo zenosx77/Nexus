@@ -13,6 +13,7 @@ export async function telegramApiCall(method, params = {}) {
     try {
       const res = await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/${method}`, {
         method: 'POST',
+        redirect: 'error',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(params),
         signal: AbortSignal.timeout(15_000),

@@ -1,5 +1,7 @@
 # NEXUS server worker + authenticated API relay
 
+> **Supabase Edge hosting:** see the [Edge relay runbook](../docs/SUPABASE_EDGE_RELAY.md) for the prepared GitHub Pages + Supabase option, shared 0009 quota prerequisites, secrets, verification and rollback. Not deployed.
+
 The Node service has two independent modes:
 
 - **Worker** (`npm start`) — market-data ingestion, outcome evaluation, risk snapshots, Telegram retries/alerts, and retention.
