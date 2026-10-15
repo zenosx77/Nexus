@@ -1,6 +1,16 @@
 # never commit real API keys
 keys.js
 
+# server worker / trainer secrets (Supabase service-role key, Twelve Data keys, bot token)
+server/.env
+server/config.json
+trainer/.env
+
+# model artifacts + archived datasets (live in Supabase Storage / your machine only)
+*.model.json
+models/
+*.jsonl.gz
+
 # local-only crew art (copyrighted) — preview builds only, never committed, never published
 art/
 
@@ -10,3 +20,7 @@ node_modules/
 # editor/system noise
 .DS_Store
 *.swp
+
+# python bytecode
+__pycache__/
+*.pyc

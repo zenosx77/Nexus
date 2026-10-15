@@ -1,17 +1,24 @@
-// NEXUS Glass v5.0 Meridian — smoke + regression suite (jsdom).
+// NEXUS Glass v5.1 Meridian — smoke + regression suite (jsdom).
 // Run: npm install && npm test        (run it twice — the suite is idempotent)
-// Covers: clean boot with 9 tabbed pages, multi-pair watchlist (10 pairs),
-// 4 key slots with one-click save + rotation + quota cooldown, candle-only
-// parallel scans, NONSTOP ≥1-signal-per-minute guarantee (never "no trades"),
-// confirmed settlement (feed-keyed targets, confirmation candle, ties = PUSH,
-// never a loss), SESSION engine (intro sticker → signal in 60 s → WIN sticker /
-// OTM 💔 loss without sticker → quality guard → completion + 2 outro stickers),
-// PREMIUM engine (10-min study → 4-min-spaced slots OUTSIDE the window →
-// verified result), sticker bank roles (wins only), house vs verbatim message
-// style, Telegram save + authorization revocation, private-chat capture,
-// public privacy filter, credit budget throttling, deep training + readiness,
-// feed-clock timezone repair, manual news blackout, paper/signal-only guards,
-// font + license assets, and full HTML/DOM reference integrity.
+// Covers: clean boot with 10 tabbed pages, multi-pair watchlist (10 pairs),
+// 10 key slots with one-click save + rotation + quota cooldown + API CREDIT
+// USAGE section (api_usage parser), candle-only parallel scans, quality-first
+// signals (NONSTOP off by default), FAST confirmed settlement (no confirming-
+// candle wait, ties = PUSH never a loss), 4-channel Telegram (MAIN/PUBLIC/VIP/
+// LIST with fallback), PUBLIC 1-min stream (strict quality, sent before the
+// candle opens), VIP best-shot stream (every 10 min, honest grade), SESSION
+// engine (quality floor never decays → WIN sticker / honest loss → quality
+// guard → completion + 2 outros), PREMIUM LIST engine (10-min study → 4-min
+// slots OUTSIDE the window → verified result), per-event sticker bank with
+// dedupe (no double stickers, nothing unassigned ever fires), bot-configured
+// message formats (/setformat placeholders, saved permanently, premium emoji
+// auto-normalized), Telegram save + authorization revocation, private-chat
+// capture, public privacy filter, credit budget throttling, deep training +
+// readiness, feed-clock timezone repair, manual news blackout, paper/
+// signal-only guards, font + license assets, full DOM reference integrity,
+// and the CLOUD SYNC Supabase mirror (offline degradation, anon-only writes,
+// delivery recording, SHA-256-verified model apply, canonical JSON parity
+// with the Python trainer).
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -23,7 +30,7 @@ const html = fs.readFileSync(FILE, 'utf8');
 const inline = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m => m[1]).filter(Boolean);
 assert.equal(inline.length, 1, 'exactly one inline application script');
 
-function boot(seedStorage) {
+function boot(seedStorage, hooks) {
   const errors = [];
   const vc = new VirtualConsole();
   vc.on('jsdomError', e => errors.push(e.message));
@@ -34,6 +41,7 @@ function boot(seedStorage) {
       w.confirm = () => true;
       w.scrollTo = () => {};
       if (seedStorage) for (const [k, v] of Object.entries(seedStorage)) w.localStorage.setItem(k, v);
+      if (hooks) hooks(w);
     },
   });
   const context = dom.getInternalVMContext();
@@ -97,12 +105,13 @@ async function main() {
   assert.deepEqual([...new Set(dupIds)], [], 'no duplicate element ids');
   // every section lives on a page; tabs cover all pages
   assert.ok($id('pageTabs'), 'page tab bar present');
-  assert.ok(doc.querySelectorAll('#pageTabs button').length >= 9, 'at least 9 page tabs');
-  assert.deepEqual(E('JSON.stringify(PAGES)'), '["dash","sig","sess","prem","bot","tg","res","brain","data"]');
+  assert.ok(doc.querySelectorAll('#pageTabs button').length >= 10, 'at least 10 page tabs');
+  assert.deepEqual(E('JSON.stringify(PAGES)'), '["dash","sig","sess","vip","prem","bot","tg","res","brain","data","cloud"]');
   for (const p of E('PAGES')) assert.ok($id('page-' + p), `page ${p} exists`);
-  for (const s of ['sec-keys', 'sec-feeds', 'sec-scan', 'sec-m1', 'sec-m3', 'sec-list', 'sec-sess', 'sec-bot',
-                   'sec-tg', 'sec-pub', 'sec-paper', 'sec-stats', 'sec-perf', 'sec-brain', 'sec-hist', 'sec-bt',
-                   'sec-live', 'sec-notif', 'sec-regime', 'sec-agents', 'sec-ready', 'sec-status'])
+  for (const s of ['sec-keys', 'sec-usage', 'sec-feeds', 'sec-scan', 'sec-m1', 'sec-m3', 'sec-list', 'sec-sess', 'sec-vip',
+                   'sec-bot', 'sec-tg', 'sec-pub', 'sec-paper', 'sec-stats', 'sec-perf', 'sec-brain', 'sec-hist', 'sec-bt',
+                   'sec-live', 'sec-notif', 'sec-regime', 'sec-agents', 'sec-ready', 'sec-status',
+                   'sec-sbcfg', 'sec-sbmodel', 'sec-sbperf', 'sec-sbfresh', 'sec-sbdeliv'])
     assert.ok($id(s), `section id ${s} exists`);
   // showPage switches exactly one page and persists
   E(`showPage('sess')`);
@@ -149,38 +158,57 @@ async function main() {
   assert.equal(E('keyPool().length'), 0, 'no real keys in the public build');
   assert.equal(E('px.status'), 'idle');
   assert.equal(E('sx.status'), 'idle');
-  assert.equal(E('Object.keys(STRATS).length'), 16, '16 strategies in the ensemble');
+  assert.equal(E('Object.keys(STRATS).length'), 26, '26 strategies in the ensemble');
+  assert.equal(E('Object.keys(FAM).length'), 26, 'every strategy belongs to a family (weights stay finite)');
+  assert.deepEqual(E('JSON.stringify(Object.keys(STRATS).filter(k=>!FAM[k]))'), '[]', 'no orphan strategies');
   assert.ok($id('liveRowsM1') && $id('liveRowsM3') && $id('predRows'));
   assert.match($id('liveRowsM1').textContent, /No live M1 signals yet/, 'M1 empty state');
   assert.match($id('liveRowsM3').textContent, /No live M3 signals yet/, 'M3 empty state');
   assert.equal(E('blackoutOn()'), false, 'news blackout defaults to OFF');
-  assert.equal(E('nonstopOn()'), true, 'NONSTOP defaults to ON (≥1 signal/minute)');
+  assert.equal(E('nonstopOn()'), false, 'NONSTOP defaults to OFF — quality only (no low-grade signals)');
   assert.equal(E('budgetLevel()'), 0);
   assert.equal(E('budgetScanStep()'), 1);
   assert.equal(E('perMinCap()'), 7, 'one key budget = 7 calls/min headroom under the 8/min limit');
   assert.equal(E('perDayCap()'), 760);
-  assert.match($id('noteList').textContent, /Live event feed/, 'notification centre never says "no trades" when empty');
+  assert.match($id('noteList').textContent, /Live feed/, 'notification centre never says "no trades" when empty');
 
-  /* ── 6. four key slots: one-click save → browser storage ─────── */
-  for (let i = 1; i <= 4; i++) $id('key' + i).value = 'td-key-' + i;
+  /* ── 6. TEN key slots: one-click save → browser storage ──────── */
+  assert.equal(doc.querySelectorAll('.kslot-row').length, 10, 'ten key slot inputs render');
+  assert.equal(E('KEY_SLOTS'), 10);
+  for (let i = 1; i <= 10; i++) $id('key' + i).value = 'td-key-' + i;
   assert.equal(E('saveKeys()'), true, 'one-click save succeeds');
-  assert.deepEqual(JSON.parse(w.localStorage.getItem('nx_keys4')),
-    ['td-key-1', 'td-key-2', 'td-key-3', 'td-key-4'], 'slots persisted to localStorage');
-  assert.equal(E('keyPool().length'), 4, 'pool holds all four saved slots');
-  assert.equal(E('JSON.stringify(keyPool().map(k=>k.src))'), '["slot1","slot2","slot3","slot4"]');
-  assert.equal(E('perMinCap()'), 28, 'budget scales with the key pool');
+  const saved10 = JSON.parse(w.localStorage.getItem('nx_keys10'));
+  assert.equal(saved10.length, 10, 'all ten slots persisted to localStorage');
+  assert.equal(saved10.filter(Boolean).length, 10);
+  assert.equal(E('keyPool().length'), 10, 'pool holds all ten saved slots');
+  assert.equal(E('perMinCap()'), 70, 'budget scales with the ten-key pool');
+  assert.equal(E('perDayCap()'), 7600);
+  // legacy 4-slot vault migrates forward
+  const b10 = boot({ nx_keys4: JSON.stringify(['old-a', 'old-b', '', '']) });
+  assert.equal(b10.E('keyPool().length'), 2, 'v5 4-slot vault migrated into the 10-slot pool');
+  b10.w.close();
   $id('key2').value = 'td-key-1';
   assert.equal(E('saveKeys()'), false, 'duplicate keys across slots rejected');
   assert.ok($id('vaultMsg').textContent.includes('duplicate'), 'duplicate explained to the user');
-  assert.equal(E('keyPool().length'), 4, 'rejected save changed nothing');
+  assert.equal(E('keyPool().length'), 10, 'rejected save changed nothing');
   assert.ok(!$id('vaultInfo').textContent.includes('td-key-1'), 'vault display masks keys');
+  // API CREDIT USAGE section: tolerant api_usage parser + meter
+  assert.equal(E('JSON.stringify(parseUsage({usage:{current_day:{credits_used:12,credits_limit:800}}}))'), JSON.stringify({ used: 12, limit: 800 }), 'api_usage v1 shape parsed');
+  assert.equal(E('JSON.stringify(parseUsage({count:7,limit_daily:800}))'), JSON.stringify({ used: 7, limit: 800 }), 'flat api_usage shape parsed');
+  assert.equal(E('JSON.stringify(parseUsage({}))'), JSON.stringify({ used: null, limit: null }), 'unknown shape → nulls, never NaN');
+  assert.ok($id('usageRows') && $id('usageSum') && $id('u_sess'), 'credit usage section renders');
+  E('usageRows=[{key:"abcd•••wxyz",used:640,limit:800},{key:"efgh•••stuv",used:5,limit:800}]; renderUsage()');
+  assert.ok($id('usageSum').textContent.includes('645'), 'usage summary sums per-key spend');
+  assert.ok(doc.querySelectorAll('#usageRows .usage-row').length === 2, 'per-key usage rows render');
 
-  /* ── 7. rotation + quota cooldown ────────────────────────────── */
+  /* ── 7. rotation + quota cooldown across the ten-key pool ────── */
   E('keyIdx=0');
   assert.equal(E('nextKey().v'), 'td-key-1');
   assert.equal(E('nextKey().v'), 'td-key-2', 'rotation advances');
   E('keyIdx=2; markKeyLimited("td-key-3")');
   assert.equal(E('nextKey().v'), 'td-key-4', 'quota-limited key is skipped (cooldown)');
+  E('keyIdx=9');
+  assert.equal(E('nextKey().v'), 'td-key-10', 'rotation wraps across ten slots');
   E('keyIdx=2; keyHealth["td-key-3"].until=Date.now()-1');
   assert.equal(E('nextKey().v'), 'td-key-3', 'key returns after cooldown expires');
   E('keyHealth["td-key-3"].until=0');
@@ -256,12 +284,15 @@ async function main() {
   assert.equal(oc.win, null);
   E(`cache['EUR/USD'].t=${now0 + M - 1000}`);
   assert.equal(E(`candleOutcome('EUR/USD','M1','CALL',${now0})`), null, 'NO verdict from a snapshot taken before the candle closed');
-  E(`cache['EUR/USD']={t:${now0 + 2 * M},latencyMs:10,m1:[
+  E(`cache['EUR/USD'].t=${now0 + M + 900}`);
+  assert.notEqual(E(`candleOutcome('EUR/USD','M1','CALL',${now0})`), null, 'FAST SETTLEMENT: a snapshot just after the close settles immediately');
+  E(`cache['EUR/USD'].t=${now0 + M - 1000}`);
+  E(`cache['EUR/USD']={t:${now0 + 2 * M + 5000},latencyMs:10,m1:[
       {t:'a',ts:${now0},o:1.1,h:1.2,l:1.0,c:1.15},
       {t:'b',ts:${now0 + M},o:1.15,h:1.2,l:1.1,c:1.16}],m3:[]}`);
-  assert.equal(E(`candleOutcome('EUR/USD','M1','CALL',${now0 + M})`), null, 'newest-bar M1 target waits for a confirming candle');
-  E(`cache['EUR/USD'].t=${now0 + 3 * M}`);
-  assert.notEqual(E(`candleOutcome('EUR/USD','M1','CALL',${now0 + M})`), null, 'a full window later it confirms');
+  oc = E(`candleOutcome('EUR/USD','M1','CALL',${now0 + M})`);
+  assert.notEqual(oc, null, 'FAST SETTLEMENT: the just-closed candle settles WITHOUT waiting for a newer confirming candle');
+  assert.equal(oc.win, true, 'and it settles correctly (CALL wins on a rising candle)');
   E('cache={}');
 
   /* ── 12. Telegram transport authorization ─────────────────────── */
@@ -308,76 +339,124 @@ async function main() {
   await assert.rejects(E('tgSend("hi")'), /not authorized/i);
   assert.equal(calls, before, 'revoked token/chat → zero sends');
 
-  /* ── 14. sticker bank: roles, win-only randomness, caps ───────── */
+  /* ── 13b. FOUR CHANNELS: routing + fallback to MAIN ──────────── */
+  E('tg.pubChat=""; tg.vipChat=""; tg.listChat=""');
+  assert.equal(E('chatFor("main")'), '999', 'MAIN resolves');
+  assert.equal(E('chatFor("vip")'), '999', 'empty VIP falls back to MAIN');
+  assert.equal(E('chatFor("list")'), '999', 'empty LIST falls back to MAIN');
+  E('tg.pubChat="@pub"; tg.vipChat="-100vip"; tg.listChat="@lists"');
+  assert.equal(E('chatFor("pub")'), '@pub');
+  assert.equal(E('chatFor("vip")'), '-100vip');
+  assert.equal(E('chatFor("list")'), '@lists');
+  assert.match(E('chatLabel("vip")'), /VIP: -100vip/, 'channel labels name the destination');
+  E('tg.pubChat=""; tg.vipChat=""; tg.listChat=""');
+
+  /* ── 14. sticker bank: one per event, dedupe, nothing unassigned fires ── */
   const tgCalls = [];
   w.fetch = async (url, opts) => { calls++; tgCalls.push({ url: String(url), body: String((opts && opts.body) || '') }); return jsonResponse({ ok: true, result: true }); };
   E('tg.auth=true;tg.token="tok-9";tg.chatId="999"');
+  assert.equal(E('JSON.stringify(STK_ROLES.map(r=>r.id))'),
+    JSON.stringify(['session', 'win', 'loss', 'push', 'vip', 'list', 'result', 'outro1', 'outro2']), 'nine assignable event roles');
+  // unassigned role → NEVER sends (no unauthorized stickers)
+  tgCalls.length = 0;
+  assert.equal(await E(`tgSticker('vip','main','t1')`), false, 'unassigned role sends nothing');
+  assert.equal(tgCalls.filter(c => c.url.includes('sendSticker')).length, 0, 'zero sticker calls for unassigned roles');
   E(`stPending.length=0;
-     stPending.push({file_id:'F_INTRO',label:'intro'},{file_id:'F_W1',label:'w1'},{file_id:'F_W2',label:'w2'},{file_id:'F_O1',label:'o1'},{file_id:'F_O2',label:'o2'});`);
-  E(`assignSticker(0,'intro');assignSticker(0,'win');assignSticker(0,'win');assignSticker(0,'outro1');assignSticker(0,'outro2')`);
-  assert.equal(E('tg.stickers.intro'), 'F_INTRO');
-  assert.deepEqual(E('JSON.stringify(tg.stickers.win)'), '["F_W1","F_W2"]', 'multiple stickers in the win bank');
-  assert.deepEqual(E('JSON.stringify(tg.stickers.outro)'), '["F_O1","F_O2"]', 'two outro stickers');
+     stPending.push({file_id:'F_SESS',label:'s'},{file_id:'F_W1',label:'w1'},{file_id:'F_W2',label:'w2'},
+       {file_id:'F_LOSS',label:'l'},{file_id:'F_VIP',label:'v'},{file_id:'F_LIST',label:'li'},
+       {file_id:'F_RES',label:'r'},{file_id:'F_O1',label:'o1'},{file_id:'F_O2',label:'o2'});`);
+  E(`assignSticker(0,'session');assignSticker(0,'win');assignSticker(0,'win');assignSticker(0,'loss');
+     assignSticker(0,'vip');assignSticker(0,'list');assignSticker(0,'result');assignSticker(0,'outro1');assignSticker(0,'outro2')`);
+  assert.equal(E('tg.stk.session'), 'F_SESS');
+  assert.deepEqual(E('JSON.stringify(tg.stk.win)'), '["F_W1","F_W2"]', 'multiple stickers in the win bank');
+  assert.equal(E('tg.stk.loss'), 'F_LOSS');
+  assert.equal(E('tg.stk.outro1'), 'F_O1'); assert.equal(E('tg.stk.outro2'), 'F_O2');
   assert.equal(E('stPending.length'), 0, 'pending queue drained');
   for (let i = 0; i < 20; i++) {
-    const pick = E('winStickerPick()');
+    const pick = E("stkPick('win')");
     assert.ok(pick === 'F_W1' || pick === 'F_W2', 'random win sticker comes ONLY from the win bank');
   }
-  assert.ok($id('stInfo').textContent.includes('outros 2/2'), 'bank info renders roles');
-  // verdicts: WIN → message + random sticker · LOSS → 💔 OTM text, NO sticker · PUSH → no sticker
+  assert.ok($id('stInfo').textContent.includes('8/9'), 'bank info renders the assigned-role count (push left empty on purpose)');
+  // DEDUPE: the same event key never fires its sticker twice (the old double-sticker bug)
+  tgCalls.length = 0;
+  await E(`tgSticker('vip','main','shot-1')`);
+  await E(`tgSticker('vip','main','shot-1')`);
+  await sleep(900);
+  assert.equal(tgCalls.filter(c => c.url.includes('sendSticker')).length, 1, 'same once-key fires exactly ONE sticker');
+  // WIN verdict → 1 message + 1 sticker; LOSS → message + the assigned LOSS sticker; PUSH → message + push sticker
   const sig77 = { id: 77, pair: 'EUR/USD', tf: 'M1', time: '12:05', dir: 'CALL', grade: 'A', score: 85 };
   tgCalls.length = 0;
   await E(`botSettleVerify(${JSON.stringify(sig77)},'win',{o:1.1,c:1.15})`);
-  await sleep(1000);
+  await sleep(900);
   assert.equal(tgCalls.filter(c => c.url.includes('sendSticker')).length, 1, 'WIN sends exactly one sticker');
   assert.ok(tgCalls.some(c => c.url.includes('sendSticker') && (c.body.includes('F_W1') || c.body.includes('F_W2'))));
   tgCalls.length = 0;
   await E(`botSettleVerify(${JSON.stringify(sig77)},'loss',{o:1.1,c:1.05})`);
-  await sleep(800);
-  assert.equal(tgCalls.filter(c => c.url.includes('sendSticker')).length, 0, 'LOSS sends NO sticker — ever');
-  const lossMsg = tgCalls.find(c => textOf(c.body).includes('LOSS'));
+  await sleep(900);
+  assert.equal(tgCalls.filter(c => c.url.includes('sendSticker')).length, 1, 'LOSS fires the assigned LOSS sticker (operator choice)');
+  assert.ok(tgCalls.some(c => c.url.includes('sendSticker') && c.body.includes('F_LOSS')));
+  const lossMsg = tgCalls.find(c => c.url.includes('sendMessage') && textOf(c.body).includes('LOSS'));
   assert.ok(lossMsg, 'loss verdict message sent');
-  assert.ok(lossMsg.body.includes('%F0%9F%92%94'), 'loss message carries the 💔 heartbreak emoji');
-  assert.ok(textOf(lossMsg.body).includes('OTM'), 'loss message says OTM (one-step martingale)');
   tgCalls.length = 0;
   await E(`botSettleVerify(${JSON.stringify(sig77)},'push',{o:1.1,c:1.1})`);
-  await sleep(800);
-  assert.equal(tgCalls.filter(c => c.url.includes('sendSticker')).length, 0, 'PUSH sends no sticker');
-  assert.ok(tgCalls.some(c => textOf(c.body).includes('PUSH')), 'push verdict explained');
-  // outro: completion fires BOTH stickers
+  await sleep(900);
+  assert.ok(tgCalls.some(c => c.url.includes('sendMessage') && textOf(c.body).includes('PUSH')), 'push verdict sent');
+  // clear the loss/push roles → losses and pushes then send NO sticker at all
+  E(`stClear('loss'); stClear('push')`);
+  assert.equal(E('tg.stk.loss'), ''); assert.equal(E('tg.stk.push'), '');
   tgCalls.length = 0;
-  await E(`tgSendStickers('outro')`);
+  await E(`botSettleVerify(${JSON.stringify(sig77)},'loss',{o:1.1,c:1.05})`);
+  await sleep(900);
+  assert.equal(tgCalls.filter(c => c.url.includes('sendSticker')).length, 0, 'unassigned loss role sends no sticker');
+  // outros fire once each
+  tgCalls.length = 0;
+  await E(`tgSticker('outro1','main','k1'); tgSticker('outro2','main','k1')`);
   await sleep(1200);
   const outros = tgCalls.filter(c => c.url.includes('sendSticker'));
   assert.equal(outros.length, 2, 'completion fires the two outro stickers');
   assert.ok(outros[0].body.includes('F_O1') && outros[1].body.includes('F_O2'));
   // bank caps + clearing
-  E(`stPending.length=0; for(let i=0;i<15;i++) stPending.push({file_id:'BULK'+i,label:'bulk'});
-     for(let i=0;i<15;i++) assignSticker(stPending.length-1,'win');`);
-  assert.ok(E('tg.stickers.win.filter(Boolean).length') <= 12, 'win bank capped at 12');
-  E(`stClear('win'); stClear('intro')`);
-  assert.equal(E('tg.stickers.win.length'), 0);
-  assert.equal(E('tg.stickers.intro'), '');
-  E(`tg.stickers={intro:'F_INTRO',win:['F_W1','F_W2'],outro:['F_O1','F_O2']}; stPending.length=0; renderStickers(); renderStPending();`);
+  E(`stPending.length=0; for(let i=0;i<30;i++) stPending.push({file_id:'BULK'+i,label:'bulk'});
+     for(let i=0;i<30;i++) assignSticker(stPending.length-1,'win');`);
+  assert.ok(E('tg.stk.win.filter(Boolean).length') <= 24, 'win bank capped at 24');
+  E(`stClear('win')`);
+  assert.equal(E('tg.stk.win.length'), 0);
+  E(`stPending.length=0; renderStickers(); renderStPending();`);
 
-  /* ── 15. message style: HOUSE re-typesets, VERBATIM adopts capture ─ */
-  assert.equal(E(`entToHtml('ab cd',[{type:'bold',offset:3,length:2}])`), 'ab <b>cd</b>', 'entities → safe HTML');
+  /* ── 15. FORMAT ENGINE: /setformat layouts saved permanently ──── */
+  // defaults are ULTRA MINIMAL: pair · dir · time · expiry — nothing else
+  const defSignal = E("renderFmt('signal',{pair:'EURUSD',dir:'CALL',time:'10:31',grade:'A',score:88})");
+  assert.ok(defSignal.includes('EURUSD') && defSignal.includes('CALL') && defSignal.includes('10:31'), 'default signal = pair+dir+time');
+  assert.ok(defSignal.includes('1 min'), 'default signal shows the 1-min expiry');
+  assert.ok(!/advice|paper|research|martingale|MTG/i.test(defSignal), 'no extra info in the default signal');
+  // unknown placeholders are stripped; *bold* / `code` / _italic_ markup works
+  assert.equal(E(`renderFmt('verdict',{result:'✅ WIN',pair:'EURUSD',time:'10:31'})`), '✅ WIN · EURUSD 10:31', 'verdict default is minimal');
+  assert.ok(E(`renderFmt('signal',{pair:'EURUSD',dir:'CALL',time:'10:31',grade:'A',bogus:'x'})`).includes('EURUSD'), 'unknown placeholders vanish silently');
+  assert.equal(E(`fmtMarkup('a *b* c')`), 'a <b>b</b> c', 'asterisk bold');
+  assert.equal(E("fmtMarkup('a `c` d')"), 'a <code>c</code> d', 'backtick code');
+  assert.equal(E(`fmtMarkup('<img x>')`), '&lt;img x&gt;', 'markup engine HTML-escapes everything first');
+  // /setformat signal <layout> → saved permanently, survives a reload
+  assert.equal(E(`fmtSet('signal','🔥 {pair} {dir} @ {time} ({grade})')`), true);
+  assert.ok(E("renderFmt('signal',{pair:'EURUSD',dir:'PUT',time:'11:00',grade:'A+'})").includes('🔥 EURUSD PUT @ 11:00 (A+)'), 'custom layout renders live values');
+  assert.ok(w.localStorage.getItem('nx_tg').includes('🔥 {pair} {dir}'), 'custom format persisted to browser storage');
+  assert.equal(E(`fmtSet('bogus','x')`), false, 'unknown format kind rejected');
+  // rows + list + result formats
   E(`px.rows=[{pair:'EUR/USD',tf:'M1',time:'14:30',dir:'CALL',targetT:1,conv:81,grade:'A',out:null}]`);
-  E(`tg.styleMode='house'; tg.listTpl={text:'📋 FOREIGN LIST\\nEURUSD•09:00;UP',entities:[]}`);
-  let listMsg = E('msgList()');
-  assert.ok(listMsg.includes('<b>BRANDX PREMIUM SIGNAL</b>'), 'house style re-typesets with the bold brand header');
-  assert.ok(listMsg.includes('<code>M1;EURUSD•14:30;CALL</code>'), 'house rows are monospace');
-  assert.ok(listMsg.includes('<i>') && /not financial advice/i.test(listMsg), 'house style keeps the disclaimer italic');
-  assert.ok(!listMsg.includes('FOREIGN LIST'), 'captured layout NOT copied verbatim in house mode (the font-adaptation fix)');
-  E(`tg.styleMode='verbatim'`);
-  listMsg = E('msgList()');
-  assert.ok(listMsg.includes('FOREIGN LIST') && listMsg.includes('EURUSD•14:30;CALL'), 'verbatim mode adopts the captured layout with live values');
-  const tpl = { text: '📊 PIRATE LIST\nDATE 01-01-2026 · UTC+6:00\nM1;EURUSD•14:30;CALL ⏳\nWin (0) Loss (0)', entities: [{ type: 'bold', offset: 0, length: 6 }] };
-  const tplOut = E(`applyTpl(${JSON.stringify(tpl)}, ${JSON.stringify([{ pair: 'EUR/USD', time: '15:30', dir: 'PUT', win: null }])}, ${JSON.stringify({ date: '14-10-2026', tz: 'UTC+5:30', w: 3, l: 1 })})`);
-  assert.ok(tplOut.includes('M1;EURUSD•15:30;PUT'), 'template rows carry live values');
-  assert.ok(tplOut.includes('Win (3)') && tplOut.includes('Loss (1)'), 'template summary carries live counts');
-  E(`setStyleMode('house'); tg.listTpl=null; px.rows=[]`);
-  assert.equal(E('tg.styleMode'), 'house', 'style toggle persists house default');
+  const listMsg = E('msgList()');
+  assert.ok(listMsg.includes('14:30') && listMsg.includes('EURUSD') && listMsg.includes('CALL'), 'list renders rows through the row format');
+  assert.ok(!/MTG|martingale/i.test(listMsg), 'no martingale advice in lists');
+  const resMsg = E('msgResult()');
+  assert.ok(resMsg.includes('RESULT') && /✅ 0/.test(resMsg), 'result renders counts');
+  // bot-configured multi-line format via the listener path
+  assert.equal(E(`fmtSet('vip','💎 VIP {pair}\\n{dir} — {time}\\nGrade {grade}')`), true);
+  assert.ok(E("msgVip({pair:'GBP/JPY',dir:'CALL',time:'09:15',grade:'A',score:90})").includes('💎 VIP GBPJPY'), 'VIP format carries the vip layout');
+  assert.equal(E(`fmtReset('signal')`), true);
+  assert.equal(E(`fmtReset('all')`), true);
+  assert.ok(!w.localStorage.getItem('nx_tg').includes('🔥 {pair}'), 'reset clears saved layouts');
+  // premium emoji: bots cannot send custom emoji — the app never emits tg-emoji entities
+  assert.ok(!/tg-emoji|custom_emoji/i.test(html), 'no premium/custom emoji entities anywhere (messages can never fail on them)');
+  assert.match($id('fmtList').textContent ? String($id('fmtList').textContent) : 'x', /signal/, 'formats panel lists every kind');
+  E(`px.rows=[]`);
 
   /* ── 16. parallel multi-pair scan + NONSTOP guarantee ─────────── */
   E('cache={}; isWeekendWindow=()=>false; sessionGate=()=>({ok:true,reason:"test"})');
@@ -520,7 +599,7 @@ async function main() {
   E('budget.calls=0;budget.min=[];renderBudget(true)');
   assert.match($id('budgetInfo').textContent, /per min/, 'budget meter renders');
 
-  /* ── 22. PREMIUM engine end-to-end ────────────────────────────── */
+  /* ── 22. PREMIUM LIST engine end-to-end (LIST channel) ────────── */
   // pure scheduler: slots are minute-aligned, 4-min spaced, ALL after the study window
   const studyEnd = Math.floor(Date.now() / M) * M + 10 * M + 30000;
   const slots = E(`premiumSlots(${studyEnd},5,240000)`);
@@ -528,7 +607,7 @@ async function main() {
   assert.ok(slots[0] > studyEnd, 'first trade time is AFTER the study window ends');
   assert.ok(slots.every(t => t % M === 0), 'slots minute-aligned');
   for (let i = 1; i < slots.length; i++) assert.equal(slots[i] - slots[i - 1], 4 * M, 'exactly 4-minute spacing');
-  // full flow with an authorized bot
+  // full flow with an authorized bot + LIST channel
   const pcalls = [];
   w.fetch = async (url, opts) => {
     const u = String(url);
@@ -536,26 +615,28 @@ async function main() {
     return jsonResponse(candlePayload(360, 0.00006));   // oscillating uptrend — the conviction model needs real alignment
   };
   E('tg.auth=true;tg.auto=true; risk.premiumMin=66');   // synthetic-trend conviction sits in the 70s
+  E('tg.listChat="@listch"; tg.stk.list="L_STK"; tg.stk.result="R_STK"; tg.stk.outro1="O1_STK"; tg.stk.outro2="O2_STK"');
   E('isWeekendWindow=()=>false; sessionGate=()=>({ok:true,reason:"test"})');
   E('cache={}; px=Object.assign({},DEF_PX)');
   await E('premStart(true)');
   await sleep(500);
-  assert.ok(pcalls.some(c => c.url.includes('sendSticker') && c.body.includes('F_INTRO')), 'premium opens with the INTRO sticker');
+  assert.equal(pcalls.filter(c => c.url.includes('sendSticker')).length, 0, 'study phase posts nothing (list sticker fires when the LIST posts)');
   assert.equal(E('px.status'), 'study', '10-minute study phase running');
   E('px.studyEnd=Date.now()-1000');   // fast-forward the study
   E('premTick()');
   const rr = JSON.parse(E('JSON.stringify(px.rows.map(r=>({pair:r.pair,time:r.time,targetT:r.targetT,dir:r.dir,conv:r.conv,grade:r.grade})))'));
   assert.ok(rr.length >= 3, 'study scheduled multiple sure-shot rows (' + rr.length + ')');
   assert.equal(E('px.status'), 'sent');
-  for (const r of rr) assert.equal(r.targetT % M, 0, 'rows minute-aligned');
+  for (const r of rr) assert.equal(r.targetT % M === 0, true, 'rows minute-aligned');
   for (let i = 1; i < rr.length; i++) assert.ok(rr[i].targetT - rr[i - 1].targetT >= 4 * M, 'rows ≥4 min apart');
   await sleep(900);
-  const listCall = pcalls.find(c => c.url.includes('sendMessage') && textOf(c.body).includes('PREMIUM SIGNAL'));
-  assert.ok(listCall, 'list auto-sent to the channel');
+  const listCall = pcalls.find(c => c.url.includes('sendMessage') && c.url.includes('bot') && textOf(c.body).includes('LIST'));
+  assert.ok(listCall, 'list auto-sent');
+  assert.ok(listCall.body.includes('chat_id=%40listch'), 'list went to the dedicated LIST channel');
   const lb = textOf(listCall.body);
-  assert.ok(lb.includes('DATE :-') && lb.includes('Timezone :-') && lb.includes('1 STEP MTG'), 'house list format complete');
-  assert.ok(/M1;[A-Z]{6}•\d{2}:\d{2};(CALL|PUT)/.test(lb), 'picture-format rows present');
-  // verify every row from confirmed candles → single RESULT + 2 outro stickers
+  assert.ok(/[A-Z]{6} • \d{2}:\d{2};(CALL|PUT)/.test(lb), 'row format renders pair • time;dir');
+  assert.ok(pcalls.some(c => c.url.includes('sendSticker') && c.body.includes('L_STK')), 'assigned LIST sticker fired exactly once');
+  // verify every row from confirmed candles → single RESULT + result/outro stickers
   const byPair = {};
   for (const r of rr) (byPair[r.pair] = byPair[r.pair] || []).push(r);
   for (const [pair, list] of Object.entries(byPair)) {
@@ -577,15 +658,19 @@ async function main() {
   assert.equal(E('px.rows.every(r=>r.out==="win")'), true, 'all rows verified from confirmed candle closes');
   const resCall = pcalls.find(c => c.url.includes('sendMessage') && textOf(c.body).includes('RESULT'));
   assert.ok(resCall, 'single RESULT message sent after all outcomes');
+  assert.ok(resCall.body.includes('chat_id=%40listch'), 'result went to the LIST channel');
   const rb = textOf(resCall.body);
-  assert.ok(rb.includes('✅') && rb.includes('Win ('), 'result carries ticks and counts');
-  assert.equal(pcalls.filter(c => c.url.includes('sendSticker')).length, 2, 'completion fires the TWO outro stickers');
+  assert.ok(rb.includes('✅') && /✅ \d+ · ❌ \d+ · ➖ \d+/.test(rb), 'result carries ticks and counts');
+  const stkAfter = pcalls.filter(c => c.url.includes('sendSticker')).map(c => c.body);
+  assert.equal(stkAfter.filter(b => b.includes('R_STK')).length, 1, 'RESULT sticker fired');
+  assert.equal(stkAfter.filter(b => b.includes('O1_STK')).length, 1, 'outro 1 fired');
+  assert.equal(stkAfter.filter(b => b.includes('O2_STK')).length, 1, 'outro 2 fired');
   assert.ok($id('predRows').textContent.includes('✅'), 'UI rows show verified ticks');
   // manual controls stay available
   pcalls.length = 0;
   await E('tgSendList()'); await sleep(600);
-  assert.ok(pcalls.some(c => textOf(c.body).includes('PREMIUM SIGNAL')), 'SEND LIST NOW works manually');
-  E('risk.premiumMin=78; premStop(); tg.auto=false');
+  assert.ok(pcalls.some(c => textOf(c.body).includes('LIST')), 'SEND LIST NOW works manually');
+  E('risk.premiumMin=78; premStop(); tg.auto=false; tg.listChat=""; tg.stk={session:"",win:[],loss:"",push:"",vip:"",list:"",result:"",outro1:"",outro2:""}');
   assert.equal(E('px.status'), 'idle');
 
   /* ── 23. bot stream: gated by authorization ───────────────────── */
@@ -600,6 +685,65 @@ async function main() {
   await sleep(900);
   assert.ok(pcalls.length > bc0, 'authorized bot signal sent');
   E('tg.botAuto=false');
+
+  /* ── 23b. PUBLIC stream: strict quality, before the candle opens ─ */
+  {
+    const p2 = boot();
+    const calls2 = [];
+    p2.w.fetch = async (url, opts) => {
+      const u = String(url);
+      if (u.includes('api.telegram.org')) { calls2.push({ url: u, body: String((opts && opts.body) || '') }); return jsonResponse({ ok: true, result: true }); }
+      return jsonResponse(candlePayload(360, 0.00006));
+    };
+    p2.E('isWeekendWindow=()=>false; sessionGate=()=>({ok:true,reason:"test"})');
+    p2.E(`for(let i=1;i<=2;i++) $('key'+i).value='k'+i; saveKeys()`);
+    p2.E(`tg.token='tok';tg.chatId='@main';tg.pubChat='@pubch';tg.auth=true;tg.pubStream=true;tg.botAuto=false`);
+    p2.E(`cache={}`);
+    await p2.E('pubFire(1)');
+    await sleep(1500);
+    const pubSent = calls2.filter(c => c.url.includes('sendMessage'));
+    if (pubSent.length) {                       // a quality signal existed → it must be in PUBLIC, minimal format
+      assert.ok(pubSent.every(c => c.body.includes('chat_id=%40pubch')), 'public signal goes to the PUBLIC channel only');
+      const t = textOf(pubSent[0].body);
+      assert.ok(/[A-Z]{6}/.test(t) && /(CALL|PUT)/.test(t), 'public signal carries pair + direction');
+      assert.ok(!/advice|paper|research/i.test(t), 'public signal is ultra-minimal — no extra info');
+      assert.equal(JSON.parse(p2.E('JSON.stringify(pubStat)')).sent, 1, 'public stream counts the send');
+      // signal targets the NEXT candle and was sent before it opened
+      const sig = JSON.parse(p2.E('JSON.stringify(openSigs[openSigs.length-1])'));
+      assert.ok(sig.pub === true && sig.targetT % M === 0, 'public signal is tagged for the public verdict path');
+    } else {
+      assert.equal(JSON.parse(p2.E('JSON.stringify(pubStat)')).skipped >= 1, true, 'no quality signal this minute → skipped (never a low-grade filler)');
+    }
+    assert.deepEqual(p2.errors, [], 'public engine clean');
+    p2.w.close();
+  }
+
+  /* ── 23c. VIP stream: best available shot every 10 min, honest grade ─ */
+  {
+    const p3 = boot();
+    const calls3 = [];
+    p3.w.fetch = async (url, opts) => {
+      const u = String(url);
+      if (u.includes('api.telegram.org')) { calls3.push({ url: u, body: String((opts && opts.body) || '') }); return jsonResponse({ ok: true, result: true }); }
+      return jsonResponse(candlePayload(360, 0.00006));
+    };
+    p3.E('isWeekendWindow=()=>false; sessionGate=()=>({ok:true,reason:"test"})');
+    p3.E(`for(let i=1;i<=2;i++) $('key'+i).value='k'+i; saveKeys()`);
+    p3.E(`tg.token='tok';tg.chatId='@main';tg.vipChat='@vipch';tg.auth=true;tg.vipStream=true;tg.stk.vip='V_STK'`);
+    p3.E(`cache={}; vx.lastSlot=0; vx.shots=[]`);
+    await p3.E('vxFire(true)');
+    await sleep(1800);
+    const vipMsg = calls3.find(c => c.url.includes('sendMessage') && c.body.includes('chat_id=%40vipch'));
+    assert.ok(vipMsg, 'VIP shot posted to the VIP channel');
+    const vt = textOf(vipMsg.body);
+    assert.ok(/[A-Z]{6}/.test(vt) && /(CALL|PUT)/.test(vt), 'VIP shot carries pair + direction');
+    assert.ok(/Grade/.test(vt), 'VIP shot shows the honest grade');
+    assert.ok(calls3.some(c => c.url.includes('sendSticker') && c.body.includes('V_STK')), 'assigned VIP sticker fired');
+    assert.equal(JSON.parse(p3.E('JSON.stringify(vx.shots)')).length, 1, 'shot recorded with its verdict pending');
+    assert.ok($id === null || true);
+    assert.deepEqual(p3.errors, [], 'VIP engine clean');
+    p3.w.close();
+  }
 
   /* ── 24. public channel: privacy filter enforced ──────────────── */
   assert.match(E(`sanitizePublic("bot 123456789:AAFdeadbeefdeadbeefdeadbeefdeadbeef ok")`), /redacted-token/, 'token redacted');
@@ -653,7 +797,7 @@ async function main() {
     const d=deepTrainSeries(series,'M1');
     return {keys:Object.keys(d.strats).length,bars:d.bars,sample:d.strats['EMA 9/21 cross'],ens:d.ensVn};
   })()`);
-  assert.equal(deepRes.keys, 16, 'deep training covers all 16 strategies');
+  assert.equal(deepRes.keys, 26, 'deep training covers all 26 strategies');
   assert.equal(deepRes.bars, 600);
   assert.ok(deepRes.sample && typeof deepRes.sample.wr === 'number' && typeof deepRes.sample.vwr === 'number');
   E('renderReady()');
@@ -667,14 +811,23 @@ async function main() {
   const b2 = boot({
     td_key: 'legacy-key-123',
     nx_watch: JSON.stringify(['GBP/USD', 'BTC/USD', 'USD/JPY']),
-    nx_tg: JSON.stringify({ token: 'x', chatId: '1', sticker: 'LEGACY_STICKER', auth: false }),
+    nx_tg: JSON.stringify({ token: 'x', chatId: '1', sticker: 'LEGACY_STICKER', auth: false,
+      stickers: { intro: 'OLD_INTRO', win: ['OLD_W1'], outro: ['OLD_O1', 'OLD_O2'] } }),
     nx_batch: JSON.stringify({ date: 'old', status: 'active', startedAt: Date.now(), target: 5, rows: [{ pair: 'EUR/USD', tf: 'M1', time: '12:00', dir: 'CALL', targetT: Date.now() + 60000, win: true, grade: 'A' }] }),
     nx_stats2: JSON.stringify({ M1: { w: 3, l: 1 }, M3: { w: 0, l: 0 } }),
     nx_page: 'prem',
   });
   assert.deepEqual(b2.errors, [], 'legacy boot is clean');
-  assert.equal(b2.E('tg.stickers.win[0]'), 'LEGACY_STICKER', 'legacy single sticker migrated into the WIN bank');
+  assert.deepEqual(b2.E('JSON.stringify(tg.stk.win)'), '["OLD_W1"]', 'v5 win bank migrated forward');
+  const b2b = boot({ nx_tg: JSON.stringify({ token: 'x', chatId: '1', sticker: 'LEGACY_STICKER', auth: false }) });
+  assert.equal(b2b.E('tg.stk.win[0]'), 'LEGACY_STICKER', 'legacy single sticker migrates into the WIN bank when it was empty');
+  b2b.w.close();
   assert.equal(b2.E('typeof tg.sticker'), 'undefined', 'legacy sticker field retired');
+  assert.equal(b2.E('typeof tg.stickers'), 'undefined', 'v5 sticker schema retired');
+  assert.equal(b2.E('tg.stk.session'), 'OLD_INTRO', 'v5 intro sticker migrated to the SESSION START role');
+  assert.equal(b2.E('tg.stk.outro1'), 'OLD_O1', 'v5 outro[0] migrated to outro1');
+  assert.equal(b2.E('tg.stk.outro2'), 'OLD_O2', 'v5 outro[1] migrated to outro2');
+  assert.equal(b2.E('typeof tg.styleMode'), 'undefined', 'v5 style capture retired (format engine replaces it)');
   assert.equal(b2.E('px.rows.length'), 1, 'v4 batch rows migrated into the premium engine');
   assert.equal(b2.E('px.rows[0].out'), 'win', 'legacy win flags mapped to outcomes');
   assert.equal(b2.E('stat.M1.p'), 0, 'push counter backfilled on legacy stats');
@@ -700,12 +853,13 @@ async function main() {
     s.E('isWeekendWindow=()=>false; sessionGate=()=>({ok:true,reason:"test"})');
     s.E(`for(let i=1;i<=2;i++) $('key'+i).value='k'+i; saveKeys()`);
     s.E(`tg.token='tok';tg.chatId='@ch';tg.auth=true;tg.auto=true`);
-    s.E(`tg.stickers={intro:'S_INTRO',win:['S_W1','S_W2'],outro:['S_O1','S_O2']}`);
+    s.E(`tg.stk={session:'S_INTRO',win:['S_W1','S_W2'],loss:'',push:'',vip:'',list:'',result:'',outro1:'S_O1',outro2:'S_O2'}`);
     s.E(`$('m5conf').checked=false; $('nonstop').checked=true; $('sessTarget').value=1`);
     await s.E('sxStart()');
     await sleep(2500);
-    assert.ok(scalls.some(c => c.url.includes('sendSticker') && c.body.includes('S_INTRO')), 'session opens with the INTRO sticker');
-    assert.ok(scalls.some(c => c.url.includes('sendMessage') && textOf(c.body).includes('SESSION')), 'session signal sent straight to the channel');
+    assert.ok(scalls.some(c => c.url.includes('sendSticker') && c.body.includes('S_INTRO')), 'session opens with the SESSION START sticker (visibility fix)');
+    const sigCall = scalls.find(c => c.url.includes('sendMessage') && textOf(c.body).includes('CALL'));
+    assert.ok(sigCall || scalls.some(c => textOf(c.body).includes('PUT')), 'session signal sent straight to MAIN in the configured format');
     assert.equal(s.E('sx.status'), 'waiting', 'signal claimed and waiting for verification');
     const cur = JSON.parse(s.E('JSON.stringify(sx.current)'));
     assert.ok(cur && cur.targetT % M === 0);
@@ -736,7 +890,7 @@ async function main() {
     s.E('isWeekendWindow=()=>false; sessionGate=()=>({ok:true,reason:"test"})');
     s.E(`for(let i=1;i<=2;i++) $('key'+i).value='k'+i; saveKeys()`);
     s.E(`tg.token='tok';tg.chatId='@ch';tg.auth=true;tg.auto=true`);
-    s.E(`tg.stickers={intro:'S_INTRO',win:['S_W1'],outro:['S_O1','S_O2']}`);
+    s.E(`tg.stk={session:'S_INTRO',win:['S_W1'],loss:'',push:'',vip:'',list:'',result:'',outro1:'S_O1',outro2:'S_O2'}`);
     s.E(`$('m5conf').checked=false; $('nonstop').checked=true; $('sessGuard').value=1`);
     await s.E('sxStart()');
     await sleep(2500);
@@ -748,10 +902,9 @@ async function main() {
     await sleep(1600);
     assert.equal(s.E('sx.losses'), 1);
     assert.equal(s.E('sx.status'), 'idle', 'quality guard stopped the session after the guarded loss');
-    assert.equal(scalls.filter(c => c.url.includes('sendSticker')).length, 0, 'LOSS fired NO sticker');
+    assert.equal(scalls.filter(c => c.url.includes('sendSticker')).length, 0, 'LOSS with no assigned loss sticker fires NO sticker');
     const lm = scalls.find(c => c.url.includes('sendMessage') && textOf(c.body).includes('LOSS'));
     assert.ok(lm, 'loss verdict sent');
-    assert.ok(lm.body.includes('%F0%9F%92%94') && textOf(lm.body).includes('OTM'), 'loss = OTM message with 💔');
     assert.ok(scalls.some(c => c.url.includes('sendMessage') && textOf(c.body).includes('QUALITY GUARD')), 'guard abort announced');
     // push verdict keeps the session alive and uncounted
     s.E(`sx.status='waiting'; sx.current={id:9001,pair:'EUR/USD',tf:'M1',time:'12:00',dir:'CALL',targetT:5,grade:'A',score:80}; sx.guard=3`);
@@ -763,7 +916,104 @@ async function main() {
     s.w.close();
   }
 
-  /* ── 32. chaos pass: every UI entry point runs without throwing ── */
+  /* ── 32. CLOUD SYNC (Supabase mirror): degradation + config + payload contracts ── */
+  {
+    // (a) source-level guarantees
+    assert.ok(html.includes('https://*.supabase.co'), 'CSP connect-src allows supabase REST');
+    assert.ok(!/SUPABASE_SERVICE_ROLE|service_role_key|"role"\s*:\s*"service_role"|sbServiceKey/.test(html),
+      'no service-role key handling anywhere in the page (anon-only mirror)');
+    assert.ok($id('page-cloud'), 'cloud page exists');
+    assert.equal(E('sbReady()'), false, 'cloud sync offline by default');
+    assert.equal(await E('sbTrackPrediction({pair:"EUR/USD",tf:"M1",dir:"CALL",targetT:Date.now()+60000,conf:.7,grade:"A",votes:{},agents:{},origin:"live"})'),
+      false, 'prediction mirror is a silent no-op without config');
+    E('sbRecordDelivery("pub","signal","sent",null,"text","@chan")');   // must never throw
+    E('showPage("cloud")');
+    assert.ok($id('sbChip').textContent.includes('OFFLINE'), 'chip shows OFFLINE');
+    assert.ok($id('sbApplyBtn').disabled, 'apply button disabled without a verified model');
+    E('showPage("dash")');
+
+    // (b) configured mirror — captured fetch, contract of every write
+    const sbCalls = [];
+    const sb = boot({ nx_sb: JSON.stringify({ url: 'https://nexus-test.supabase.co', anon: 'A'.repeat(40), record: true }) },
+      w => {
+        try { w.crypto.subtle = require('node:crypto').webcrypto.subtle; }
+        catch (e) { try { Object.defineProperty(w.crypto, 'subtle', { value: require('node:crypto').webcrypto.subtle }); } catch (e2) { /* jsdom variant */ } }
+        w.fetch = async (url, opts) => {
+          sbCalls.push({ url: String(url), opts });
+          const u = String(url);
+          if (u.includes('/rest/v1/predictions')) return jsonResponse([{ id: 'uuid-1' }]);
+          if (u.includes('/rest/v1/telegram_deliveries')) return jsonResponse([]);
+          if (u.includes('model_versions')) return jsonResponse([]);
+          if (u.includes('risk_snapshots')) return jsonResponse([]);
+          if (u.includes('v_market_freshness')) return jsonResponse([]);
+          if (u.includes('v_deliveries_public')) return jsonResponse([]);
+          if (u.includes('currency_pairs')) return jsonResponse([{ code: 'EUR/USD' }]);
+          return jsonResponse([]);
+        };
+      });
+    assert.deepEqual(sb.errors, [], 'cloud-configured boot is clean');
+    assert.equal(sb.E('sbReady()'), true, 'config accepted');
+    assert.equal(sb.E('sbRecording()'), true, 'recording enabled');
+    await sb.E('sbTrackPrediction({pair:"EUR/USD",tf:"M3",dir:"PUT",targetT:1730000000000,conf:.62,grade:"B",votes:{ema:"PUT",rsi:"CALL"},agents:{TREND:-1},origin:"live"})');
+    await sleep(50);
+    const pred = sbCalls.find(c => c.url.includes('/rest/v1/predictions'));
+    assert.ok(pred, 'prediction POST captured');
+    assert.ok(pred.url.startsWith('https://nexus-test.supabase.co/rest/v1/'), 'raw REST client — no SDK/CDN');
+    assert.equal(pred.opts.method, 'POST');
+    assert.ok(String(pred.opts.headers.prefer).includes('resolution=ignore-duplicates'), 'idempotent inserts');
+    assert.equal(pred.opts.headers.apikey, 'A'.repeat(40), 'anon key header');
+    const pbody = JSON.parse(pred.opts.body);
+    assert.equal(pbody.pair_code, 'EUR/USD');
+    assert.equal(pbody.timeframe, '3m');
+    assert.equal(pbody.evaluation_horizon, 3, 'M3 horizon = 3 one-minute candles');
+    assert.equal(pbody.direction, 'PUT');
+    assert.equal(pbody.source, 'browser');
+    assert.equal(pbody.is_shadow, false, 'browser can never write shadow rows');
+    assert.equal(pbody.strategy_version, 'nexus-fusion-v1');
+    assert.deepEqual(pbody.strategy_detail.votes, { ema: 'PUT', rsi: 'CALL' }, 'per-strategy votes recorded for the trainer');
+    assert.equal(pbody.confidence, 62, 'confidence stored 0-100');
+    sb.E('sbRecordDelivery("pub","signal","sent",null,"msg text","@channel")');
+    await sleep(50);
+    const del = sbCalls.find(c => c.url.includes('telegram_deliveries'));
+    assert.ok(del, 'delivery insert captured');
+    const dbody = JSON.parse(del.opts.body);
+    assert.equal(dbody.channel, 'public', 'pub → public channel mapping');
+    assert.equal(dbody.message_kind, 'signal');
+    assert.equal(dbody.status, 'sent');
+    assert.equal(dbody.attempts, 1, 'browser records completed attempts only');
+
+    // (c) canonical JSON + SHA-256 model verification (cross-checked with the Python trainer fixture)
+    const FIXTURE = {
+      kind: 'strategy-weights', model_id: 'nexus-weights-test',
+      timeframes: {
+        '1m': { strats: { ema: { vwr: 0.55, vtrades: 120 }, rsi: { vwr: 0.5, vtrades: 60 } } },
+        '3m': { strats: { ema: { vwr: 1.0, vtrades: 40 } } },
+      },
+      metrics: { holdout: { win_rate: 0.6, n: 50, expectancy_bps: 1.25, profit_factor: null, max_drawdown_bps: 12.5 } },
+      note: 'café ✓',
+    };
+    const FIXTURE_SHA = '43925bb7706d2e548f1a280bd123848a31189ff57a41f67654e2f5c0c1fdc3ec';   // pinned from trainer/test_trainer.py
+    const canon = sb.E(`sbCanonical(${JSON.stringify(FIXTURE)})`);
+    const nodeSha = require('node:crypto').createHash('sha256').update(canon).digest('hex');
+    assert.equal(nodeSha, FIXTURE_SHA, 'JS canonicalization matches the Python trainer byte-for-byte');
+    // apply the VERIFIED model → weights merge into the brain, logic untouched
+    sb.E('deep = {M1:null,M3:null}');
+    sb.E(`sbDeployed = ${JSON.stringify({ id: 'nexus-weights-test', artifact_sha256: FIXTURE_SHA, artifact_payload: FIXTURE, metrics: {} })}`);
+    await sb.E('sbApplyModel()');
+    assert.equal(sb.E('deep.M1.strats.ema.vwr'), 0.55, 'cloud vwr merged into deep brain');
+    assert.equal(sb.E('deep.M1.strats.ema.vtrades'), 120, 'cloud vtrades merged');
+    assert.equal(sb.E('deep.M3.strats.ema.vwr'), 1, '3m timeframe mapped to M3');
+    assert.ok(sb.doc.getElementById('sbApplyMsg').textContent.includes('applied'), 'apply confirmation shown (never silent)');
+    // checksum mismatch → rejected, nothing merged
+    sb.E('deep = {M1:null,M3:null}');
+    sb.E(`sbDeployed = ${JSON.stringify({ id: 'tampered', artifact_sha256: 'deadbeef'.repeat(8), artifact_payload: FIXTURE, metrics: {} })}`);
+    await sb.E('sbApplyModel()');
+    assert.equal(sb.E('deep.M1'), null, 'checksum mismatch → artifact rejected, brain untouched');
+    assert.ok(sb.doc.getElementById('sbApplyMsg').textContent.includes('checksum mismatch'), 'mismatch reason surfaced');
+    sb.w.close();
+  }
+
+  /* ── 33. chaos pass: every UI entry point runs without throwing ── */
   E('tg.auth=false; tg.listen=false; sxStop("chaos"); premStop()');
   w.fetch = async (url) => {
     const u = String(url);
@@ -775,14 +1025,16 @@ async function main() {
   };
   const entryPoints = [
     'saveKeys()', 'verifyFeeds()', 'runScan(true)', 'premStart(false)', 'premStop()', 'sxStart()', 'sxStop("test")',
-    'tgSendList()', 'tgSendResult()', 'tgTest()', 'tgSetCommands()', 'pullStickers()', 'tgCaptureSticker()',
-    'tgCaptureStyle("list")', 'tgCaptureStyle("bogus")', 'tgClearStyle()', 'setStyleMode("verbatim")', 'setStyleMode("house")',
-    'assignSticker(99,"win")', 'stClear("win")', 'stTest("win")', 'pubPost()',
+    'tgSendList()', 'tgSendResult()', 'tgTest()', 'tgSetCommands()', 'pullStickers()',
+    'fmtSet("signal","{pair} {dir}")', 'fmtReset("signal")', 'fmtReset("all")', 'fmtPreview("signal")', 'fmtPreview("vip")', 'fmtPreview("list")',
+    'assignSticker(99,"win")', 'stClear("win")', 'stTest("win")', 'stTest("vip")', 'pubPost()',
+    'apiUsageCheck()', 'renderUsage()', 'renderVip()', 'renderPubInfo()', 'renderKeyInputs()', 'pubTick()', 'vxTick()', 'settleVip()',
     'resetPaper()', 'resetStreak()', 'clearStats()', 'deepBacktest()', 'trainDeep()', 'exportCSV()',
     'renderPerf()', 'renderPred()', 'renderVault()', 'tgRender()', 'renderSess()', 'renderReady()', 'renderDeepInfo()',
     'setBrainTf("M3")', 'setBrainTf("M1")', 'renderStats()', 'renderPaper()', 'syncSettings()', 'ensureDay()',
     'settleAll()', 'settlePrem()', 'settlementFetches()', 'livePairsRender()', 'renderTopLive()', 'renderNotes()',
-    'clearNotes()', 'showPage("brain")', 'showPage("dash")', 'sxTick()', 'premTick()', 'premStudySample(0)', 'sxForce()',
+    'clearNotes()', 'showPage("brain")', 'showPage("dash")', 'showPage("vip")', 'showPage("cloud")', 'sxTick()', 'premTick()', 'premStudySample(0)', 'sxForce()',
+    'sbSave()', 'sbClear()', 'sbTest()', 'sbLoadModel()', 'sbLoadPerf()', 'sbLoadFresh()', 'sbLoadDeliv()', 'sbInit()',
   ];
   for (const ep of entryPoints) {
     await assert.doesNotReject(E(`(async()=>{ ${ep}; })()`), `UI entry point ${ep} must not throw`);
@@ -791,13 +1043,15 @@ async function main() {
   assert.deepEqual(errors, [], 'no DOM/runtime errors during the chaos pass');
 
   assert.deepEqual(errors, [], 'no DOM/runtime errors across the whole suite');
-  console.log('PASS: boot · DOM refs · 9 tabbed pages · font+license · Meridian branding · 10 live pairs ·');
-  console.log('      4 key slots (save/rotate/cooldown) · stale+weekend gates · quality gates · lead-time auto-fire ·');
-  console.log('      confirmed settlement (feed-keyed · confirmation candle · ties=push) · telegram auth+revocation ·');
-  console.log('      sticker bank (intro/win/outro · wins only · OTM 💔 losses) · house vs verbatim style ·');
-  console.log('      parallel scans + NONSTOP guarantee (never "no trades") · feed-clock UTC repair · diagnostics ·');
-  console.log('      news blackout · credit budget throttle · PREMIUM e2e (study→4-min slots→result+2 outros) ·');
+  console.log('PASS: boot · DOM refs · 11 tabbed pages · font+license · Meridian branding · 10 live pairs ·');
+  console.log('      10 key slots (save/rotate/cooldown) + API CREDIT USAGE · stale+weekend gates · quality gates ·');
+  console.log('      FAST confirmed settlement (feed-keyed · no confirming-candle wait · ties=push) · 4-channel routing ·');
+  console.log('      sticker bank (9 event roles · dedupe · nothing unassigned ever fires) · format engine (/setformat) ·');
+  console.log('      parallel scans · PUBLIC stream (quality-only, before the open) · VIP stream (best shot/10 min) ·');
+  console.log('      news blackout · credit budget throttle · LIST e2e (study→4-min slots→result+stickers) ·');
   console.log('      bot stream · public privacy filter · local-art lockdown · M1/M3/list separation ·');
+  console.log('      CLOUD SYNC (anon-only mirror · idempotent writes · delivery records · SHA-256 model apply ·');
+  console.log('      offline degradation · canonical JSON matches the Python trainer) ·');
   console.log('      paper mode · deep training + readiness honesty · legacy migration · SESSION scenarios · chaos pass');
   w.close();
 }

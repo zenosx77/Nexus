@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="NEXUS Glass v5.0 Meridian — multi-pair, multi-agent M1 + M3 signal engine with SESSION and PREMIUM LIST telegram modes, win-only sticker bank, confirmed candle settlement, nonstop signals, paper trading and deep backtesting. Signal-only; no live execution.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.twelvedata.com https://api.telegram.org; img-src data: https:; font-src 'self'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
-<title>NEXUS Glass v5.0 — Meridian · Multi-Pair Signal & Session Engine</title>
+<meta name="description" content="NEXUS Glass v5.1 Meridian — multi-pair, multi-agent M1 + M3 signal engine with 4 Telegram channels (PUBLIC 1-min stream · VIP 10-min shots · LIST · MAIN), bot-configured message formats, per-event sticker bank, fast confirmed settlement, quality-first signals, paper trading and deep backtesting. Signal-only; no live execution.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.twelvedata.com https://api.telegram.org https://*.supabase.co; img-src data: https:; font-src 'self'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+<title>NEXUS Glass v5.1 — Meridian · Multi-Pair Signal & Channel Engine</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2300e5ff'/><stop offset='.55' stop-color='%233d7bff'/><stop offset='1' stop-color='%23a06bff'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='%23070c18'/><g stroke='url(%23g)' stroke-width='5' stroke-linecap='round'><path d='M26 72V52'/><path d='M46 72V40'/><path d='M66 72V30'/></g><g fill='url(%23g)'><rect x='20' y='55' width='12' height='13' rx='3'/><rect x='40' y='44' width='12' height='20' rx='3'/><rect x='60' y='34' width='12' height='26' rx='3'/></g><path d='M22 44 L42 32 L58 38 L80 16' fill='none' stroke='%23ffffff' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/><path d='M70 16 H80 V26' fill='none' stroke='%23ffffff' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 <style>
   /* ── Self-hosted typeface: Inter Variable (latin subset, wght 100-900).
@@ -276,6 +276,16 @@
                     background:rgba(5,10,20,.5); border:1px solid rgba(255,255,255,.1); border-radius:9px; padding:9px 0; }
   .kslot-row input { flex:1; margin:0; font-family:monospace; letter-spacing:.5px; }
   input[type="time"] { color-scheme:dark; }
+  /* ── api credit usage ── */
+  .usage-sum { font-size:12px; color:var(--sub); margin-top:2px; }
+  .usage-row { display:flex; align-items:center; gap:10px; background:rgba(5,10,20,.45);
+               border:1px solid rgba(255,255,255,.08); border-radius:11px; padding:8px 11px; margin-top:7px; font-size:12px; }
+  .usage-row .k { font-family:monospace; flex:0 0 118px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .usage-row .v { flex:1; text-align:right; font-family:monospace; }
+  .usage-row .rem { flex:0 0 84px; text-align:right; font-size:11px; }
+  .ubar { flex:2; height:7px; border-radius:5px; background:rgba(255,255,255,.08); overflow:hidden; }
+  .ubar i { display:block; height:100%; border-radius:5px; background:linear-gradient(90deg,var(--win),var(--acc)); }
+  .ubar i.hot { background:linear-gradient(90deg,var(--warn),var(--loss)); }
   /* ── readiness meter ── */
   .ready-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:8px; }
   .ready-cell { background:rgba(5,10,20,.45); border:1px solid rgba(255,255,255,.08); border-radius:11px; padding:9px; font-size:10px; color:var(--sub); }
@@ -315,7 +325,7 @@
     </svg></div>
     <div class="brand">
       <h1>NEXUS</h1>
-      <p id="brandSub">Glass v5.0 · Meridian · multi-pair · M1+M3 · paper-first</p>
+      <p id="brandSub">Glass v5.1 · Meridian · 4 channels · M1+M3 · paper-first</p>
     </div>
     <span class="pulse idle" id="pulse" title="live heartbeat — pulses while the engine runs"></span>
     <div class="toplive">
@@ -330,12 +340,14 @@
     <button type="button" data-page="dash" class="active">🎛 DASH</button>
     <button type="button" data-page="sig">⚡ SIGNALS</button>
     <button type="button" data-page="sess">🎯 SESSION</button>
-    <button type="button" data-page="prem">📊 PREMIUM</button>
+    <button type="button" data-page="vip">💎 VIP</button>
+    <button type="button" data-page="prem">📊 LIST</button>
     <button type="button" data-page="bot">🤖 BOT</button>
     <button type="button" data-page="tg">📨 TELEGRAM</button>
     <button type="button" data-page="res">📈 RESULTS</button>
     <button type="button" data-page="brain">🧠 BRAIN</button>
     <button type="button" data-page="data">🗄 DATA</button>
+    <button type="button" data-page="cloud">☁ CLOUD</button>
   </nav>
 
   <!-- ═══════════ PAGE 1 · DASHBOARD ═══════════ -->
@@ -359,7 +371,7 @@
     <div class="glass" id="sec-live">
       <span class="t"><span class="num">2</span> LIVE PAIRS <span class="tail"><span class="chip" id="tickChip">ticker: —</span></span></span>
       <div class="pairgrid" id="pairGrid"><div class="empty-note">Tick pairs on the SIGNALS page — prices stream here live.</div></div>
-      <div class="mini" style="margin-top:8px">quota-safe live refresh: UI ticks every second · candles rotate pair-by-pair as fast as your API budget allows · ✅ fresh · ⚠ stale</div>
+      <div class="mini" style="margin-top:8px">candles refresh pair-by-pair within your API budget · ✅ fresh · ⚠ stale</div>
     </div>
 
     <div class="glass" id="sec-notif">
@@ -373,7 +385,7 @@
         <span>🔊 SOUND <span class="mini">(win chime / loss tone)</span></span>
         <label class="switch"><input type="checkbox" id="soundOn"><span class="slider"></span></label>
       </div>
-      <div class="notelist" id="noteList"><div class="empty-note">Live event feed — signals, verdicts, session & premium progress appear here in real time.</div></div>
+      <div class="notelist" id="noteList"><div class="empty-note">Live feed — signals, verdicts and channel progress in real time.</div></div>
     </div>
 
     <div class="glass" id="sec-regime">
@@ -417,14 +429,14 @@
         <label class="switch"><input type="checkbox" id="auto"><span class="slider"></span></label>
       </div>
       <div class="toggle">
-        <span>♾ NONSTOP SIGNALS <span class="mini">(≥1 signal every minute while market open · relaxed grades are labelled honestly)</span></span>
-        <label class="switch"><input type="checkbox" id="nonstop" checked><span class="slider"></span></label>
+        <span>♾ NONSTOP SIGNALS <span class="mini">(OFF by default — 1 signal/min incl. clearly-labelled relaxed grades)</span></span>
+        <label class="switch"><input type="checkbox" id="nonstop"><span class="slider"></span></label>
       </div>
       <div class="toggle">
         <span>📵 NEWS BLACKOUT <span class="mini">(manual — blocks new signals)</span></span>
         <label class="switch"><input type="checkbox" id="blackout"><span class="slider"></span></label>
       </div>
-      <div class="mini" id="blackoutNote" style="margin:-2px 0 8px;text-align:left">Manual switch for high-impact news (NFP, CPI, rate decisions…). <b>NEXUS has no live news feed</b> — you decide when to go dark. Open signals still settle; only <b>new</b> signals are blocked.</div>
+      <div class="mini" id="blackoutNote" style="margin:-2px 0 8px;text-align:left">Manual switch for high-impact news. You decide when to go dark — open signals still settle; only new signals are blocked.</div>
     </div>
 
     <div class="glass batch" id="sec-m1">
@@ -450,12 +462,12 @@
         <div class="agent-row"><span class="nm">MOMENTUM</span><span class="bias ab-nu">·</span><span class="note">waiting for scan…</span><span class="abar"><i style="width:0"></i></span></div>
         <div class="agent-row"><span class="nm">PATTERN</span><span class="bias ab-nu">·</span><span class="note">waiting for scan…</span><span class="abar"><i style="width:0"></i></span></div>
         <div class="agent-row"><span class="nm">STRUCTURE</span><span class="bias ab-nu">·</span><span class="note">waiting for scan…</span><span class="abar"><i style="width:0"></i></span></div>
-        <div class="agent-row"><span class="nm">STRATEGY</span><span class="bias ab-nu">·</span><span class="note">16-strategy ensemble waiting…</span><span class="abar"><i style="width:0"></i></span></div>
+        <div class="agent-row"><span class="nm">STRATEGY</span><span class="bias ab-nu">·</span><span class="note">26-strategy ensemble waiting…</span><span class="abar"><i style="width:0"></i></span></div>
         <div class="agent-row"><span class="nm">VOLATILITY</span><span class="bias ab-nu">·</span><span class="note">quality gate waiting…</span><span class="abar"><i style="width:0"></i></span></div>
       </div>
       <div class="fusion" id="fusionLine">FUSION: awaiting scan · <b>—</b></div>
       <div class="chips" id="validChips"><span class="chip">validation: idle</span></div>
-      <div class="mini" style="margin-top:8px">6 agents analyse real Twelve Data candles → fusion + validation filter → risk gate → paper trade. Local rule-based AI (no cloud, no fabricated prices). Weak setups are rejected — unless NONSTOP fires a clearly-labelled relaxed signal.</div>
+      <div class="mini" style="margin-top:8px">26 strategies + 6 agents → fusion → validation → risk gate. Weak setups are rejected. NONSTOP only if you switch it on (clearly labelled).</div>
     </div>
   </div>
 
@@ -464,15 +476,14 @@
     <div class="glass batch" id="sec-sess">
       <span class="t"><span class="num">1</span> SESSION ENGINE <span class="tail"><span class="chip" id="sessChip">idle</span></span></span>
       <div class="mini" style="text-align:left;line-height:1.55">
-        One click → <b>intro sticker</b> to your channel → <b>1 signal within 60 s</b>, sent directly → waits for the real candle close →
-        <b>WIN</b> = ✅ verdict + a <b>random sticker from your win bank</b> · <b>LOSS</b> = ❌ <b>OTM 💔</b> message (never a sticker) ·
-        <b>PUSH</b> (tie) = ➖ stake back → next signal within 60 s → until the win target is hit → <b>final summary + your 2 outro stickers</b>.
-        Losses pause the session briefly; the quality guard stops it if conditions degrade — wins are never faked.
+        One click → <b>session-start sticker</b> (if you assigned one) → quality signals only, sent straight to the <b>MAIN channel</b> →
+        verdict seconds after the candle closes → <b>WIN</b> = ✅ + your win sticker · <b>LOSS</b> = ❌ · <b>PUSH</b> = ➖ →
+        until the win target → <b>summary + outro stickers</b>. The floor <b>never drops to low grades</b> — it waits for quality.
       </div>
       <div class="sess-dots" id="sessDots"></div>
       <div class="sess-now" id="sessNow">
         <div class="big" id="sessNowLine">SESSION IDLE</div>
-        <div class="sub" id="sessNowSub">press START SESSION — first signal within one minute</div>
+        <div class="sub" id="sessNowSub">press START SESSION — quality signals until the win target</div>
       </div>
       <div class="sess-meter">
         <div class="cell"><b class="rate" id="sessWins">0</b><span>WINS ✅</span></div>
@@ -486,29 +497,47 @@
         <div><span class="mini" style="display:block;text-align:left">🛑 QUALITY GUARD — stop after N losses</span>
           <input type="number" id="sessGuard" min="1" max="10" value="3"></div>
       </div>
-      <button class="b-gen b-big" id="sessStart" style="margin-top:10px" onclick="sxStart()">🎯 START SESSION — intro sticker + first signal in 60 s</button>
+      <button class="b-gen b-big" id="sessStart" style="margin-top:10px" onclick="sxStart()">🎯 START SESSION — quality signals until the win target</button>
       <button class="b-danger" id="sessStop" style="width:100%;margin-top:8px" onclick="sxStop('stopped by operator')">■ STOP SESSION</button>
       <div class="mini" id="sessStatus" style="margin-top:8px">session: idle</div>
       <div class="sesslog" id="sessLog"><div>session log: ready</div></div>
-      <div class="mini" style="margin-top:8px">Set your bot + channel and enable AUTHORIZED on the TELEGRAM page first. Without authorization the session still runs locally (paper) so you can rehearse.</div>
+      <div class="mini" style="margin-top:8px">Set the bot + MAIN channel and AUTHORIZED on the TELEGRAM page first. Without it the session runs locally (paper).</div>
     </div>
   </div>
 
-  <!-- ═══════════ PAGE 4 · PREMIUM LIST (Telegram mode #2) ═══════════ -->
+  <!-- ═══════════ PAGE 4 · VIP SHOTS (10-minute high-grade stream) ═══════════ -->
+  <div class="page" id="page-vip">
+    <div class="glass batch" id="sec-vip">
+      <div class="batch-head">
+        <div class="nm">💎 NEXUS VIP SHOTS</div>
+        <div class="mini" id="vipChatLine">VIP channel: not set (falls back to MAIN) — set it on the TELEGRAM page</div>
+      </div>
+      <span class="t" style="margin-top:10px"><span class="num">1</span> VIP ENGINE <span class="tail"><span class="chip" id="vipChip">off</span></span></span>
+      <div class="mini" style="text-align:left;line-height:1.55">One <b>best-available shot every 10 minutes</b>: every pair is scanned, the highest-scoring setup wins the window and is posted to the <b>VIP channel</b> seconds before the candle opens. The grade is always shown honestly (A+/A/B). Verdicts settle automatically from the confirmed candle close.</div>
+      <div class="prem-phase" id="vipPhase">next shot: —</div>
+      <div class="prem-progress"><i id="vipBar" style="width:0%"></i></div>
+      <div id="vipRows" style="margin-top:10px"><div class="mini" style="text-align:center;padding:8px">No VIP shots yet — flip the VIP STREAM switch (TELEGRAM page → AUTOMATION) or press FIRE NOW.</div></div>
+      <div class="batch-summary" id="vipSummary">✅ = Win (0) · ❌ = Loss (0) · ➖ = Push (0)</div>
+      <div class="chips" style="margin-top:10px">
+        <button class="b-vio" style="flex:1" id="vipFire" onclick="vxFire(true)">💎 FIRE VIP SHOT NOW</button>
+      </div>
+      <div class="sesslog" id="vipLog"><div>vip log: ready</div></div>
+      <div class="mini" style="margin-top:8px">Honest note: VIP posts the <b>best</b> window the market offers — it never posts a low-grade filler shot, and no system can promise zero losses. Runs while this page is open.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ PAGE 5 · PREMIUM LIST (Telegram mode #2) ═══════════ -->
   <div class="page" id="page-prem">
     <div class="glass batch" id="sec-list">
       <div class="batch-head">
         <div class="nm" id="predBrand">📊 NEXUS PREMIUM SIGNAL 🔔</div>
         <div class="mini">🗓 DATE :- <b id="predDate">—</b></div>
         <div class="mini">🌍 Timezone :- <b id="predTz">UTC +6:00</b> · ⏳ Trade Time :- <b>1 Minute</b></div>
-        <div class="mini">📌 IF NEED, USE 1 STEP MTG 📊</div>
         <div class="mini" id="predStatus" style="margin-top:6px">engine: idle</div>
       </div>
-      <span class="t" style="margin-top:10px"><span class="num">1</span> PREMIUM ENGINE <span class="tail"><span class="chip" id="premChip">idle</span></span></span>
+      <span class="t" style="margin-top:10px"><span class="num">1</span> LIST ENGINE <span class="tail"><span class="chip" id="premChip">idle</span></span></span>
       <div class="mini" style="text-align:left;line-height:1.55">
-        One click → <b>intro sticker</b> → <b>10-minute market study</b> (multi-timeframe consensus, regime stability, per-pair conviction) →
-        schedules <b>sure-shot windows 4 minutes apart</b> — <b>no trade times inside the study window</b> → sends the full list to your channel →
-        waits, verifies <b>every outcome from confirmed candle closes</b> → sends <b>one RESULT message with ✅/❌ ticks</b> + your <b>2 outro stickers</b>.
+        One click → <b>10-minute market study</b> → schedules <b>sure-shot windows 4 minutes apart</b> (none inside the study window) → sends the list to the <b>LIST channel</b> → verifies every outcome from confirmed candle closes → sends <b>one RESULT message with ✅/❌ ticks</b>.
       </div>
       <div class="prem-phase" id="premPhase">phase: idle</div>
       <div class="prem-progress"><i id="premBar"></i></div>
@@ -530,25 +559,17 @@
         <button class="b-ghost" onclick="tgSendList()">📤 SEND LIST NOW</button>
         <button class="b-ghost" onclick="tgSendResult()">🏁 SEND RESULT NOW</button>
       </div>
-      <div class="mini" style="margin-top:8px">Rows are projected at schedule time from multi-timeframe consensus (M1/M5/M15 + regime + session drift) and only pass the premium conviction floor. ✅/❌ ticks settle automatically from real, confirmed candle closes — results are never hand-edited. Research output, not financial advice.</div>
+      <div class="mini" style="margin-top:8px">Rows are projected from multi-timeframe consensus and only pass the conviction floor. ✅/❌ ticks settle automatically from confirmed closes.</div>
     </div>
   </div>
 
-  <!-- ═══════════ PAGE 5 · BOT STREAM ═══════════ -->
+  <!-- ═══════════ PAGE 6 · BOT STREAM ═══════════ -->
   <div class="page" id="page-bot">
     <div class="glass batch" id="sec-bot">
-      <span class="t"><span class="num">1</span> BOT SIGNAL STREAM <span class="tail"><span class="chip">signal → verify → sticker (wins only)</span></span></span>
-      <div class="mini" style="text-align:left">Every passed signal can go to your bot chat instantly. On settlement the bot sends the verified verdict with open→close prices: <b>WIN</b> = ✅ + random win-sticker · <b>LOSS</b> = ❌ OTM 💔 text only (never a sticker) · <b>PUSH</b> = ➖ tie notice.</div>
+      <span class="t"><span class="num">1</span> BOT SIGNAL STREAM <span class="tail"><span class="chip">signal → fast verdict → stickers you assigned</span></span></span>
+      <div class="mini" style="text-align:left">Live M1/M3 scan signals go straight to your <b>MAIN chat</b> in your configured format. Verdicts land seconds after the candle closes. The AUTO-SEND and VERDICT switches live on the <b>TELEGRAM page → AUTOMATION</b>.</div>
       <div id="botRows" style="margin-top:8px"><div class="empty-note">No bot signals yet — they appear here the moment a signal passes every gate.</div></div>
-      <div class="toggle" style="margin-top:10px">
-        <span>📤 AUTO-SEND each signal <span class="mini">(needs AUTHORIZED + chat)</span></span>
-        <label class="switch"><input type="checkbox" id="botAuto"><span class="slider"></span></label>
-      </div>
-      <div class="toggle">
-        <span>✅ VERIFICATION + 🎉 WIN STICKERS <span class="mini">(sent when each bot signal settles)</span></span>
-        <label class="switch"><input type="checkbox" id="botVerify" checked><span class="slider"></span></label>
-      </div>
-      <div class="mini" style="margin-top:6px">Separate stream from SESSION and PREMIUM — the bot stream mirrors the live M1/M3 signals.</div>
+      <div class="mini" style="margin-top:6px">Separate stream from SESSION · VIP · PUBLIC · LIST — each channel gets its own messages.</div>
     </div>
   </div>
 
@@ -558,70 +579,78 @@
       <span class="t"><span class="num">📨</span> TELEGRAM DELIVERY <span class="tail"><span class="chip" id="tgStatChip">bot: not configured</span></span></span>
 
       <div class="tg-block">
-        <div class="tg-h"><span class="num">1</span> CONNECTION & AUTHORIZATION</div>
+        <div class="tg-h"><span class="num">1</span> CONNECTION &amp; 4 CHANNELS</div>
         <input type="password" id="tgToken" placeholder="Bot token (from @BotFather)" autocomplete="off">
-        <div class="two">
-          <input type="text" id="tgChat" placeholder="Channel: @yourchannel or chat id" autocomplete="off" style="margin:0">
-          <input type="text" id="tgBrand" placeholder="Brand name (NEXUS)" autocomplete="off" style="margin:0">
-        </div>
-        <button class="b-gen" style="width:100%;margin-top:8px" onclick="tgSaveSettings()">💾 SAVE TELEGRAM SETTINGS (one click)</button>
+        <input type="text" id="tgBrand" placeholder="Brand name (NEXUS)" autocomplete="off" style="margin-top:8px">
+        <div class="mini" style="margin-top:8px;text-align:left">MAIN — session show + bot stream + replies:</div>
+        <input type="text" id="tgChat" placeholder="MAIN: @yourchannel or chat id" autocomplete="off" style="margin:4px 0 0 0">
+        <div class="mini" style="margin-top:8px;text-align:left">PUBLIC — normal 1-min signals (quality only) + announcements:</div>
+        <input type="text" id="pubChat" placeholder="PUBLIC: @yourpublicchannel" autocomplete="off" style="margin:4px 0 0 0">
+        <div class="mini" style="margin-top:8px;text-align:left">VIP — one high-grade shot every 10 min:</div>
+        <input type="text" id="vipChat" placeholder="VIP: @yourvipchannel" autocomplete="off" style="margin:4px 0 0 0">
+        <div class="mini" style="margin-top:8px;text-align:left">LIST — premium lists + results:</div>
+        <input type="text" id="listChat" placeholder="LIST: @yourlistchannel (empty = MAIN)" autocomplete="off" style="margin:4px 0 0 0">
+        <button class="b-gen" style="width:100%;margin-top:10px" onclick="tgSaveSettings()">💾 SAVE TELEGRAM SETTINGS (one click)</button>
         <div class="toggle" style="margin-top:8px;margin-bottom:0">
           <span>🔐 AUTHORIZED TO SEND <span class="mini">(required for every Telegram message)</span></span>
           <label class="switch"><input type="checkbox" id="tgAuth"><span class="slider"></span></label>
         </div>
         <div class="mini" id="tgVault" style="margin-top:8px;text-align:left">🔐 token: none — paste here, or set window.NEXUS_TG_TOKEN in keys.js (private)</div>
-        <div class="mini" style="margin-top:4px;text-align:left">🔁 Changing the <b>token</b> or the <b>destination chat</b> instantly <b>revokes send authorization</b> — re-enable AUTHORIZED to resume. Settings persist in this browser only. Add the bot as <b>admin</b> of your channel.</div>
+        <div class="mini" style="margin-top:4px;text-align:left">Changing the <b>token</b> or <b>MAIN chat</b> revokes authorization — re-enable it to resume. Empty PUBLIC / VIP / LIST fall back to MAIN. Add the bot as <b>admin</b> in every channel.</div>
       </div>
 
       <div class="tg-block">
-        <div class="tg-h"><span class="num">2</span> STICKER BANK — intro · wins only · outro ×2</div>
-        <div class="mini" style="text-align:left;line-height:1.55">Send your stickers to <b>your bot</b> in Telegram (private chat works), then press PULL. Assign each: <b>INTRO</b> (sent the moment SESSION or PREMIUM starts), <b>WIN</b> (bank of many — a random one fires after every verified win; <b>losses never get stickers</b>, only the OTM 💔 message), <b>OUTRO 1 + OUTRO 2</b> (both fire on completion).</div>
+        <div class="tg-h"><span class="num">2</span> STICKER BANK — you assign every sticker, one per event</div>
+        <div class="mini" style="text-align:left;line-height:1.55">Send your stickers to <b>your bot</b> in Telegram (private chat works), press PULL, then assign each one to an event. <b>Nothing ever fires unless you assigned it</b> — and each event fires its sticker exactly once (no doubles).</div>
         <div class="chips" style="margin-top:8px">
           <button class="b-gen" style="flex:1" onclick="pullStickers()">📥 PULL STICKERS FROM BOT</button>
-          <button class="b-ghost" onclick="stTest('win')">🎲 TEST WIN</button>
         </div>
         <div class="stpending" id="stPending"></div>
-        <div class="stslots">
-          <div class="stslot"><span class="role">▶ INTRO</span><span class="val empty" id="stIntro">empty</span>
-            <button class="b-ghost" style="padding:4px 8px;font-size:10px" onclick="stTest('intro')">TEST</button>
-            <button class="b-danger" style="padding:4px 8px;font-size:10px" onclick="stClear('intro')">✕</button></div>
-          <div class="stslot"><span class="role">🏆 WIN BANK</span><span class="val empty" id="stWinList">empty — wins send a random one</span>
-            <button class="b-danger" style="padding:4px 8px;font-size:10px" onclick="stClear('win')">✕</button></div>
-          <div class="stslot"><span class="role">🏁 OUTRO 1</span><span class="val empty" id="stOutro1">empty</span>
-            <button class="b-danger" style="padding:4px 8px;font-size:10px" onclick="stClear('outro1')">✕</button></div>
-          <div class="stslot"><span class="role">🏁 OUTRO 2</span><span class="val empty" id="stOutro2">empty</span>
-            <button class="b-danger" style="padding:4px 8px;font-size:10px" onclick="stClear('outro2')">✕</button></div>
-        </div>
+        <div class="stslots" id="stSlots"></div>
         <div class="mini" id="stInfo" style="margin-top:6px;text-align:left">bank: 0 stickers — pull from the bot inbox above</div>
       </div>
 
       <div class="tg-block">
-        <div class="tg-h"><span class="num">3</span> MESSAGE STYLE — house format or your captured layout</div>
-        <div class="seg" id="tgStyleSeg">
-          <button type="button" id="tgStyleHouse" class="on" onclick="setStyleMode('house')">✨ NEXUS HOUSE STYLE</button>
-          <button type="button" id="tgStyleVerbatim" onclick="setStyleMode('verbatim')">📋 VERBATIM TEMPLATE</button>
-        </div>
-        <div class="mini" style="text-align:left;line-height:1.5" id="tplInfo">style: HOUSE — every message is re-typeset in the NEXUS format: bold brand header, monospace signal rows, bold summary, italic disclaimer. Telegram clients cannot load custom fonts; bold / italic / mono entities are the supported typography — house style uses all three so forwarded lists stop looking copied.</div>
+        <div class="tg-h"><span class="num">3</span> MESSAGE FORMATS — set your own style from the bot, permanently</div>
+        <div class="mini" style="text-align:left;line-height:1.5">Text the bot: <b>/setformat signal</b> (or <b>vip</b> · <b>row</b> · <b>list</b> · <b>result</b> · <b>verdict</b>) followed by your layout — it is saved permanently in this browser. <b>/formats</b> shows everything, <b>/resetformat</b> restores defaults. Placeholders: <b>{pair} {dir} {time} {date} {tz} {grade} {score} {brand} {expiry} {count} {rows} {tick} {result} {open} {close} {win} {loss} {push}</b>. Markup: <b>*bold*</b> · _italic_ · `code`. Premium (custom) emoji are auto-converted to normal emoji — Telegram blocks bots from sending premium emoji.</div>
+        <div id="fmtList" style="margin-top:8px"></div>
         <div class="chips" style="margin-top:8px">
-          <button class="b-ghost" onclick="tgCaptureStyle('list')">🎨 CAPTURE LIST LAYOUT</button>
-          <button class="b-ghost" onclick="tgCaptureStyle('result')">🎨 CAPTURE RESULT LAYOUT</button>
-          <button class="b-ghost" onclick="tgClearStyle()">🧹 RESET STYLE</button>
+          <button class="b-ghost" style="flex:1" onclick="fmtPreview('signal')">👁 PREVIEW SIGNAL</button>
+          <button class="b-ghost" style="flex:1" onclick="fmtPreview('vip')">👁 PREVIEW VIP</button>
+          <button class="b-ghost" style="flex:1" onclick="fmtPreview('list')">👁 PREVIEW LIST</button>
+          <button class="b-ghost" style="flex:1" onclick="fmtReset('all')">🧹 RESET ALL FORMATS</button>
         </div>
-        <div class="mini" style="margin-top:6px;text-align:left">VERBATIM mode only activates once you forward an example list/result to the bot and CAPTURE it — rows keep that exact layout with live values merged in.</div>
       </div>
 
       <div class="tg-block">
         <div class="tg-h"><span class="num">4</span> AUTOMATION</div>
         <div class="toggle" style="margin-bottom:6px">
-          <span>🤖 AUTO-SEND premium list + result <span class="mini">(result includes the 2 outro stickers)</span></span>
+          <span>📢 PUBLIC STREAM — 1 quality signal/min <span class="mini">(B+ only · lands before the candle opens · PUBLIC channel)</span></span>
+          <label class="switch"><input type="checkbox" id="pubStream"><span class="slider"></span></label>
+        </div>
+        <div class="mini" id="pubStreamInfo" style="margin:-2px 0 8px;text-align:left">public stream: OFF</div>
+        <div class="toggle" style="margin-bottom:6px">
+          <span>💎 VIP STREAM — best shot every 10 min <span class="mini">(VIP channel)</span></span>
+          <label class="switch"><input type="checkbox" id="vipStream"><span class="slider"></span></label>
+        </div>
+        <div class="toggle" style="margin-bottom:6px">
+          <span>📋 AUTO-SEND premium list + result <span class="mini">(LIST channel)</span></span>
           <label class="switch"><input type="checkbox" id="tgAuto"><span class="slider"></span></label>
+        </div>
+        <div class="toggle" style="margin-bottom:6px">
+          <span>🤖 AUTO-SEND each live signal to MAIN <span class="mini">(bot stream)</span></span>
+          <label class="switch"><input type="checkbox" id="botAuto"><span class="slider"></span></label>
+        </div>
+        <div class="toggle" style="margin-bottom:6px">
+          <span>✅ AUTO-SEND verdicts + event stickers <span class="mini">(win · loss · push — only stickers you assigned)</span></span>
+          <label class="switch"><input type="checkbox" id="botVerify" checked><span class="slider"></span></label>
         </div>
         <div class="toggle" style="margin-bottom:6px">
           <span>🛡 PROTECT CONTENT <span class="mini">(block forwarding &amp; saving)</span></span>
           <label class="switch"><input type="checkbox" id="tgProtect"><span class="slider"></span></label>
         </div>
         <div class="toggle" style="margin-bottom:0">
-          <span>🎧 COMMAND LISTENER <span class="mini">/signal /list /results /stats /session /premium — while page is open</span></span>
+          <span>🎧 COMMAND LISTENER <span class="mini">/signal /list /vip /setformat … — while page is open</span></span>
           <label class="switch"><input type="checkbox" id="tgListen"><span class="slider"></span></label>
         </div>
       </div>
@@ -741,7 +770,7 @@
         <button class="b-ghost b-on" id="brainM1" style="padding:2px 10px;font-size:10px">M1</button>
         <button class="b-ghost" id="brainM3" style="padding:2px 10px;font-size:10px">M3</button></span></span>
       <div class="brain" id="brain"></div>
-      <div class="mini" style="margin-top:8px">16 strategies · weights per timeframe · quick backtest + deep validated training + live memory × regime boost · persists across sessions</div>
+      <div class="mini" style="margin-top:8px">26 strategies · weights per timeframe · quick backtest + deep validated training + live memory × regime boost · persists across sessions</div>
     </div>
 
     <div class="glass" id="sec-bt">
@@ -751,7 +780,7 @@
         <button class="b-gen" style="padding:10px" onclick="deepBacktest()">RUN BACKTEST</button>
       </div>
       <button class="b-gold" style="width:100%;margin-top:8px" id="deepTrainBtn" onclick="trainDeep()">🏋 TRAIN THE DATA AT MAX — 5,000-candle walk-forward (seeds the brain)</button>
-      <div class="mini" id="deepInfo" style="margin-top:6px;text-align:left">deep training: not run yet — one 5,000-bar fetch per pair (1 credit) trains + validates all 16 strategies walk-forward and seeds their weights.</div>
+      <div class="mini" id="deepInfo" style="margin-top:6px;text-align:left">deep training: not run yet — one 5,000-bar fetch per pair (1 credit) trains + validates all 26 strategies walk-forward and seeds their weights.</div>
       <div class="mini" style="margin-top:6px;text-align:left">Backtest runs the full multi-agent pipeline walk-forward over up to 5,000 real M1 candles (≈3.5 days). Entry at next candle open, exit at its close — same rules as paper trading. Past results never guarantee future performance.</div>
       <div class="risk-line" id="btResults">Backtest results will appear here.</div>
     </div>
@@ -775,22 +804,32 @@
   <div class="page" id="page-data">
 
     <div class="glass" id="sec-keys">
-      <span class="t"><span class="num">1</span> TWELVE DATA KEYS — 4 SLOTS <span class="tail">
+      <span class="t"><span class="num">1</span> TWELVE DATA KEYS — 10 SLOTS <span class="tail">
         <button class="b-ghost" id="keyShow" type="button" style="padding:3px 9px;font-size:10px">👁 SHOW</button></span></span>
-      <div class="kslots">
-        <div class="kslot-row"><span class="tag">K1</span><input type="password" id="key1" class="kslot" placeholder="API key slot 1" autocomplete="off" spellcheck="false"></div>
-        <div class="kslot-row"><span class="tag">K2</span><input type="password" id="key2" class="kslot" placeholder="API key slot 2 (optional)" autocomplete="off" spellcheck="false"></div>
-        <div class="kslot-row"><span class="tag">K3</span><input type="password" id="key3" class="kslot" placeholder="API key slot 3 (optional)" autocomplete="off" spellcheck="false"></div>
-        <div class="kslot-row"><span class="tag">K4</span><input type="password" id="key4" class="kslot" placeholder="API key slot 4 (optional)" autocomplete="off" spellcheck="false"></div>
-      </div>
+      <div class="kslots" id="keySlots"></div>
       <button class="b-gen" style="width:100%;margin-top:10px" onclick="saveKeys()">💾 SAVE ALL KEYS (one click · browser only)</button>
       <div class="mini" id="vaultMsg" role="status" style="margin-top:6px"></div>
       <div class="mini" id="vaultInfo" style="margin-top:8px;text-align:left">🔐 loading key vault…</div>
       <div class="mini" style="text-align:left">Keys rotate automatically; a key that hits its quota cools down for 60s and the next slot takes over. More keys = faster live refresh + more pairs. Saved keys live <b>only in this browser</b> (localStorage) and are <b>never committed or uploaded</b>. Optional permanent sources: <b>PERMANENT_KEYS</b> at the top of the script or the private, gitignored <b>keys.js</b>. Free key at <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener">twelvedata.com</a></div>
     </div>
 
+    <!-- API CREDIT USAGE — live per-key spend; checking costs 0 credits -->
+    <div class="glass" id="sec-usage">
+      <span class="t"><span class="num">2</span> API CREDIT USAGE <span class="tail">
+        <button class="b-ghost" type="button" style="padding:3px 9px;font-size:10px" onclick="apiUsageCheck()">🔎 CHECK NOW (free)</button></span></span>
+      <div class="usage-sum" id="usageSum">press CHECK NOW — reads each key's real credit spend from Twelve Data (0 credits)</div>
+      <div id="usageRows"><div class="mini" style="text-align:center;padding:8px">No usage data yet — press CHECK NOW.</div></div>
+      <div class="feed4" style="margin-top:8px">
+        <div class="f4">this session <span style="opacity:.7">(all keys)</span><b id="u_sess">0</b></div>
+        <div class="f4">today · tracked<b id="u_day">0</b></div>
+        <div class="f4">per-minute cap<b id="u_min">0</b></div>
+        <div class="f4">keys active<b id="u_keys">0</b></div>
+      </div>
+      <div class="mini" style="text-align:left">The meter above counts every call NEXUS makes. CHECK reads the real per-key spend from the <b>api_usage</b> endpoint (costs 0 credits). Free keys reset daily at <b>00:00 UTC</b>.</div>
+    </div>
+
     <div class="glass" id="sec-feeds">
-      <span class="t"><span class="num">2</span> MARKET DATA FEEDS</span>
+      <span class="t"><span class="num">3</span> MARKET DATA FEEDS</span>
       <div class="feed4">
         <div class="f4">time_series · candles <span style="color:var(--acc)">(scan feed · 1 credit)</span><b id="f_ts">—</b></div>
         <div class="f4">quote · OHLC+Δ% <span style="opacity:.7">(diagnostic)</span><b id="f_q">not checked</b></div>
@@ -804,12 +843,11 @@
     </div>
 
     <div class="glass" id="sec-pub">
-      <span class="t"><span class="num">3</span> PUBLIC CHANNEL — COMMUNITY</span>
-      <div class="chips"><span class="chip warn">🛡 privacy filter ON — tokens, keys, ids & emails are stripped before posting</span></div>
-      <input type="text" id="pubChat" placeholder="Public channel: @yourcommunity or numeric chat id" autocomplete="off">
-      <div class="mini" id="pubInfo" style="margin-top:6px;text-align:left">Fully separate from your signal chat and bot stream. Auto-posts carry <b>aggregate stats only</b> — never keys, tokens, private chats or balances.</div>
+      <span class="t"><span class="num">4</span> COMMUNITY ANNOUNCEMENTS — PUBLIC CHANNEL</span>
+      <div class="chips"><span class="chip warn">🛡 privacy filter ON — tokens, keys, ids &amp; emails are stripped before posting</span></div>
+      <div class="mini" style="text-align:left">Channel is set on the <b>TELEGRAM page → block 1 (PUBLIC chat)</b>. Auto-posts carry <b>aggregate stats only</b> — never keys, tokens, private chats or balances.</div>
       <textarea id="pubMsg" rows="3" placeholder="Announcement: new features, news, reminders for your community…" style="width:100%;background:rgba(5,10,20,.55);color:var(--txt);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:10px;font-size:13px;margin-top:8px;outline:none;resize:vertical"></textarea>
-      <button class="b-gen" style="width:100%;margin-top:8px" onclick="pubPost()">📢 POST TO CHANNEL</button>
+      <button class="b-gen" style="width:100%;margin-top:8px" onclick="pubPost()">📢 POST TO PUBLIC CHANNEL</button>
       <div class="toggle" style="margin-top:8px;margin-bottom:0">
         <span>🧾 AUTO daily summary <span class="mini">(aggregate W/L when a premium list settles)</span></span>
         <label class="switch"><input type="checkbox" id="pubAuto"><span class="slider"></span></label>
@@ -818,20 +856,90 @@
     </div>
   </div>
 
+  <!-- ═══════════ PAGE 11 · CLOUD (Supabase mirror) ═══════════ -->
+  <div class="page" id="page-cloud">
+
+    <div class="glass" id="sec-sbcfg">
+      <span class="t"><span class="num">1</span> CLOUD SYNC — SUPABASE <span class="tail"><span class="chip" id="sbChip">☁ OFFLINE</span></span></span>
+      <div class="chips" style="margin-top:6px">
+        <span class="chip">mirror only — the live engine stays in this browser</span>
+        <span class="chip warn">anon key only — the service key never touches this page</span>
+      </div>
+      <div class="two" style="margin-top:10px">
+        <div><span class="mini" style="display:block;text-align:left">☁ PROJECT URL</span>
+          <input type="text" id="sbUrl" placeholder="https://yourproject.supabase.co" autocomplete="off" spellcheck="false"></div>
+        <div><span class="mini" style="display:block;text-align:left">🔑 ANON PUBLIC KEY</span>
+          <input type="password" id="sbAnon" placeholder="anon key (never the service-role key)" autocomplete="off" spellcheck="false"></div>
+      </div>
+      <div class="two" style="margin-top:8px">
+        <button class="b-gen" style="padding:10px" onclick="sbSave()">💾 SAVE &amp; CONNECT</button>
+        <button class="b-ghost" style="padding:10px" onclick="sbTest()">🔎 TEST CONNECTION</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="b-ghost" style="flex:1" onclick="sbClear()">🧹 CLEAR CLOUD CONFIG</button>
+      </div>
+      <div class="toggle" style="margin-top:8px;margin-bottom:0">
+        <span>📡 record predictions + delivery results <span class="mini">(insert-only — the cloud can never edit this engine)</span></span>
+        <label class="switch"><input type="checkbox" id="sbRecord"><span class="slider"></span></label>
+      </div>
+      <div class="mini" id="sbMsg" style="margin-top:6px;text-align:left">Cloud sync is optional — with no config, NEXUS runs exactly as before (fully offline, nothing leaves this browser).</div>
+      <div class="mini" style="text-align:left">The browser mirrors signals to your Supabase project with the <b>anon key</b> (read + insert-only, enforced by row-level security). Ingestion, outcome evaluation, retries, alerts and model training run in your <b>server worker</b> — see <b>SUPABASE_SETUP.md</b>. Keys live in this browser (localStorage <b>nx_sb</b>) or the gitignored <b>keys.js</b> — never in the repo.</div>
+    </div>
+
+    <div class="glass" id="sec-sbmodel">
+      <span class="t"><span class="num">2</span> SELF-LEARNING — CLOUD MODEL <span class="tail"><span class="chip" id="sbModelChip">no deployed model</span></span></span>
+      <div class="mini" id="sbModelInfo" style="text-align:left">not loaded — connect on block 1, then press REFRESH.</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="b-ghost" style="flex:1" onclick="sbLoadModel()">🔄 REFRESH</button>
+        <button class="b-gold" style="flex:1" id="sbApplyBtn" onclick="sbApplyModel()" disabled>🧠 APPLY CLOUD MODEL TO BRAIN</button>
+      </div>
+      <div class="risk-line" id="sbApplyMsg">Applying is never silent: the artifact is SHA-256-verified against the registry, and only the 26 strategy <b>weights</b> merge into the brain — prediction logic never changes.</div>
+      <div class="mini" style="text-align:left">Promotion is gated in the trainer (walk-forward + holdout + risk criteria, shadow mode first). Applying a cloud model overwrites deep-validated weights per strategy — re-run TRAIN THE DATA AT MAX on the BRAIN page to roll back to local weights.</div>
+    </div>
+
+    <div class="glass" id="sec-sbperf">
+      <span class="t"><span class="num">3</span> CLOUD PERFORMANCE <span class="tail"><span class="chip warn">SIMULATED — signal quality, never account profits</span></span></span>
+      <div class="mini" id="sbPerf" style="text-align:left">not loaded — connect on block 1, then press REFRESH.</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="b-ghost" style="flex:1" onclick="sbLoadPerf()">🔄 REFRESH</button>
+      </div>
+      <div class="mini" style="text-align:left">Rolling win rate / expectancy / profit factor / drawdown of <b>recorded signals</b>, evaluated from confirmed 1-minute candles minus estimated spread + slippage. Accuracy is tracked separately from these simulated returns.</div>
+    </div>
+
+    <div class="glass" id="sec-sbfresh">
+      <span class="t"><span class="num">4</span> MARKET DATA HEALTH <span class="tail"><span class="chip" id="sbFreshChip">worker feed</span></span></span>
+      <div class="mini" id="sbFresh" style="text-align:left">not loaded — connect on block 1, then press REFRESH.</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="b-ghost" style="flex:1" onclick="sbLoadFresh()">🔄 REFRESH</button>
+      </div>
+      <div class="mini" style="text-align:left">Server-side candle store per pair (completed 1-minute bars only — the worker never stores a forming candle and never fabricates prices). Rising age = provider lag; the worker alerts on it.</div>
+    </div>
+
+    <div class="glass" id="sec-sbdeliv">
+      <span class="t"><span class="num">5</span> TELEGRAM DELIVERY LOG <span class="tail"><span class="chip" id="sbDelivChip">read-only</span></span></span>
+      <div class="mini" id="sbDeliv" style="text-align:left">not loaded — connect on block 1, then press REFRESH.</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="b-ghost" style="flex:1" onclick="sbLoadDeliv()">🔄 REFRESH</button>
+      </div>
+      <div class="mini" style="text-align:left">Recent deliveries recorded by this browser + the retry worker (chat ids and message text stay server-side — only status is public). Failed sends are retried up to the configured maximum; only explicit API failures are retried, so a message can never double-send.</div>
+    </div>
+  </div>
+
   <div class="clock" id="clock"></div>
   <div class="mini" id="feedTzNote" style="display:none;margin-top:4px"></div>
   <p class="disclaimer">⚠️ NEXUS never guarantees profits — no system can, and no setting makes losses impossible. It is a decision-support tool in <b>signal-only + paper-trading mode</b>; it does not click, place, or automate real trades.<br>Binary options carry a very high risk of losing money. Preserving capital comes first: respect the daily stop-loss, cooldowns, session guards and position limits. Past performance — real or backtested — does not predict future results. Trade responsibly.</p>
-  <div class="ver">NEXUS Glass v5.0 · Meridian edition · multi-pair · M1 + M3 · SESSION + PREMIUM engines · win-only sticker bank · confirmed settlement (ties = push)<br>Typeface: Inter (self-hosted, variable) — © The Inter Project Authors, SIL Open Font License 1.1 · license: assets/fonts/INTER-OFL-LICENSE.txt</div>
+  <div class="ver">NEXUS Glass v5.1 · Meridian edition · multi-pair · M1 + M3 · PUBLIC + VIP + LIST + SESSION channels · per-event stickers · fast confirmed settlement (ties = push)<br>Typeface: Inter (self-hosted, variable) — © The Inter Project Authors, SIL Open Font License 1.1 · license: assets/fonts/INTER-OFL-LICENSE.txt</div>
 </div>
 
 <script src="keys.js"></script>
 <script>
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════
-NEXUS Glass v5.0 · MERIDIAN — multi-pair · M1+M3 · SESSION + PREMIUM
-telegram engines · win-only sticker bank · confirmed settlement
-(ties = push) · nonstop signals · deep training · paper-first.
-🔑 PERMANENT API KEYS — optional; the normal path is the 4 key slots
+NEXUS Glass v5.1 · MERIDIAN — multi-pair · M1+M3 · 4 channels
+(PUBLIC 1-min stream · VIP 10-min shots · LIST · MAIN) · bot-configured
+formats · per-event sticker bank · fast confirmed settlement (ties =
+push) · quality-first signals · deep training · paper-first.
+🔑 PERMANENT API KEYS — optional; the normal path is the 10 key slots
    in the UI (one-click save to this browser's localStorage — never
    committed, never uploaded).
    1) IN-FILE: paste one or more Twelve Data keys between the quotes.
@@ -850,6 +958,12 @@ const PERMANENT_KEYS=[
   "", /* key 2 — optional */
   "", /* key 3 — optional */
   "", /* key 4 — optional */
+  "", /* key 5 — optional */
+  "", /* key 6 — optional */
+  "", /* key 7 — optional */
+  "", /* key 8 — optional */
+  "", /* key 9 — optional */
+  "", /* key 10 — optional */
 ];
 
 const $=id=>document.getElementById(id), pad=n=>String(n).padStart(2,'0');
@@ -861,10 +975,12 @@ let busy=false, lastMinute=-1, credits=0, uid=0;
 let cache={}, openSigs=[];
 
 const FAM={
-  'EMA 9/21 cross':'TREND','MACD 5-35-5':'TREND','Parabolic SAR flip':'TREND','Ichimoku TK cross':'TREND','ADX DI cross':'TREND',
-  'RSI-4 + BB confirm':'MEAN','Stochastic 5-3-3':'MEAN','BB bounce':'MEAN','VWAP bounce':'MEAN','CCI-14 flip':'MEAN','Williams %R flip':'MEAN',
-  'Keltner 2-close + RSI':'BREAK','Donchian 20':'BREAK','SuperTrend 10x3':'BREAK',
-  'Momentum 3-candle':'MOM','Heikin-Ashi flip':'MOM'};
+ 'EMA 9/21 cross':'TREND','MACD 5-35-5':'TREND','Parabolic SAR flip':'TREND','Ichimoku TK cross':'TREND','ADX DI cross':'TREND',
+ 'EMA 50 pullback':'TREND',
+ 'RSI-4 + BB confirm':'MEAN','Stochastic 5-3-3':'MEAN','BB bounce':'MEAN','VWAP bounce':'MEAN','CCI-14 flip':'MEAN','Williams %R flip':'MEAN',
+ 'Envelope 20 stretch':'MEAN','Chande Momentum 14':'MEAN','Stoch + RSI combo':'MEAN',
+ 'Keltner 2-close + RSI':'BREAK','Donchian 20':'BREAK','SuperTrend 10x3':'BREAK','Fractal breakout':'BREAK','Bollinger squeeze break':'BREAK',
+ 'Momentum 3-candle':'MOM','Heikin-Ashi flip':'MOM','TRIX 14 flip':'MOM','Awesome Oscillator':'MOM','ROC 9 zero cross':'MOM','3-bar reversal':'MOM'};
 const FAMLABEL={TREND:'TREND',MEAN:'MEAN-REV',BREAK:'BREAKOUT',MOM:'MOMENTUM'};
 
 /* ---------- timeframes: M1 native, M3 aggregated from M1 (Twelve Data has no 3min interval) ---------- */
@@ -1101,10 +1217,67 @@ function renderBudget(force){
     pushNote('sys',lvl===3?'⛔ Daily API budget exhausted — auto scanning paused until UTC midnight (settlements unaffected)':'⚠ API budget '+Math.round(budget.calls/perDayCap()*100)+'% used — throttling scan cadence'); }
 }
 
+/* ---------- API CREDIT USAGE — per-key spend straight from Twelve Data (0 credits) ---------- */
+let usageRows=loadJSON('nx_usage',null);
+if(!Array.isArray(usageRows)) usageRows=[];
+let usageBusy=false;
+function parseUsage(j){ /* tolerant parser — Twelve Data api_usage shapes vary by plan */
+  const u=j&&j.usage;
+  const day=(u&&u.current_day)||{};
+  const used=+(day.credits_used!=null?day.credits_used:(day.count!=null?day.count:(j&&j.count!=null?j.count:NaN)));
+  const limit=+(day.credits_limit!=null?day.credits_limit:(day.limit!=null?day.limit:(j&&j.limit_daily!=null?j.limit_daily:NaN)));
+  return {used:isFinite(used)?used:null,limit:isFinite(limit)?limit:null};
+}
+function renderUsageMeter(){
+  const pool=keyPool();
+  const set=(id,v)=>{ const el=$(id); if(el) el.textContent=String(v); };
+  set('u_sess',credits);
+  set('u_day',budget.calls);
+  set('u_min',perMinCap());
+  set('u_keys',pool.length||'0');
+}
+function renderUsage(){
+  renderUsageMeter();
+  const el=$('usageRows'), sum=$('usageSum'); if(!el) return;
+  if(!usageRows.length){ el.innerHTML='<div class="mini" style="text-align:center;padding:8px">No usage data yet — press CHECK NOW.</div>'; return; }
+  el.innerHTML=usageRows.map(r=>{
+    const pct=r.limit?Math.min(100,Math.round(r.used/r.limit*100)):null;
+    const rem=(r.used!=null&&r.limit)?Math.max(0,r.limit-r.used):null;
+    const bar=pct==null?'':'<span class="ubar"><i class="'+(pct>=80?'hot':'')+'" style="width:'+pct+'%"></i></span>';
+    return '<div class="usage-row"><span class="k">'+esc(r.key)+'</span>'+bar
+      +'<span class="v">'+(r.used!=null?r.used:'—')+' / '+(r.limit!=null?r.limit:'—')+'</span>'
+      +'<span class="rem">'+(rem!=null?rem+' left':esc(r.err||''))+'</span></div>';
+  }).join('');
+  const tot=usageRows.filter(r=>r.used!=null);
+  const tu=tot.reduce((a,r)=>a+r.used,0), tl=tot.reduce((a,r)=>a+(r.limit||0),0);
+  if(sum) sum.textContent=tot.length?('credits used today: '+tu+(tl?' of '+tl:'')+' across '+tot.length+' key'+(tot.length===1?'':'s')+' — resets 00:00 UTC')
+                          :'no usage data — check each key below';
+}
+async function apiUsageCheck(){
+  if(usageBusy) return;
+  const pool=keyPool();
+  if(!pool.length){ setVaultMsg('⚠ save at least one API key first'); return; }
+  usageBusy=true;
+  const sum=$('usageSum'); if(sum) sum.textContent='checking every key against Twelve Data (0 credits)…';
+  const out=[];
+  await Promise.all(pool.map(async k=>{
+    try{
+      const r=await fetch(BASE+'api_usage?apikey='+encodeURIComponent(k.v));
+      const j=await r.json();
+      if(j.status==='error') out.push({key:maskKey(k.v),used:null,limit:null,err:String(j.message||'error').slice(0,30)});
+      else { const p=parseUsage(j); out.push({key:maskKey(k.v),used:p.used,limit:p.limit}); }
+    }catch(e){ out.push({key:maskKey(k.v),used:null,limit:null,err:'network'}); }
+  }));
+  usageRows=out;
+  store.set('nx_usage',JSON.stringify(usageRows));
+  renderUsage();
+  usageBusy=false;
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    PAGE ROUTER — every section lives on its own page
    ═══════════════════════════════════════════════════════════════════ */
-const PAGES=['dash','sig','sess','prem','bot','tg','res','brain','data'];
+const PAGES=['dash','sig','sess','vip','prem','bot','tg','res','brain','data','cloud'];
 let curPage='dash';
 function showPage(k){
   if(!PAGES.includes(k)) k='dash';
@@ -1138,7 +1311,7 @@ function renderNotes(){
     const d=new Date(n.t);
     return '<div class="note '+esc(n.kind)+'"><span class="nt">'+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())+'</span>'
       +'<span class="ntx">'+esc(n.text)+'</span></div>';
-  }).join(''):'<div class="empty-note">Live event feed — signals, verdicts, session & premium progress appear here in real time.</div>';
+  }).join(''):'<div class="empty-note">Live feed — signals, verdicts and channel progress in real time.</div>';
   const unread=notes.filter(n=>n.t>notesSeen).length;
   const c=$('noteCount');
   if(c){ c.textContent=unread>9?'9+':unread; c.style.display=(unread&&curPage!=='dash')?'flex':'none'; }
@@ -1213,13 +1386,17 @@ document.querySelectorAll('#tfsel input').forEach(i=>i.addEventListener('change'
 saveTfs();
 
 /* ---------- 4 Twelve Data key slots (browser storage · one-click save · never committed) ---------- */
-const KEY_SLOTS_KEY='nx_keys4';
-function loadKeySlots(){ const v=loadJSON(KEY_SLOTS_KEY,null);
-  const a=Array.isArray(v)?v.slice(0,4).map(x=>String(x||'').trim()):[];
-  while(a.length<4) a.push('');
+const KEY_SLOTS=10;                     /* up to 10 rotating API key slots */
+const KEY_SLOTS_KEY='nx_keys10';
+function loadKeySlots(){
+  const v=loadJSON(KEY_SLOTS_KEY,null);
+  const old=loadJSON('nx_keys4',null);          /* v5 migration: 4-slot vault → 10 */
+  let src=Array.isArray(v)?v:(Array.isArray(old)?old:[]);
+  const a=src.slice(0,KEY_SLOTS).map(x=>String(x||'').trim());
+  while(a.length<KEY_SLOTS) a.push('');
   return a; }
 let keySlots=loadKeySlots();
-(function migrateLegacyKey(){                        /* old single key field → first free slot */
+(function migrateLegacyKey(){                    /* old single key field → first free slot */
   const legacy=String(store.get('td_key')||'').trim();
   if(legacy){
     if(!keySlots.some(k=>k===legacy)){
@@ -1228,17 +1405,40 @@ let keySlots=loadKeySlots();
     }
     store.set('td_key','');                          /* retire the legacy store key */
   }
+  if(loadJSON('nx_keys4',null)) store.set('nx_keys4','');   /* retire the 4-slot vault */
 })();
-function syncKeyInputs(){ for(let i=0;i<4;i++){ const el=$('key'+(i+1)); if(el) el.value=keySlots[i]||''; } }
+function renderKeyInputs(){                       /* the 10 slot inputs are generated, not hardcoded */
+  const el=$('keySlots'); if(!el) return;
+  el.innerHTML='';
+  for(let i=0;i<KEY_SLOTS;i++){
+    const row=document.createElement('div'); row.className='kslot-row';
+    const tag=document.createElement('span'); tag.className='tag'; tag.textContent='K'+(i+1);
+    const inp=document.createElement('input'); inp.type='password'; inp.id='key'+(i+1);
+    inp.className='kslot'; inp.autocomplete='off'; inp.spellcheck=false;
+    inp.placeholder='API key slot '+(i+1)+(i===0?'':' (optional)');
+    row.appendChild(tag); row.appendChild(inp); el.appendChild(row);
+  }
+  const show=$('keyShow');
+  if(show&&!show.dataset.wired){
+    show.dataset.wired='1';
+    show.addEventListener('click',()=>{
+      const on=show.textContent.trim()!=='👁 HIDE';
+      show.textContent=on?'👁 HIDE':'👁 SHOW';
+      for(let i=1;i<=KEY_SLOTS;i++){ const e=$('key'+i); if(e) e.type=on?'text':'password'; }
+    });
+  }
+  syncKeyInputs();
+}
+function syncKeyInputs(){ for(let i=0;i<KEY_SLOTS;i++){ const el=$('key'+(i+1)); if(el) el.value=keySlots[i]||''; } }
 function setVaultMsg(m){ const el=$('vaultMsg'); if(el) el.textContent=m; }
-function saveKeys(){ /* one-click save of all four slots to this browser only */
+function saveKeys(){ /* one-click save of all ten slots to this browser only */
   const vals=[],seen=new Set(); let dup=false;
-  for(let i=0;i<4;i++){ const el=$('key'+(i+1)); const v=el?String(el.value).trim():'';
+  for(let i=0;i<KEY_SLOTS;i++){ const el=$('key'+(i+1)); const v=el?String(el.value).trim():'';
     if(v){ if(seen.has(v)) dup=true; seen.add(v); }
     vals.push(v); }
   if(dup){ setVaultMsg('⚠ not saved — duplicate key across slots; each slot needs a distinct key'); return false; }
   keySlots=vals; store.set(KEY_SLOTS_KEY,JSON.stringify(keySlots));
-  renderVault(); renderBudget(true);
+  renderVault(); renderBudget(true); renderUsageMeter();
   const n=keySlots.filter(Boolean).length;
   setVaultMsg(n?('✅ saved '+n+' key'+(n===1?'':'s')+' to this browser (never committed) · rotation '+(n>1?'ACTIVE':'off (single key)'))
                :'✅ slots cleared — no browser keys saved');
@@ -1275,8 +1475,11 @@ setInterval(()=>{
   /* — engines — */
   sxTick();
   premTick();
-  /* — settlement fetches for pending verdicts (throttled) — */
-  if(ms-lastSettleFetch>10000){ lastSettleFetch=ms; settlementFetches(); }
+  pubTick();
+  vxTick();
+  renderVip();
+  /* — settlement fetches for pending verdicts (fast: every 4s while due) — */
+  if(ms-lastSettleFetch>4000){ lastSettleFetch=ms; settlementFetches(); }
   /* — live ticker: quota-safe round-robin candle refresh — */
   tickerTick();
   /* — daily premium auto-schedule — */
@@ -1434,7 +1637,7 @@ function maskKey(v){ v=String(v||''); return v.length<9?'••••••':v.s
 function keyPool(){
   const pool=[];
   const push=(src,v0)=>{ const v=String(v0||'').trim(); if(v&&!pool.some(p=>p.v===v)) pool.push({src,v}); };
-  for(let i=0;i<4;i++) push('slot'+(i+1),keySlots[i]);      /* saved browser slots (SAVE ALL KEYS) */
+  for(let i=0;i<KEY_SLOTS;i++) push('slot'+(i+1),keySlots[i]);/* saved browser slots (SAVE ALL KEYS) */
   for(const k of PERMANENT_KEYS) push('vault',k);           /* in-file (empty in public build) */
   for(const k of (window.NEXUS_KEYS||[])) push('keys.js',k);/* private gitignored file */
   return pool;
@@ -1671,7 +1874,7 @@ function makeCtx(o,h,l,c,ts){
     stdir:supertrendDir(h,l,c,10,3),vwap:vwapArr(h,l,c,ts),cci:cciArr(h,l,c,14),wr:willrArr(h,l,c,14),
     sar:psarArr(h,l,c),tenkan:ich.tenkan,kijun:ich.kijun,ha:heikinDirArr(o,h,l,c)};
 }
-/* ---------- 16 strategies: 8 classics + 8 leading-web additions ---------- */
+/* ---------- 26 strategies: 16 classics + 10 fast-scan additions ---------- */
 const STRATS={
  'EMA 9/21 cross':(i,x)=>x.e9[i]>x.e21[i]&&x.c[i]>x.e50[i]?'CALL':x.e9[i]<x.e21[i]&&x.c[i]<x.e50[i]?'PUT':null,
  'MACD 5-35-5':(i,x)=>x.mh[i]>0&&x.mh[i]>x.mh[i-1]?'CALL':x.mh[i]<0&&x.mh[i]<x.mh[i-1]?'PUT':null,
@@ -1703,6 +1906,44 @@ const STRATS={
      :x.ndi[i]>x.pdi[i]&&x.ndi[i-1]<=x.pdi[i-1]&&x.adx[i]>20?'PUT':null;},
  'Heikin-Ashi flip':(i,x)=>{if(i<3)return null;
    return x.ha[i]===1&&x.ha[i-1]===-1?'CALL':x.ha[i]===-1&&x.ha[i-1]===1?'PUT':null;},
+ 'TRIX 14 flip':(i,x)=>{if(i<45)return null;                       /* triple-EMA momentum flip */
+   const t=ema(ema(ema(x.c,14),14),14);
+   return t[i]>t[i-1]&&t[i-1]<=t[i-2]?'CALL':t[i]<t[i-1]&&t[i-1]>=t[i-2]?'PUT':null;},
+ 'Awesome Oscillator':(i,x)=>{if(i<36)return null;                 /* SMA5-SMA34 of median price crossing zero */
+   const mid=k=>(x.h[k]+x.l[k])/2;
+   const mean=(a,b)=>{let s=0;for(let k=a;k<=b;k++)s+=mid(k);return s/(b-a+1);};
+   const ao=mean(i-4,i)-mean(i-33,i);          /* AO on the decision candle */
+   const ao1=mean(i-5,i-1)-mean(i-34,i-1);     /* AO one candle earlier */
+   return ao>0&&ao1<=0?'CALL':ao<0&&ao1>=0?'PUT':null;},
+ 'Chande Momentum 14':(i,x)=>{if(i<16)return null;                 /* CMO ±50 thrust */
+   let up=0,dn=0;
+   for(let k=i-13;k<=i;k++){const d=x.c[k]-x.c[k-1]; if(d>0)up+=d; else dn-=d;}
+   const cmo=(up-dn)/((up+dn)||1e-9)*100;
+   return cmo>50&&x.mh[i]>0?'CALL':cmo<-50&&x.mh[i]<0?'PUT':null;},
+ 'Envelope 20 stretch':(i,x)=>{if(i<21)return null;                /* SMA20 ±0.08% band snapback */
+   const m=sma(x.c,20)[i], band=m*0.0008;
+   return x.c[i]<m-band&&x.c[i]>x.c[i-1]?'CALL':x.c[i]>m+band&&x.c[i]<x.c[i-1]?'PUT':null;},
+ 'Bollinger squeeze break':(i,x)=>{if(i<25)return null;            /* tight BB then band break */
+   const wNow=x.bb.up[i]-x.bb.lo[i], wPrev=x.bb.up[i-10]-x.bb.lo[i-10];
+   const squeeze=wNow<wPrev*0.6;
+   return squeeze&&x.c[i]>x.bb.up[i]?'CALL':squeeze&&x.c[i]<x.bb.lo[i]?'PUT':null;},
+ 'Fractal breakout':(i,x)=>{if(i<15)return null;                   /* break of the last 10-bar fractal */
+   let fh=-Infinity,fl=Infinity;
+   for(let k=i-10;k<i;k++){ if(x.h[k]>fh)fh=x.h[k]; if(x.l[k]<fl)fl=x.l[k]; }
+   return x.c[i]>fh&&x.c[i-1]<=fh?'CALL':x.c[i]<fl&&x.c[i-1]>=fl?'PUT':null;},
+ 'EMA 50 pullback':(i,x)=>{if(i<52)return null;                    /* trend pullback that reclaims EMA50 */
+   const up=x.e21[i]>x.e50[i], dn=x.e21[i]<x.e50[i];
+   return up&&x.l[i]<x.e50[i]&&x.c[i]>x.e50[i]?'CALL':dn&&x.h[i]>x.e50[i]&&x.c[i]<x.e50[i]?'PUT':null;},
+ 'ROC 9 zero cross':(i,x)=>{if(i<10)return null;                   /* rate-of-change flip */
+   const roc=(x.c[i]-x.c[i-9])/(x.c[i-9]||1e-9)*100;
+   const roc1=(x.c[i-1]-x.c[i-10])/(x.c[i-10]||1e-9)*100;
+   return roc>0&&roc1<=0?'CALL':roc<0&&roc1>=0?'PUT':null;},
+ 'Stoch + RSI combo':(i,x)=>{if(i<15)return null;                 /* double-oscillator exhaustion */
+   return x.st[i]<25&&x.rs[i]<35?'CALL':x.st[i]>75&&x.rs[i]>65?'PUT':null;},
+ '3-bar reversal':(i,x)=>{if(i<4)return null;                      /* two fades then a reclaim close */
+   const body=k=>Math.abs(x.c[k]-x.o[k]);
+   return x.c[i-2]<x.o[i-2]&&x.c[i-1]<x.o[i-1]&&x.c[i]>x.o[i]&&x.c[i]>x.o[i-1]&&body(i)>body(i-1)?'CALL'
+     :x.c[i-2]>x.o[i-2]&&x.c[i-1]>x.o[i-1]&&x.c[i]<x.o[i]&&x.c[i]<x.o[i-1]&&body(i)>body(i-1)?'PUT':null;},
 };
 const NS=()=>Object.keys(STRATS).length;
 
@@ -1877,24 +2118,21 @@ function validateSetup(fx,vol,regime,opt){ /* validation filter: reject weak / u
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ✅ CONFIRMED SETTLEMENT — the win/loss verdict engine
+   ✅ FAST CONFIRMED SETTLEMENT — the win/loss verdict engine
    • targets are keyed to the FEED clock (not the device clock)
-   • a signal settles only when the snapshot was fetched AFTER the
-     target candle closed AND the feed already carries a newer candle
-     (M1) — the graded values are final, never in-flight
+   • a signal settles the moment a snapshot fetched AFTER the target
+     candle's close carries that bar — no extra confirming-candle wait,
+     so verdicts land seconds after the close instead of a minute later
    • close == open is a PUSH (tie): stake refunded, never a LOSS
    ═══════════════════════════════════════════════════════════════════ */
 function nextTargetFromFeed(lastTs,tfMs){ return Math.floor(lastTs/tfMs)*tfMs+tfMs; }
 function candleData(pair,tf,targetT){
   const ck=cache[pair]; if(!ck||!targetT) return null;
   const tfMs=TFS[tf].ms;
-  if(ck.t < targetT+tfMs) return null;                    /* snapshot predates the target close → wait */
+  if(ck.t < targetT+tfMs+800) return null;                /* snapshot predates the target close → wait a beat */
   const series = tf==='M3' ? ck.m3 : ck.m1;
   const idx=series.findIndex(cv=>cv.ts===targetT);
   if(idx<0) return null;
-  /* M1 confirmation: the target bar must not still be the newest bar unless
-     the snapshot is a full window past its close (lagging-feed safety). */
-  if(tf==='M1' && idx===series.length-1 && ck.t < targetT+2*tfMs) return null;
   const t=series[idx];
   return {o:t.o,c:t.c,ts:t.ts};
 }
@@ -1951,9 +2189,11 @@ function resolveSignal(sig,res,out){ /* single settlement path for every stream 
   beep(res);
   if(res==='loss'&&streak>=3&&navigator.vibrate) navigator.vibrate([200,100,200,100,400]);
   else if(navigator.vibrate) navigator.vibrate(res==='win'?[60,30,60]:res==='loss'?200:40);
-  /* downstream streams */
-  if(sig.botSent) botSettleVerify(sig,res,out);
+  /* downstream streams — exactly ONE path per signal (no double stickers/messages) */
   if(sig.sx) sxOnSettled(sig,res,out);
+  else if(sig.vip) vxOnSettled(sig,res,out);
+  else if(sig.pub) pubOnSettled(sig,res,out);
+  else if(sig.botSent) botSettleVerify(sig,res,out);
   renderReady();
 }
 function settleAll(){
@@ -1969,7 +2209,9 @@ function settleAll(){
   renderBrain(lastW[brainTf]); renderPaper(); renderPerf();
   if(touched) livePairsRender();
 }
-/* settlement fetcher: verdicts always arrive, even when auto-scan is off */
+/* settlement fetcher: verdicts always arrive, even when auto-scan is off.
+   FAST MODE: due pendings fetch in parallel and retry every ~4s — the
+   verdict lands seconds after the candle close, not on the next slow tick. */
 let settleFetchBusy=false;
 function settlementFetches(){
   if(settleFetchBusy||!keyPool().length||isWeekendWindow()) return;
@@ -1977,25 +2219,24 @@ function settlementFetches(){
   const pend=[];
   for(const s of openSigs) if(!s.settled) pend.push({pair:s.pair,tf:s.tf,targetT:s.targetT});
   if(px&&Array.isArray(px.rows)) for(const r of px.rows) if(!r.out) pend.push({pair:r.pair,tf:'M1',targetT:r.targetT});
-  let pick=null;
+  if(vx&&Array.isArray(vx.shots)) for(const r of vx.shots) if(!r.out) pend.push({pair:r.pair,tf:'M1',targetT:r.targetT});
+  const due=new Map();
   for(const p of pend){
-    if(now < p.targetT+TFS[p.tf].ms+2000) continue;      /* not due yet */
+    if(now < p.targetT+TFS[p.tf].ms+2200) continue;      /* not due yet */
     if(candleData(p.pair,p.tf,p.targetT)) continue;      /* already settleable from cache */
-    pick=p; break;
+    due.set(p.pair,p);                                   /* one fetch per pair is enough */
   }
-  if(!pick) return;
+  if(!due.size) return;
   settleFetchBusy=true;
-  apiTimeSeries(pick.pair,{maxAge:0,quiet:true})
-    .then(()=>{ settleAll(); settlePrem(); livePairsRender(); })
-    .catch(()=>{})
+  Promise.all([...due.values()].slice(0,10).map(p=>apiTimeSeries(p.pair,{maxAge:0,quiet:true}).catch(()=>null)))
+    .then(()=>{ settleAll(); settlePrem(); settleVip(); livePairsRender(); })
     .finally(()=>{ settleFetchBusy=false; });
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   🎯 SESSION ENGINE — intro sticker → 1 signal/minute → verify →
-   WIN = random win sticker · LOSS = OTM 💔 message (no sticker) →
-   until the win target → summary + 2 outro stickers.
-   Quality guard: 2 straight losses pause 5 min; N losses stop all.
+   🎯 SESSION ENGINE — quality floor never decays → signal → fast
+   verdict → stickers only where you assigned them → win target →
+   summary + outro stickers. Quality guard stops degraded conditions.
    ═══════════════════════════════════════════════════════════════════ */
 const DEF_SX={status:'idle',target:7,guard:3,wins:0,losses:0,pushes:0,consecLoss:0,
   startedAt:0,huntStart:0,pausedUntil:0,current:null,introSent:false,hist:[]};
@@ -2008,10 +2249,9 @@ function sxLog(m){ sx.hist.unshift('['+new Date().toTimeString().slice(0,8)+'] '
   const el=$('sessLog'); if(el) el.innerHTML=sx.hist.map(l=>'<div>'+esc(l)+'</div>').join('');
   saveSx(); }
 function sxFloorNow(){
-  const base=Math.max(55,+(risk.premiumMin||78));
-  if(sx.status!=='hunting'||!sx.huntStart) return base;
-  const steps=Math.floor((Date.now()-sx.huntStart)/8000);
-  return Math.max(55,base-3*steps);
+  /* QUALITY ONLY: the session floor never decays below the operator's min score —
+     it waits for a quality signal instead of forcing low-grade shots. */
+  return Math.max(55,+(risk.premiumMin||78));
 }
 function sxStart(){
   if(['intro','hunting','waiting','paused'].includes(sx.status)){
@@ -2025,13 +2265,14 @@ function sxStart(){
   pushNote('session','🎯 SESSION started — target '+sx.target+' wins');
   (async()=>{
     if(tgReady()){
-      const sent=await tgSendStickers('intro');
+      const sent=await tgSticker('session','main','sx-start-'+sx.startedAt);
       sx.introSent=!!sent; saveSx();
-      if(!sent) sxLog('⚠ no INTRO sticker captured — skipped (TELEGRAM page → sticker bank)');
+      if(sent) sxLog('▶ SESSION START sticker delivered → '+chatLabel('main'));
+      else sxLog('ℹ no SESSION START sticker assigned — none sent (assign one on the TELEGRAM page → sticker bank)');
     } else sxLog('⚠ Telegram not authorized — running locally (paper). Authorize to broadcast.');
     if(sx.status!=='intro') return;                 /* stopped while awaiting */
     sx.status='hunting'; sx.huntStart=Date.now(); saveSx(); renderSess();
-    sxLog('⚡ hunting first signal — guaranteed within 60 s');
+    sxLog('⚡ hunting the first QUALITY signal — the floor never drops');
     runScan(true,{hunt:true});
   })();
 }
@@ -2054,31 +2295,32 @@ function sxTick(){
   const ck=cache[leadPair];
   const age=ck?now-ck.t:Infinity;
   if(!busy&&age>12000&&now-sxLastScan>9000){ sxLastScan=now; runScan(false,{hunt:true}); }
-  if(now-sx.huntStart>25000&&!sx.current){ sxForce(); sx.huntStart=now; }  /* the 60-second guarantee, with margin */
+  if(now-sx.huntStart>30000&&!sx.current){ sxForce(); sx.huntStart=now; }  /* quality retry pass — never forces a low grade */
 }
 function sxClaim(sig){
   sx.current={id:sig.id,pair:sig.pair,tf:sig.tf,time:sig.time,dir:sig.dir,targetT:sig.targetT,grade:sig.grade,score:sig.score};
-  sig.sx=true; saveOpen();
+  sig.sx=true; sig.origin='session'; saveOpen();
   sx.status='waiting'; saveSx(); renderSess();
-  sxLog('⚡ SIGNAL #'+(sx.wins+sx.losses+sx.pushes+1)+' claimed — '+sigLine(sig)+' · score '+Math.round(sig.score||0)+(sig.forced?' · forced (60-s guarantee)':''));
+  sxLog('⚡ SIGNAL #'+(sx.wins+sx.losses+sx.pushes+1)+' claimed — '+sigLine(sig)+' · score '+Math.round(sig.score||0));
   pushNote('session','🎯 session signal live — '+sigLine(sig));
   if(tgReady()){
-    tgSend(msgSessionSignal(sig))
-      .then(()=>tgLog('🎯 session signal sent to '+tgChat()))
+    tgSendTo('main',msgSignal(sig))
+      .then(()=>tgLog('🎯 session signal sent → '+chatLabel('main')))
       .catch(e=>tgLog('❌ session signal failed: '+sanitizeErr(e.message)));
   }
 }
-function sxForce(){ /* the 60-second guarantee: best available direction, safety gates still hard */
+function sxForce(){ /* quality retry pass: best pair that clears the FLOOR — low grades are never forced */
   const nowF=Date.now();
-  const logOnce=m=>{ if(nowF-(sx.lastForceLog||0)>15000){ sx.lastForceLog=nowF; sxLog(m); } };  /* retried every tick — never spam */
+  const logOnce=m=>{ if(nowF-(sx.lastForceLog||0)>15000){ sx.lastForceLog=nowF; sxLog(m); } };
   const wl=watch();
-  let pair=null,ck=null;
-  for(const p of wl){ const c2=cache[p]; if(c2&&(!ck||c2.t>ck.t)){ pair=p; ck=c2; } }
-  if(!ck){ logOnce('⚠ forced signal needs candles — fetching…'); if(!busy&&nowF-sxLastScan>9000){ sxLastScan=nowF; runScan(false,{hunt:true}); } return; }
+  let best=null;
+  for(const p of wl){ const c2=cache[p]; if(c2&&(!best||c2.t>cache[best])) best=p; }
+  if(!best){ logOnce('⚠ hunting needs candles — fetching…'); if(!busy&&nowF-sxLastScan>9000){ sxLastScan=nowF; runScan(false,{hunt:true}); } return; }
+  const ck=cache[best];
   const gate=candleGate(ck.m1), sess=sessionGate(new Date());
-  if(!gate.ok){ logOnce('⛔ forced signal blocked: '+gate.reason); return; }
-  if(isWeekendWindow()||!sess.ok){ logOnce('⛔ forced signal blocked: '+(sess.ok?'market closed':sess.reason)); return; }
-  if(blackoutOn()){ logOnce('⛔ forced signal blocked: news blackout is ON'); return; }
+  if(!gate.ok){ logOnce('⛔ hunt blocked: '+gate.reason); return; }
+  if(isWeekendWindow()||!sess.ok){ logOnce('⛔ hunt blocked: '+(sess.ok?'market closed':sess.reason)); return; }
+  if(blackoutOn()){ logOnce('⛔ hunt blocked: news blackout is ON'); return; }
   const series=ck.m1;
   const o=series.map(v=>v.o),h=series.map(v=>v.h),l=series.map(v=>v.l),c=series.map(v=>v.c),tsArr=series.map(v=>v.ts);
   const x=makeCtx(o,h,l,c,tsArr);
@@ -2086,16 +2328,16 @@ function sxForce(){ /* the 60-second guarantee: best available direction, safety
   const body=Math.abs(c[i]-o[i]), range=h[i]-l[i];
   const upW=h[i]-Math.max(o[i],c[i]), dnW=Math.min(o[i],c[i])-l[i];
   const doji=range>0&&body/range<0.25&&upW<range*0.55&&dnW<range*0.55;
-  if(doji){ logOnce('👿 forced signal blocked: doji candle — retrying every tick'); return; }
+  if(doji){ logOnce('👿 doji candle — waiting for a cleaner decision candle'); return; }
   const regime=detectRegimeAt(x,i);
   const weights=finalWeights(train(x),regime.boost,'M1',regime.label);
   const vote=strategyVote(i,x,weights);
   const fx=fuse(vote,agTrend(i,x),agMomentum(i,x),agPattern(i,x),agStructure(i,x));
+  if(!fx.dir){ logOnce('⏳ no directional consensus yet — quality over speed, still hunting'); return; }
   const vol=agVol(i,x);
-  let dir=fx.dir, score=fx.dir?scoreOf(fx,vol):50, grade=fx.dir?'B−':'C', note=fx.dir?'relaxed hunt floor '+sxFloorNow():'last-resort micro-tilt';
-  if(!dir){ const lr=lastResortDir(x,i); dir=lr.dir; }
-  sxLog('⏱ 60-s guarantee fired — '+note);
-  emitSignal({pair,tf:'M1',dir,score,grade,fx,vol,regime,vote,forced:true,forcedNote:note});
+  const score=scoreOf(fx,vol);
+  if(score<sxFloorNow()){ logOnce('⏳ best score '+score.toFixed(0)+' is below the floor '+Math.round(sxFloorNow())+' — waiting for quality'); return; }
+  emitSignal({pair:best,tf:'M1',dir:fx.dir,score,grade:gradeOf(score),fx,vol,regime,vote});
 }
 function sxOnSettled(sig,res,out){
   if(!sx.current||sx.current.id!==sig.id) return;   /* stale claim */
@@ -2105,25 +2347,28 @@ function sxOnSettled(sig,res,out){
     sx.wins++; sx.consecLoss=0;
     sxLog('✅ WIN #'+sx.wins+'/'+sx.target+' — '+sigLine(sig)+oc);
     pushNote('session','🏆 SESSION WIN '+sx.wins+'/'+sx.target+' — '+sigLine(sig));
-    if(tgReady()) tgSend(msgSessionVerdict('win',sig,out))
-      .then(()=>tgSendStickers('win'))
+    if(tgReady()) tgSendTo('main',msgVerdict('win',sig,out))
+      .then(()=>tgSticker('win','main','sig-'+sig.id))
       .catch(e=>tgLog('❌ win verdict failed: '+sanitizeErr(e.message)));
   } else if(res==='loss'){
     sx.losses++; sx.consecLoss++;
-    sxLog('❌ LOSS 💔 — '+sigLine(sig)+oc+' · OTM message sent (no sticker — stickers are wins only)');
-    pushNote('session','💔 SESSION LOSS — '+sigLine(sig)+' · OTM');
-    if(tgReady()) tgSend(msgSessionVerdict('loss',sig,out))
+    sxLog('❌ LOSS 💔 — '+sigLine(sig)+oc);
+    pushNote('session','💔 SESSION LOSS — '+sigLine(sig));
+    if(tgReady()) tgSendTo('main',msgVerdict('loss',sig,out))
+      .then(()=>tgSticker('loss','main','sig-'+sig.id))
       .catch(e=>tgLog('❌ loss verdict failed: '+sanitizeErr(e.message)));
   } else {
     sx.pushes++;
     sxLog('➖ PUSH (tie) — '+sigLine(sig)+' · stake back, not counted');
-    if(tgReady()) tgSend(msgSessionVerdict('push',sig,out)).catch(()=>{});
+    if(tgReady()) tgSendTo('main',msgVerdict('push',sig,out))
+      .then(()=>tgSticker('push','main','sig-'+sig.id))
+      .catch(()=>{});
   }
   saveSx();
   if(sx.wins>=sx.target){ sxComplete(); return; }
   if(res==='loss'&&sx.losses>=sx.guard){
     sxStop('QUALITY GUARD — '+sx.losses+' losses hit the guard limit');
-    if(tgReady()) tgSend(msgSessionAbort(sx)).catch(()=>{});
+    if(tgReady()) tgSendTo('main',msgSessionAbort(sx)).catch(()=>{});
     return;
   }
   if(res==='loss'&&sx.consecLoss>=2){
@@ -2132,7 +2377,7 @@ function sxOnSettled(sig,res,out){
     pushNote('session','⏸ session paused 5 min after 2 straight losses');
   } else {
     sx.status='hunting'; sx.huntStart=Date.now();
-    sxLog('⚡ hunting the next signal — within 60 s');
+    sxLog('⚡ hunting the next QUALITY signal');
   }
   saveSx(); renderSess();
 }
@@ -2142,9 +2387,13 @@ function sxComplete(){
   const dec=sx.wins+sx.losses;
   sxLog('🏆 SESSION COMPLETE — '+sx.wins+' wins · '+sx.losses+' losses · '+sx.pushes+' pushes in ~'+mins+' min');
   pushNote('session','🏆 SESSION COMPLETE — '+sx.wins+'/'+sx.target+' wins ('+(dec?Math.round(sx.wins/dec*100):0)+'% decisive)');
-  if(tgReady()) tgSend(msgSessionComplete(sx,mins))
-    .then(()=>tgSendStickers('outro'))
-    .catch(e=>tgLog('❌ session summary failed: '+sanitizeErr(e.message)));
+  if(tgReady()) (async()=>{
+    try{
+      await tgSendTo('main',msgSessionComplete(sx,mins));
+      await tgSticker('outro1','main','sx-outro1-'+sx.startedAt);
+      await tgSticker('outro2','main','sx-outro2-'+sx.startedAt);
+    }catch(e){ tgLog('❌ session summary failed: '+sanitizeErr(e.message)); }
+  })();
   saveSx(); renderSess();
 }
 function renderSess(){
@@ -2165,11 +2414,11 @@ function renderSess(){
   if(sx.status==='waiting'&&sx.current){
     nowL.textContent=sigLine(sx.current)+' ·'+(sx.current.grade||'');
     const closeIn=Math.max(0,Math.ceil((sx.current.targetT+TFS[sx.current.tf].ms-now)/1000));
-    nowS.textContent='signal live — verdict in ~'+closeIn+'s (confirmed candle close) · WIN → 🎉 sticker · LOSS → 💔 OTM';
+    nowS.textContent='signal live — verdict ~'+closeIn+'s after the candle close (fast settlement)';
   } else if(sx.status==='hunting'){
     const left=Math.max(0,60-Math.floor((now-(sx.huntStart||now))/1000));
-    nowL.textContent='⚡ HUNTING SIGNAL…';
-    nowS.textContent='guaranteed within '+left+'s · quality floor '+Math.round(sxFloorNow())+' (decays from '+Math.round(risk.premiumMin||78)+')';
+    nowL.textContent='⚡ HUNTING A QUALITY SIGNAL…';
+    nowS.textContent='floor '+Math.round(sxFloorNow())+' — the floor never drops, low grades are never forced';
   } else if(sx.status==='paused'){
     nowL.textContent='⏸ PAUSED — cooldown';
     nowS.textContent='auto-resumes in '+Math.max(0,Math.ceil((sx.pausedUntil-now)/1000))+'s (2 straight losses)';
@@ -2178,20 +2427,19 @@ function renderSess(){
     nowS.textContent=sx.wins+' wins · '+sx.losses+' losses · '+sx.pushes+' pushes — press START for a new session';
   } else if(sx.status==='intro'){
     nowL.textContent='▶ SENDING INTRO STICKER…';
-    nowS.textContent='then hunting starts — first signal within one minute';
+    nowS.textContent='then hunting starts — first QUALITY signal (the floor never drops)';
   } else {
     nowL.textContent='SESSION IDLE';
-    nowS.textContent='press START SESSION — first signal within one minute';
+    nowS.textContent='press START SESSION — quality signals until the win target';
   }
   $('sessStatus').textContent='session: '+sx.status+' · '+sx.wins+'/'+sx.target+' wins · '+sx.losses+' losses (guard '+sx.guard+') · '+sx.pushes+' pushes';
   const el=$('sessLog'); if(el&&sx.hist.length) el.innerHTML=sx.hist.map(l=>'<div>'+esc(l)+'</div>').join('');
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   📊 PREMIUM LIST ENGINE — intro sticker → 10-min market study →
-   sure-shot windows 4 min apart (NONE inside the study window) →
-   list to channel → verified outcomes → one RESULT with ✅/❌ + 2
-   outro stickers. Projections use multi-timeframe consensus only.
+   📊 PREMIUM LIST ENGINE — 10-min market study → sure-shot windows
+   4 min apart (NONE inside the study window) → list to the LIST
+   channel → verified outcomes → one RESULT + assigned stickers.
    ═══════════════════════════════════════════════════════════════════ */
 const STUDY_MS=600000;    /* 10-minute study */
 const PREM_GAP_MS=240000; /* 4-minute spacing between trade times */
@@ -2224,11 +2472,7 @@ function premStart(manual){
   premLog('📊 PREMIUM LIST started — 10-minute market study, then up to '+px.size+' sure-shot signals 4 min apart');
   pushNote('premium','📊 PREMIUM study started — list scheduled in 10 min');
   (async()=>{
-    if(tgReady()){
-      const sent=await tgSendStickers('intro');
-      px.introSent=!!sent; savePx();
-      if(!sent) premLog('⚠ no INTRO sticker captured — skipped (TELEGRAM page → sticker bank)');
-    } else premLog('⚠ Telegram not authorized — running locally. Authorize to broadcast the list.');
+    if(!tgReady()) premLog('⚠ Telegram not authorized — running locally. Authorize to broadcast the list.');
     if(px.status!=='intro') return;
     px.status='study'; savePx(); renderPred();
     if(manual) runScan(true);
@@ -2426,27 +2670,48 @@ function renderPred(){
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   📨 TELEGRAM DELIVERY (strict authorization, masked token)
-   Sends via api.telegram.org with form-encoded POST (no CORS preflight).
+   📨 TELEGRAM DELIVERY — 4 channels · bot-configured formats · full
+   sticker control. Sends via api.telegram.org form-encoded POST.
    A bot can never start chats — users must /start the bot first.
    ═══════════════════════════════════════════════════════════════════ */
-const DEF_TG={token:'',chatId:'',brand:'NEXUS',stickers:{intro:'',win:[],outro:['','']},styleMode:'house',
+const DEF_TG={token:'',chatId:'',brand:'NEXUS',vipChat:'',listChat:'',
+  stk:{session:'',win:[],loss:'',push:'',vip:'',list:'',result:'',outro1:'',outro2:''},
+  fmts:{},
   auth:false,auto:false,protect:true,listen:false,lastUpd:0,log:[],
-  botAuto:false,botVerify:true,pubChat:'',pubAuto:false,listTpl:null,resultTpl:null};
+  botAuto:false,botVerify:true,pubChat:'',pubAuto:false,pubStream:false,vipStream:false};
 let tg=Object.assign({},DEF_TG,loadJSON('nx_tg',null)||{});
 if(!Array.isArray(tg.log)) tg.log=[];
-if(!tg.stickers||typeof tg.stickers!=='object') tg.stickers={intro:'',win:[],outro:['','']};
-if(!Array.isArray(tg.stickers.win)) tg.stickers.win=[];
-if(!Array.isArray(tg.stickers.outro)||tg.stickers.outro.length<2)
-  tg.stickers.outro=[(tg.stickers.outro&&tg.stickers.outro[0])||'',''];
-if(typeof tg.sticker==='string'&&tg.sticker&&!tg.stickers.win.length) tg.stickers.win.push(tg.sticker); /* legacy single sticker → win bank */
-delete tg.sticker;
-if(tg.styleMode!=='verbatim') tg.styleMode='house';
+/* --- sticker bank migration: v5 intro/win/outro → per-event roles --- */
+(function migrateStk(){
+  if(!tg.stk||typeof tg.stk!=='object') tg.stk=Object.assign({},DEF_TG.stk);
+  const old=tg.stickers;
+  if(old&&typeof old==='object'){
+    if(old.intro&&!tg.stk.session) tg.stk.session=old.intro;
+    if(Array.isArray(old.win)) for(const w of old.win) if(w&&!tg.stk.win.includes(w)) tg.stk.win.push(w);
+    if(Array.isArray(old.outro)){ if(old.outro[0]&&!tg.stk.outro1) tg.stk.outro1=old.outro[0];
+      if(old.outro[1]&&!tg.stk.outro2) tg.stk.outro2=old.outro[1]; }
+  }
+  if(typeof tg.sticker==='string'&&tg.sticker&&!tg.stk.win.length) tg.stk.win.push(tg.sticker);
+  delete tg.stickers; delete tg.sticker;
+  if(!Array.isArray(tg.stk.win)) tg.stk.win=[];
+  for(const r of ['session','loss','push','vip','list','result','outro1','outro2'])
+    if(typeof tg.stk[r]!=='string') tg.stk[r]='';
+  delete tg.styleMode; delete tg.listTpl; delete tg.resultTpl;   /* v5 style capture → format engine */
+  if(!tg.fmts||typeof tg.fmts!=='object') tg.fmts={};
+})();
 function saveTg(){ store.set('nx_tg',JSON.stringify(tg)); }
 function tgToken(){ const v=String(window.NEXUS_TG_TOKEN||'').trim(); return v||String(tg.token||'').trim(); }
 function tgChat(){ const v=String(window.NEXUS_TG_CHAT||'').trim(); return v||String(tg.chatId||'').trim(); }
 function tgReady(){ return !!(tgToken()&&tgChat()&&tg.auth); }
 function tgBrandName(){ return (String(tg.brand||'NEXUS').trim().slice(0,24))||'NEXUS'; }
+function chatFor(kind){ /* main · pub · vip · list — empty extras fall back to MAIN */
+  if(kind==='pub'){ const v=String(tg.pubChat||'').trim(); return v||tgChat(); }
+  if(kind==='vip'){ const v=String(tg.vipChat||'').trim(); return v||tgChat(); }
+  if(kind==='list'){ const v=String(tg.listChat||'').trim(); return v||tgChat(); }
+  return tgChat();
+}
+function chatLabel(kind){ const c=chatFor(kind); const own=(kind==='pub'?tg.pubChat:kind==='vip'?tg.vipChat:kind==='list'?tg.listChat:'')||'';
+  return kind.toUpperCase()+(own?'':'→MAIN')+': '+(c||'none'); }
 function sanitizeErr(m){ const t=tgToken(); let s=String(m||'unknown error');
   if(t&&t.length>5) s=s.split(t).join('[token]'); return s.slice(0,150); }
 function tgLog(msg){ tg.log.unshift('['+new Date().toTimeString().slice(0,8)+'] '+msg);
@@ -2479,40 +2744,139 @@ function tgCall(method,params,retries){
   return p;
 }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-async function tgSend(text,extra){
+async function tgSend(text,extra){ /* MAIN chat */
   if(!tgReady()) throw new Error('Telegram not authorized — set token + chat id and enable AUTHORIZED');
   const params=Object.assign({chat_id:tgChat(),text,parse_mode:'HTML'},extra||{});
   if(tg.protect) params.protect_content='true';
-  return tgCall('sendMessage',params);
+  try{
+    const r=await tgCall('sendMessage',params);
+    sbRecordDelivery('main','other','sent',null,text,params.chat_id);   /* cloud mirror (no-op offline) */
+    return r;
+  }catch(e){
+    sbRecordDelivery('main','other','failed',String(e.message||e),text,params.chat_id);
+    throw e;
+  }
+}
+async function tgSendTo(kind,text){ /* any of the four channels */
+  if(!tgReady()) throw new Error('Telegram not authorized');
+  const dest=chatFor(kind);
+  if(!dest) throw new Error(kind+' channel not set');
+  const params={chat_id:dest,text,parse_mode:'HTML'};
+  if(tg.protect) params.protect_content='true';
+  try{
+    const r=await tgCall('sendMessage',params);
+    sbRecordDelivery(kind,'other','sent',null,text,dest);            /* cloud mirror (no-op offline) */
+    return r;
+  }catch(e){
+    sbRecordDelivery(kind,'other','failed',String(e.message||e),text,dest);
+    throw e;
+  }
 }
 
-/* ---------- 🎭 sticker bank: INTRO · WIN (random, wins only) · OUTRO ×2 ---------- */
-function winStickerPick(){ const b=tg.stickers.win.filter(Boolean);
-  return b.length?b[Math.floor(Math.random()*b.length)]:null; }
-async function tgSendStickers(role){
-  if(!tgReady()){ tgLog('⚠ stickers need AUTHORIZED Telegram output'); return false; }
-  const sendOne=fid=>tgCall('sendSticker',{chat_id:tgChat(),sticker:fid,protect_content:tg.protect?'true':'false'});
+/* ---------- 🎨 FORMAT ENGINE — your layout, texted to the bot, saved permanently ----------
+   Premium (custom) emoji can never be sent by a bot — Telegram only allows them from
+   Premium human accounts. Templates therefore carry normal emoji only and never fail. */
+const FMT_KINDS=['signal','vip','row','list','result','verdict'];
+const DEF_FMTS={
+  signal:'{pair} · *{dir}*\n🕐 {time} · 1 min',
+  vip:'💎 {pair} · *{dir}*\n🕐 {time} · 1 min\nGrade: {grade}',
+  row:'{pair} • {time};{dir}',
+  list:'*{brand} LIST — {date}*\n{tz}\n\n{rows}\n\nTrade time: 1 minute',
+  result:'*{brand} RESULT — {date}*\n\n{rows}\n\n✅ {win} · ❌ {loss} · ➖ {push}',
+  verdict:'{result} · {pair} {time}'
+};
+function fmtGet(kind){ return (tg.fmts&&tg.fmts[kind]!=null&&String(tg.fmts[kind]).length)?String(tg.fmts[kind]):DEF_FMTS[kind]; }
+function fmtSet(kind,tpl){
+  if(!FMT_KINDS.includes(kind)) return false;
+  tg.fmts[kind]=String(tpl).slice(0,2000); saveTg(); fmtRenderList();
+  return true;
+}
+function fmtReset(kind){
+  if(kind==='all'||!kind){ tg.fmts={}; saveTg(); fmtRenderList(); tgLog('🧹 all formats reset to defaults'); return true; }
+  if(!FMT_KINDS.includes(kind)) return false;
+  delete tg.fmts[kind]; saveTg(); fmtRenderList(); tgLog('🧹 '+kind+' format reset to default');
+  return true;
+}
+function fmtMarkup(s){ /* *bold* · _italic_ · `code` — everything else is plain */
+  let t=esc(String(s));
+  t=t.replace(/\*([^*\n]+)\*/g,'<b>$1</b>')
+     .replace(/`([^`\n]+)`/g,'<code>$1</code>')
+     .replace(/(^|[\s(])_([^_\n]+)_(?=$|[\s).,!?:;])/g,'$1<i>$2</i>');
+  return t;
+}
+function renderFmt(kind,ctx){
+  let s=fmtGet(kind);
+  const rows=ctx&&ctx.rows;
+  if(rows!=null) s=s.split('{rows}').join('\u0000ROWS\u0000');
+  if(ctx) for(const k in ctx){ if(k==='rows') continue; s=s.split('{'+k+'}').join(String(ctx[k])); }
+  s=s.replace(/\{rows\}/g,'').replace(/\{[a-z_]+\}/g,'');   /* unknown placeholders → nothing */
+  let html=fmtMarkup(s);
+  if(rows!=null) html=html.split('\u0000ROWS\u0000').join(rows.join('\n'));
+  return html;
+}
+function sigCtx(sig){ return {pair:PAIRCODE(sig.pair),dir:sig.dir,time:sig.time,
+  grade:String(sig.grade||'B'),score:Math.round(sig.score||0),brand:tgBrandName(),
+  date:displayDate(),tz:tzLabel(),expiry:'1 min',count:(sx.wins+sx.losses+sx.pushes+1)}; }
+function rowCtx(r){ return {pair:PAIRCODE(r.pair),time:r.time,dir:r.dir,
+  tick:!r.out?'⏳':r.out==='win'?'✅':r.out==='loss'?'❌':'➖'}; }
+function msgSignal(sig){ return renderFmt('signal',sigCtx(sig)); }
+function msgVip(sig){ return renderFmt('vip',sigCtx(sig)); }
+function msgVerdict(res,sig,out){
+  return renderFmt('verdict',{result:res==='win'?'✅ WIN':res==='loss'?'❌ LOSS':'➖ PUSH',
+    pair:PAIRCODE(sig.pair),dir:sig.dir,time:sig.time,
+    open:out?fmtPx(sig.pair,out.o):'—',close:out?fmtPx(sig.pair,out.c):'—',
+    brand:tgBrandName(),date:displayDate()});
+}
+function fmtRenderList(){
+  const el=$('fmtList'); if(!el) return;
+  el.innerHTML=FMT_KINDS.map(k=>{
+    const custom=tg.fmts&&tg.fmts[k]!=null;
+    return '<div class="usage-row" style="padding:7px 10px"><span class="k" style="flex:0 0 64px">'+k+(custom?' <span style="color:var(--win)">•</span>':'')+'</span>'
+      +'<code style="flex:1;white-space:pre-wrap;font-size:11px;color:var(--sub)">'+esc(fmtGet(k))+'</code>'
+      +(custom?('<button class="b-ghost" style="padding:3px 8px;font-size:10px" onclick="fmtReset(\''+k+'\')">✕</button>'):'')+'</div>';
+  }).join('');
+}
+function fmtDummyRows(){ return [{pair:'EUR/USD',time:'10:31',dir:'CALL',out:null},{pair:'GBP/JPY',time:'10:35',dir:'PUT',out:'win'}]
+  .map(r=>renderFmt('row',rowCtx(r))); }
+async function fmtPreview(kind){
+  if(!tgReady()){ tgLog('⚠ authorize Telegram first'); return; }
+  let text='';
+  if(kind==='signal') text=renderFmt('signal',sigCtx({pair:'EUR/USD',dir:'CALL',time:hhmmOf(Date.now()+60000),grade:'A',score:88}));
+  else if(kind==='vip') text=renderFmt('vip',sigCtx({pair:'EUR/USD',dir:'CALL',time:hhmmOf(Date.now()+60000),grade:'A+',score:90}));
+  else if(kind==='list') text=renderFmt('list',{brand:tgBrandName(),date:displayDate(),tz:tzLabel(),rows:fmtDummyRows()});
+  try{ await tgSendTo('main',text); tgLog('👁 '+kind+' format preview sent to MAIN'); }
+  catch(e){ tgLog('❌ preview failed: '+sanitizeErr(e.message)); }
+}
+
+/* ---------- 🎭 STICKER BANK — one assignable sticker per event, deduped, never random ----------
+   Roles: SESSION START · WIN (bank, random pick) · LOSS · PUSH · VIP · LIST · RESULT · OUTRO 1/2.
+   A role with no sticker assigned simply sends nothing — no unauthorized stickers, ever. */
+const STK_ROLES=[
+  {id:'session',label:'▶ SESSION START'},
+  {id:'win',label:'🏆 WIN (bank)'},
+  {id:'loss',label:'❌ LOSS'},
+  {id:'push',label:'➖ PUSH'},
+  {id:'vip',label:'💎 VIP SHOT'},
+  {id:'list',label:'📋 LIST POST'},
+  {id:'result',label:'🏁 RESULT'},
+  {id:'outro1',label:'🏁 OUTRO 1'},
+  {id:'outro2',label:'🏁 OUTRO 2'}];
+const stkDone=new Set();   /* once-keys — an event never fires its sticker twice */
+function stkPick(role){
+  if(role==='win'){ const b=(tg.stk.win||[]).filter(Boolean); return b.length?b[Math.floor(Math.random()*b.length)]:null; }
+  const v=tg.stk[role]; return v||null;
+}
+async function tgSticker(role,chatKind,onceKey){
+  if(!tgReady()){ return false; }
+  const fid=stkPick(role);
+  if(!fid) return false;                                     /* unassigned → silence, by design */
+  if(onceKey){ const k=role+'|'+onceKey; if(stkDone.has(k)) return false; stkDone.add(k); }
   try{
-    if(role==='intro'){
-      if(!tg.stickers.intro){ tgLog('⚠ no INTRO sticker captured — skipped'); return false; }
-      await sendOne(tg.stickers.intro); tgLog('▶ intro sticker sent'); return true;
-    }
-    if(role==='win'){
-      const fid=winStickerPick();
-      if(!fid){ tgLog('⚠ WIN bank empty — capture win stickers (losses never send stickers)'); return false; }
-      await sendOne(fid);
-      tgLog('🎉 win sticker sent (random of '+tg.stickers.win.filter(Boolean).length+')');
-      return true;
-    }
-    if(role==='outro'){
-      const list=tg.stickers.outro.filter(Boolean);
-      if(!list.length){ tgLog('⚠ no OUTRO stickers captured — skipped'); return false; }
-      for(const fid of list) await sendOne(fid);
-      tgLog('🏁 outro stickers sent ('+list.length+'/2)');
-      return true;
-    }
-  }catch(e){ tgLog('❌ sticker failed: '+sanitizeErr(e.message)); }
-  return false;
+    await tgCall('sendSticker',{chat_id:chatFor(chatKind),sticker:fid,protect_content:tg.protect?'true':'false'});
+    tgLog('🎭 '+role+' sticker → '+chatLabel(chatKind));
+    sbRecordDelivery(chatKind,'sticker','sent',null,'[sticker '+role+']',chatFor(chatKind));
+    return true;
+  }catch(e){ tgLog('❌ '+role+' sticker failed: '+sanitizeErr(e.message)); return false; }
 }
 let stPending=[];
 function stickerLabel(st){ return (st.emoji?st.emoji+' ':'')+(st.is_animated?'animated':st.is_video?'video':'static')+' · '+String(st.set_name||'custom'); }
@@ -2527,169 +2891,112 @@ async function pullStickers(){
       if(m&&m.sticker&&!stPending.some(p=>p.file_id===m.sticker.file_id)){
         stPending.push({file_id:m.sticker.file_id,label:stickerLabel(m.sticker)}); n++; } }
     saveTg(); renderStPending();
-    tgLog(n?('📥 '+n+' sticker(s) pulled — assign each: INTRO / WIN+ / OUTRO 1 / OUTRO 2')
+    tgLog(n?('📥 '+n+' sticker(s) pulled — assign each one to its event below')
           :'⚠ no new stickers in the inbox — send stickers to your bot in Telegram, then PULL again');
   }catch(e){ tgLog('❌ pull failed: '+sanitizeErr(e.message)); }
 }
 function assignSticker(i,role){
   const st=stPending[i]; if(!st) return;
-  if(role==='intro'){ tg.stickers.intro=st.file_id; tgLog('▶ INTRO sticker set'); }
-  else if(role==='win'){
-    if(tg.stickers.win.filter(Boolean).length>=12){ tgLog('⚠ WIN bank full (12) — clear one first'); return; }
-    if(!tg.stickers.win.includes(st.file_id)) tg.stickers.win.push(st.file_id);
-    tgLog('🏆 sticker added to the WIN bank ('+tg.stickers.win.filter(Boolean).length+') — losses never send stickers');
-  }
-  else if(role==='outro1'){ tg.stickers.outro[0]=st.file_id; tgLog('🏁 OUTRO 1 set'); }
-  else if(role==='outro2'){ tg.stickers.outro[1]=st.file_id; tgLog('🏁 OUTRO 2 set'); }
-  else return;
+  if(!STK_ROLES.some(r=>r.id===role)) return;
+  if(role==='win'){
+    if(tg.stk.win.filter(Boolean).length>=24){ tgLog('⚠ WIN bank full (24) — clear it first'); return; }
+    if(!tg.stk.win.includes(st.file_id)) tg.stk.win.push(st.file_id);
+  } else tg.stk[role]=st.file_id;
   stPending.splice(i,1);
   saveTg(); renderStPending(); renderStickers();
+  tgLog('🎭 sticker assigned to '+role.toUpperCase());
 }
 function stClear(role){
-  if(role==='intro') tg.stickers.intro='';
-  else if(role==='win') tg.stickers.win=[];
-  else if(role==='outro1') tg.stickers.outro[0]='';
-  else if(role==='outro2') tg.stickers.outro[1]='';
+  if(role==='win') tg.stk.win=[];
+  else if(tg.stk[role]!=null) tg.stk[role]='';
   else return;
   saveTg(); renderStickers(); tgLog('🧹 sticker slot cleared: '+role);
 }
 async function stTest(role){
-  if(!tgReady()){ tgLog('❌ authorize Telegram first (token + chat + AUTHORIZED)'); return; }
-  await tgSendStickers(role);
+  if(!tgReady()){ tgLog('❌ authorize Telegram first (token + MAIN chat + AUTHORIZED)'); return; }
+  const ok=await tgSticker(role,'main','test-'+Date.now());
+  if(!ok&&tgReady()) tgLog('⚠ no sticker assigned to '+role.toUpperCase()+' — assign one below (unassigned = never sent)');
 }
 function renderStPending(){
   const el=$('stPending'); if(!el) return;
   el.innerHTML=stPending.map((s,i)=>
     '<div class="stp"><span class="nm">🎭 '+esc(s.label)+' <span style="opacity:.5">'+esc(String(s.file_id).slice(0,12))+'…</span></span>'
-    +'<button class="b-ghost" onclick="assignSticker('+i+',\'intro\')">INTRO</button>'
-    +'<button class="b-ghost" onclick="assignSticker('+i+',\'win\')">WIN+</button>'
-    +'<button class="b-ghost" onclick="assignSticker('+i+',\'outro1\')">OUT1</button>'
-    +'<button class="b-ghost" onclick="assignSticker('+i+',\'outro2\')">OUT2</button>'
+    +STK_ROLES.map(r=>'<button class="b-ghost" onclick="assignSticker('+i+',\''+r.id+'\')">'+r.label.replace(/ \(bank\)/,'')+'</button>').join('')
     +'</div>').join('');
 }
 function renderStickers(){
-  const set=(id,val,empty)=>{ const el=$(id); if(!el)return; el.textContent=val||empty; el.className='val'+(val?'':' empty'); };
-  set('stIntro',tg.stickers.intro?('✅ '+String(tg.stickers.intro).slice(0,14)+'…'):'', 'empty — first message of SESSION & PREMIUM');
-  const wn=tg.stickers.win.filter(Boolean).length;
-  set('stWinList',wn?('✅ '+wn+' sticker'+(wn===1?'':'s')+' — a random one fires after every verified WIN'):'', 'empty — wins send a random one');
-  set('stOutro1',tg.stickers.outro[0]?('✅ '+String(tg.stickers.outro[0]).slice(0,14)+'…'):'', 'empty — completion sticker 1 of 2');
-  set('stOutro2',tg.stickers.outro[1]?('✅ '+String(tg.stickers.outro[1]).slice(0,14)+'…'):'', 'empty — completion sticker 2 of 2');
+  const el=$('stSlots'); if(!el) return;
+  el.innerHTML=STK_ROLES.map(r=>{
+    const val=r.id==='win'
+      ?((tg.stk.win||[]).filter(Boolean).length?('✅ '+tg.stk.win.filter(Boolean).length+' in bank'):'')
+      :(tg.stk[r.id]?('✅ '+String(tg.stk[r.id]).slice(0,14)+'…'):'');
+    return '<div class="stslot"><span class="role">'+r.label+'</span>'
+      +'<span class="val'+(val?'':' empty')+'" id="st_'+r.id+'">'+(val||'empty — none sent')+'</span>'
+      +'<button class="b-ghost" style="padding:4px 8px;font-size:10px" onclick="stTest(\''+r.id+'\')">TEST</button>'
+      +'<button class="b-danger" style="padding:4px 8px;font-size:10px" onclick="stClear(\''+r.id+'\')">✕</button></div>';
+  }).join('');
   const info=$('stInfo');
-  if(info) info.textContent='bank: intro '+(tg.stickers.intro?'✅':'—')+' · wins '+wn+' · outros '+tg.stickers.outro.filter(Boolean).length+'/2 — losses get the OTM 💔 message only, never a sticker';
-}
-async function tgCaptureSticker(){ /* legacy one-click: pull + auto-assign to the WIN bank */
-  await pullStickers();
-  if(stPending.length) assignSticker(stPending.length-1,'win');
+  if(info){ const n=STK_ROLES.filter(r=>r.id==='win'?(tg.stk.win||[]).filter(Boolean).length:tg.stk[r.id]).length;
+    info.textContent='bank: '+n+'/'+STK_ROLES.length+' roles assigned — every event fires at most once, and only if you assigned it'; }
 }
 
-/* ---------- house-style messages (bold brand · monospace rows · italic disclaimer) ---------- */
+/* ---------- messages: session / list / result / stats ---------- */
 const sigLine=s=>(s.tf||'M1')+';'+PAIRCODE(s.pair)+'•'+s.time+';'+s.dir;
-function tgRow(r,tick){ return 'M1;'+PAIRCODE(r.pair)+'•'+r.time+';'+r.dir
-  +(tick?(r.win===null?' ⏳':(r.win?' ✅':' ❌')):''); }
-function msgSessionSignal(sig){
-  const n=sx.wins+sx.losses+sx.pushes+1;
-  return '⚡ <b>'+esc(tgBrandName())+' SESSION — SIGNAL #'+n+'/'+sx.target+'</b>\n\n'
-    +'<code>'+esc(sigLine(sig))+'</code>\n'
-    +'Grade <b>'+esc(String(sig.grade||'B'))+'</b> · Score <b>'+Math.round(sig.score||0)+'</b> · enter at candle OPEN\n'
-    +'⏳ auto-verification after the candle closes\n\n'
-    +'<i>Paper-verified research — not financial advice.</i>';
-}
-function msgSessionVerdict(res,sig,out){
-  const oc=out?('\no '+fmtPx(sig.pair,out.o)+' → c '+fmtPx(sig.pair,out.c)+' · settled from the confirmed candle close')
-              :'\nsettled from the confirmed candle close';
-  if(res==='win')  return '✅ <b>WIN</b> — <code>'+esc(sigLine(sig))+'</code>'+oc+'\n🎉 verified by '+esc(tgBrandName());
-  if(res==='loss') return '❌ <b>LOSS</b> 💔 — <code>'+esc(sigLine(sig))+'</code>'+oc+'\n💔 OTM: one-step martingale on the next signal if you followed the plan';
-  return '➖ <b>PUSH (tie)</b> — <code>'+esc(sigLine(sig))+'</code>'+oc+'\nstake returned · not counted as win or loss';
-}
 function msgSessionComplete(st,mins){
   const dec=st.wins+st.losses;
-  return '🏆 <b>'+esc(tgBrandName())+' SESSION COMPLETE — '+st.wins+' WINS</b>\n\n'
-    +'✅ wins: <b>'+st.wins+'</b> · ❌ losses: <b>'+st.losses+'</b> · ➖ pushes: <b>'+st.pushes+'</b>\n'
-    +'Decisive hit rate: <b>'+(dec?Math.round(st.wins/dec*100):0)+'%</b> · duration ~'+mins+' min\n\n'
-    +'<i>Every verdict settled automatically from confirmed candle closes. Research output — not financial advice.</i>';
+  return '🏆 <b>'+esc(tgBrandName())+' SESSION COMPLETE</b>\n'
+    +'✅ '+st.wins+' · ❌ '+st.losses+' · ➖ '+st.pushes+'\n'
+    +'Hit rate: <b>'+(dec?Math.round(st.wins/dec*100):0)+'%</b> · ~'+mins+' min';
 }
 function msgSessionAbort(st){
-  return '🛑 <b>'+esc(tgBrandName())+' SESSION STOPPED — QUALITY GUARD</b>\n\n'
-    +'❌ '+st.losses+' losses hit the guard limit (✅ '+st.wins+' wins so far).\n'
-    +'Market conditions do not meet the bar — the engine refuses to keep firing.\n\n'
-    +'<i>Capital preservation first. Not financial advice.</i>';
-}
-function msgBotSignal(sig){
-  return '🤖 <b>BOT SIGNAL</b> — '+esc(tgBrandName())+'\n<code>'+esc(sigLine(sig))+'</code>\ngrade '+esc(String(sig.grade||'B'))
-    +' · score '+Math.round(sig.score||0)+' · enter at NEXT candle open\n<i>paper-first research — not financial advice</i>';
-}
-function msgBotVerdict(res,sig,out){
-  const oc=out?(' · o '+fmtPx(sig.pair,out.o)+' → c '+fmtPx(sig.pair,out.c)):'';
-  if(res==='win')  return '✅ <b>VERIFIED WIN</b> <code>'+esc(sigLine(sig))+'</code>'+oc+'\n<i>settled automatically from the confirmed candle close</i>';
-  if(res==='loss') return '❌ <b>VERIFIED LOSS</b> 💔 <code>'+esc(sigLine(sig))+'</code>'+oc+'\n💔 OTM: one-step martingale if you followed the plan\n<i>settled automatically from the confirmed candle close</i>';
-  return '➖ <b>PUSH (tie)</b> <code>'+esc(sigLine(sig))+'</code>'+oc+'\nstake returned · not counted\n<i>settled automatically from the confirmed candle close</i>';
+  return '🛑 <b>'+esc(tgBrandName())+' SESSION STOPPED — QUALITY GUARD</b>\n'
+    +'❌ '+st.losses+' losses (guard limit) · ✅ '+st.wins+' wins so far';
 }
 function msgList(){
   const rows=(px&&px.rows)||[];
-  if(tg.styleMode==='verbatim'&&tg.listTpl&&rows.length){
-    const t=applyTpl(tg.listTpl,rows.map(r=>({pair:r.pair,time:r.time,dir:r.dir,win:r.out==='win'?true:r.out==='loss'?false:null})),
-      {date:displayDate(),tz:tzLabel(),w:0,l:0});
-    if(t) return t;
-  }
-  if(!rows.length) return '📋 <b>'+esc(tgBrandName())+' PREMIUM SIGNAL</b>\n\nNo predictions scheduled yet — the engine is idle.';
-  return '📊 <b>'+esc(tgBrandName())+' PREMIUM SIGNAL</b> 🔔\n\n'
-    +'🗓 <b>DATE :- '+esc(displayDate())+'</b>\n'
-    +'🌍 <b>Timezone :- '+esc(tzLabel())+'</b>\n'
-    +'⏳ <b>Trade Time :- 1 Minute</b>\n'
-    +'📌 <b>IF NEED, USE 1 STEP MTG 📊</b>\n\n'
-    +rows.map(r=>'<code>'+esc('M1;'+PAIRCODE(r.pair)+'•'+r.time+';'+r.dir)+'</code>').join('\n')
-    +'\n\n🧪 <b>'+rows.length+' sure-shot windows</b> · 10-min market study · 4-min spacing · multi-timeframe consensus\n'
-    +'<i>Algorithmic research output — not financial advice. Risk of loss.</i>';
+  if(!rows.length) return '📋 <b>'+esc(tgBrandName())+' LIST</b>\n\nNo predictions scheduled yet — the engine is idle.';
+  return renderFmt('list',{brand:tgBrandName(),date:displayDate(),tz:tzLabel(),count:rows.length,
+    rows:rows.map(r=>renderFmt('row',rowCtx(r)))});
 }
 function msgResult(){
   const rows=(px&&px.rows)||[];
   const w=rows.filter(r=>r.out==='win').length, l=rows.filter(r=>r.out==='loss').length, pp=rows.filter(r=>r.out==='push').length;
-  if(tg.styleMode==='verbatim'&&tg.resultTpl&&rows.length){
-    const t=applyTpl(tg.resultTpl,rows.map(r=>({pair:r.pair,time:r.time,dir:r.dir,win:r.out==='win'?true:r.out==='loss'?false:null})),
-      {date:displayDate(),tz:tzLabel(),w,l});
-    if(t) return t;
-  }
-  const tickOf=r=>!r.out?' ⏳':r.out==='win'?' ✅':r.out==='loss'?' ❌':' ➖';
-  return '🏁 <b>RESULT — '+esc(displayDate())+'</b>\n\n'
-    +(rows.length?rows.map(r=>'<code>'+esc('M1;'+PAIRCODE(r.pair)+'•'+r.time+';'+r.dir+tickOf(r))+'</code>').join('\n')+'\n\n':'')
-    +'✅ = <b>Win ('+w+')</b>  |  ❌ = <b>Loss ('+l+')</b>  |  ➖ = <b>Push ('+pp+')</b>\n'
-    +'<i>Ticks settled automatically from real, confirmed candle closes.</i>';
+  return renderFmt('result',{brand:tgBrandName(),date:displayDate(),tz:tzLabel(),count:rows.length,
+    win:w,loss:l,push:pp,rows:rows.map(r=>renderFmt('row',rowCtx(r)))});
 }
 function msgStats(){
   const n=paper.closed.length, dec=paper.closed.filter(r=>r.res!=='push').length, w=paper.closed.filter(r=>r.win).length;
-  return '📈 <b>'+esc(tgBrandName())+' PERFORMANCE</b>\n\n'
-    +'Paper balance: <b>'+paper.balance.toFixed(2)+'</b>\n'
-    +'Today P/L: <b>'+paper.plToday.toFixed(2)+'</b>\n'
-    +'Trades today: <b>'+paper.tradesToday+' / '+risk.maxTradesDay+'</b>\n'
-    +'Closed trades: <b>'+n+'</b> · decisive win rate: <b>'+(dec?Math.round(w/dec*100):0)+'%</b>\n'
-    +'Max drawdown: <b>'+paper.maxDD.toFixed(2)+'</b>\n\n'
-    +'<i>Paper results only — no live trading. Not financial advice.</i>';
+  return '📈 <b>'+esc(tgBrandName())+' PERFORMANCE</b>\n'
+    +'Paper balance: <b>'+paper.balance.toFixed(2)+'</b> · today P/L: <b>'+paper.plToday.toFixed(2)+'</b>\n'
+    +'Closed: <b>'+n+'</b> · decisive win rate: <b>'+(dec?Math.round(w/dec*100):0)+'%</b>';
 }
 async function tgSendList(){
-  if(!px.rows.length){ tgLog('⚠ no premium rows to send — start the PREMIUM engine first'); return; }
-  try{ await tgSend(msgList()); px.listSent=true; savePx();
-    tgLog('✅ premium list sent ('+px.rows.length+' rows)');
-    pushNote('premium','📤 premium list sent to the channel ('+px.rows.length+' signals)');
-    renderPred(); }
-  catch(e){ tgLog('❌ list failed: '+sanitizeErr(e.message)); }
+  if(!(px.rows||[]).length){ tgLog('⚠ no premium rows to send — start the LIST engine first'); return; }
+  try{
+    await tgSendTo('list',msgList()); px.listSent=true; savePx();
+    tgLog('✅ list sent ('+px.rows.length+' rows) → '+chatLabel('list'));
+    pushNote('premium','📤 list sent ('+px.rows.length+' signals)');
+    await tgSticker('list','list','px-list-'+px.studyStart);
+    renderPred();
+  }catch(e){ tgLog('❌ list failed: '+sanitizeErr(e.message)); }
 }
 let resultSending=false;
 async function tgSendResult(){
   if(resultSending) return;
-  if(!px.rows.length){ tgLog('⚠ no premium rows — nothing to send'); return; }
+  if(!(px.rows||[]).length){ tgLog('⚠ no premium rows — nothing to send'); return; }
   resultSending=true;
   try{
-    await tgSend(msgResult());
+    await tgSendTo('list',msgResult());
     px.resultSent=true; savePx(); renderPred();
-    tgLog('✅ result sent');
-    const un=px.rows.filter(r=>!r.out).length;
-    if(un) tgLog('⚠ '+un+' row(s) still unverified — they show ⏳ in the message');
-    await tgSendStickers('outro');
+    tgLog('✅ result sent → '+chatLabel('list'));
+    await tgSticker('result','list','px-result-'+px.studyStart);
+    await tgSticker('outro1','list','px-outro1-'+px.studyStart);
+    await tgSticker('outro2','list','px-outro2-'+px.studyStart);
   }catch(e){ tgLog('❌ result failed: '+sanitizeErr(e.message)); }
   finally{ resultSending=false; }
 }
 
-/* ---------- 🤖 bot signal stream ---------- */
+/* ---------- 🤖 bot signal stream (MAIN chat) ---------- */
 function botAddRow(sig){
   const t=$('botRows'); if(!t) return;
   const e=t.querySelector('.empty-note'); if(e) e.remove();
@@ -2699,26 +3006,249 @@ function botAddRow(sig){
   t.appendChild(row);
   while(t.children.length>60) t.removeChild(t.firstChild);
 }
-function botDispatch(sig){ /* called on every emitted signal */
+function botDispatch(sig){ /* plain live scan signals only — session/VIP/public have their own streams */
   if(!sig) return;
   botAddRow(sig);
   if(tg.botAuto&&tgReady()){
     sig.botSent=true; saveOpen();
-    tgSend(msgBotSignal(sig))
-      .then(()=>tgLog('🤖 bot signal sent ('+sigLine(sig)+')'))
+    tgSendTo('main',msgSignal(sig))
+      .then(()=>tgLog('🤖 bot signal sent ('+sigLine(sig)+') → MAIN'))
       .catch(e=>tgLog('❌ bot signal failed: '+sanitizeErr(e.message)));
   }
 }
-async function botSettleVerify(sig,res,out){ /* verification message; stickers are WINS ONLY */
+async function botSettleVerify(sig,res,out){
   if(!tg.botVerify||!tgReady()) return;
   try{
-    await tgSend(msgBotVerdict(res,sig,out));
-    if(res==='win') await tgSendStickers('win');
-    tgLog('🤖 verification sent ('+res.toUpperCase()+')'+(res==='win'?' + random win sticker':' · no sticker (losses get OTM 💔 only)'));
+    await tgSendTo('main',msgVerdict(res,sig,out));
+    tgLog('🤖 verdict sent ('+res.toUpperCase()+') → MAIN');
+    await tgSticker(res==='win'?'win':res==='loss'?'loss':'push','main','sig-'+sig.id);
   }catch(e){ tgLog('❌ bot verification failed: '+sanitizeErr(e.message)); }
 }
 
-/* ---------- 📢 public channel — privacy-filtered community broadcasts ---------- */
+/* ---------- 📢 PUBLIC STREAM — one quality signal per minute, before the candle opens ---------- */
+let pubStat=loadJSON('nx_pub2',null)||{sent:0,skipped:0,lastSkip:'',lastMin:-1};
+if(typeof pubStat.sent!=='number') pubStat.sent=0;
+if(typeof pubStat.skipped!=='number') pubStat.skipped=0;
+function savePubStat(){ store.set('nx_pub2',JSON.stringify(pubStat)); }
+function pubSkip(reason){
+  pubStat.skipped++; pubStat.lastSkip=reason; savePubStat(); renderPubInfo();
+  if(reason!=='no quality signal') tgLog('📢 public stream skipped a minute: '+reason);
+}
+function renderPubInfo(){
+  const el=$('pubStreamInfo'); if(!el) return;
+  el.textContent=(!tg.pubStream)?'public stream: OFF'
+    :'public stream: ON · '+pubStat.sent+' sent · '+pubStat.skipped+' quality-skipped'+(pubStat.lastSkip?' · last skip: '+pubStat.lastSkip:'')
+    +' → '+chatLabel('pub');
+}
+async function pubOnEmit(sig){
+  try{ await tgSendTo('pub',msgSignal(sig));
+    pubStat.sent++; savePubStat(); renderPubInfo();
+    tgLog('📢 public signal sent ('+sigLine(sig)+') → '+chatLabel('pub'));
+  }catch(e){ tgLog('❌ public signal failed: '+sanitizeErr(e.message)); }
+}
+async function pubOnSettled(sig,res,out){
+  if(!tg.botVerify||!tgReady()) return;
+  try{ await tgSendTo('pub',msgVerdict(res,sig,out));
+    await tgSticker(res==='win'?'win':res==='loss'?'loss':'push','pub','sig-'+sig.id);
+  }catch(e){ tgLog('❌ public verdict failed: '+sanitizeErr(e.message)); }
+}
+let pubBusy=false;
+async function pubFire(slot){
+  if(pubBusy) return;
+  if(!budgetAllows()){ pubSkip('API budget guard'); return; }
+  pubBusy=true;
+  try{
+    const wl=watch();
+    if(!wl.length){ pubSkip('no pairs ticked'); return; }
+    const sess=sessionGate(new Date());
+    if(!sess.ok){ pubSkip('market closed'); return; }
+    if(blackoutOn()){ pubSkip('news blackout'); return; }
+    const cds=await Promise.all(wl.map(p=>apiTimeSeries(p,{maxAge:14000,quiet:true}).catch(()=>null)));
+    let best=null;
+    for(let pi=0;pi<wl.length;pi++){
+      const pair=wl[pi], cd=cds[pi];
+      if(!cd||cd.err||!cd.m1||cd.m1.length<40) continue;
+      const gate=candleGate(cd.m1);
+      if(!gate.ok) continue;
+      const series=cd.m1;
+      const o=series.map(v=>v.o),h=series.map(v=>v.h),l=series.map(v=>v.l),c=series.map(v=>v.c),tsArr=series.map(v=>v.ts);
+      const x=makeCtx(o,h,l,c,tsArr);
+      const i=c.length-1;
+      const body=Math.abs(c[i]-o[i]), range=h[i]-l[i];
+      const upW=h[i]-Math.max(o[i],c[i]), dnW=Math.min(o[i],c[i])-l[i];
+      const doji=range>0&&body/range<0.25&&upW<range*0.55&&dnW<range*0.55;
+      if(doji) continue;
+      const regime=detectRegimeAt(x,i);
+      const weights=finalWeights(train(x),regime.boost,'M1',regime.label);
+      const vote=strategyVote(i,x,weights);
+      const fx=fuse(vote,agTrend(i,x),agMomentum(i,x),agPattern(i,x),agStructure(i,x));
+      if(!fx.dir) continue;
+      const vol=agVol(i,x);
+      const score=scoreOf(fx,vol);
+      const grade=gradeOf(score);
+      const lastM1Ts=cd.m1[cd.m1.length-1].ts;
+      const targetT=nextTargetFromFeed(lastM1Ts,TFS.M1.ms);
+      const vd=validateSetup(fx,vol,regime,{doji:false,marketOpen:null,minScore:risk.minScore,ttOpen:(targetT-Date.now())/1000,
+        dataLagMs:cd.latencyMs||0,score,grade,gate,sessOk:sess.ok,sessReason:sess.reason,
+        famN:famCount(vote.votes,fx.dir),atrPct:regime.atrPct,m5:null});
+      if(!vd.pass) continue;                                  /* STRICT: quality only, no relaxed fallback */
+      if(!best||score>best.score) best={pair,dir:fx.dir,score,grade,fx,vol,regime,vote,targetT};
+    }
+    if(!best){ pubSkip('no quality signal'); return; }
+    const sig=emitSignal({pair:best.pair,tf:'M1',dir:best.dir,score:best.score,grade:best.grade,
+      fx:best.fx,vol:best.vol,regime:best.regime,vote:best.vote,targetT:best.targetT,origin:'pub'});
+    if(!sig) pubSkip('signal already open that candle');
+  }catch(e){ pubSkip('error: '+String(e.message||e).slice(0,40)); }
+  finally{ pubBusy=false; }
+}
+function pubTick(){
+  if(!tg.pubStream||!tgReady()) return;
+  if(isWeekendWindow()) return;
+  const now=new Date();
+  const secLeft=60-now.getUTCSeconds();
+  const lead=Math.min(25,Math.max(8,leadSecOf()));
+  if(secLeft>lead) return;
+  const slot=Math.floor(Date.now()/60000);
+  if(pubStat.lastMin===slot) return;
+  pubStat.lastMin=slot; savePubStat();
+  pubFire(slot);   /* async — lands before the candle opens */
+}
+
+/* ---------- 💎 VIP STREAM — best available shot every 10 minutes, grade shown honestly ---------- */
+const DEF_VX={on:false,lastSlot:0,shots:[],w:0,l:0,p:0};
+let vx=Object.assign({},DEF_VX,loadJSON('nx_vip',null)||{});
+if(!Array.isArray(vx.shots)) vx.shots=[];
+vx.firing=false;                     /* never persist a stale firing lock across reloads */
+vx.notes=Array.isArray(vx.notes)?vx.notes:[];
+function saveVx(){ const c=Object.assign({},vx,{firing:false}); store.set('nx_vip',JSON.stringify(c)); }
+function vipLog(m){
+  vx.notes=vx.notes||[];
+  vx.notes.unshift('['+new Date().toTimeString().slice(0,8)+'] '+m);
+  if(vx.notes.length>30) vx.notes.length=30;
+  saveVx(); renderVip();
+}
+function vxFire(manual){
+  if(vx.firing) return Promise.resolve();
+  vx.firing=true;
+  return (async()=>{
+    try{
+      if(!tgReady()){ vipLog('⚠ authorize Telegram (token + MAIN chat + AUTHORIZED) — VIP falls back to MAIN'); }
+      if(isWeekendWindow()){ vipLog('⛔ weekend — market closed, shot skipped'); return; }
+      const wl=watch();
+      if(!wl.length){ vipLog('⚠ tick at least one pair on the SIGNALS page'); return; }
+      const sess=sessionGate(new Date());
+      if(!sess.ok){ vipLog('⛔ '+sess.reason); return; }
+      if(blackoutOn()){ vipLog('⛔ news blackout — shot skipped'); return; }
+      const cds=await Promise.all(wl.map(p=>apiTimeSeries(p,{maxAge:manual?0:20000,quiet:true}).catch(()=>null)));
+      let best=null;
+      for(let pi=0;pi<wl.length;pi++){
+        const pair=wl[pi], cd=cds[pi];
+        if(!cd||cd.err||!cd.m1||cd.m1.length<40) continue;
+        const gate=candleGate(cd.m1);
+        if(!gate.ok) continue;
+        const series=cd.m1;
+        const o=series.map(v=>v.o),h=series.map(v=>v.h),l=series.map(v=>v.l),c=series.map(v=>v.c),tsArr=series.map(v=>v.ts);
+        const x=makeCtx(o,h,l,c,tsArr);
+        const i=c.length-1;
+        const body=Math.abs(c[i]-o[i]), range=h[i]-l[i];
+        const upW=h[i]-Math.max(o[i],c[i]), dnW=Math.min(o[i],c[i])-l[i];
+        const doji=range>0&&body/range<0.25&&upW<range*0.55&&dnW<range*0.55;
+        if(doji) continue;
+        const regime=detectRegimeAt(x,i);
+        const weights=finalWeights(train(x),regime.boost,'M1',regime.label);
+        const vote=strategyVote(i,x,weights);
+        const fx=fuse(vote,agTrend(i,x),agMomentum(i,x),agPattern(i,x),agStructure(i,x));
+        if(!fx.dir) continue;                                  /* hard safety gates only — best available wins */
+        const vol=agVol(i,x);
+        const score=scoreOf(fx,vol);
+        if(!best||score>best.score) best={pair,dir:fx.dir,score,grade:gradeOf(score),fx,vol,regime,vote};
+      }
+      if(!best){ vipLog('⛔ no clean direction this window — shot skipped (never a filler)'); return; }
+      const sig=emitSignal({pair:best.pair,tf:'M1',dir:best.dir,score:best.score,grade:best.grade,
+        fx:best.fx,vol:best.vol,regime:best.regime,vote:best.vote,origin:'vip'});
+      if(!sig){ vipLog('⚠ a signal for that candle is already open — shot skipped'); return; }
+      vx.shots.unshift({id:sig.id,pair:sig.pair,time:sig.time,dir:sig.dir,grade:sig.grade,
+        score:Math.round(sig.score),targetT:sig.targetT,out:null,o:null,c:null});
+      if(vx.shots.length>40) vx.shots.length=40;
+      saveVx(); renderVip();
+      vipLog('💎 VIP SHOT — '+PAIRCODE(sig.pair)+' '+sig.dir+' '+sig.time+' · grade '+sig.grade+' · score '+Math.round(sig.score));
+      pushNote('vip','💎 VIP shot — '+PAIRCODE(sig.pair)+' '+sig.dir+' '+sig.time+' · '+sig.grade);
+      await tgSendTo('vip',msgVip(sig));
+      tgLog('💎 VIP shot sent ('+sigLine(sig)+') → '+chatLabel('vip'));
+      await tgSticker('vip','vip','shot-'+sig.id);
+    }catch(e){ vipLog('❌ '+sanitizeErr(e.message)); }
+    finally{ vx.firing=false; saveVx(); }
+  })();
+}
+function vxTick(){
+  if(!tg.vipStream||!tgReady()) return;
+  const now=new Date();
+  if(isWeekendWindow()) return;
+  if(now.getUTCMinutes()%10!==0||now.getUTCSeconds()<40) return;   /* once per 10-min slot, at :40 */
+  const slot=Math.floor(Date.now()/600000);
+  if(vx.lastSlot===slot) return;
+  vx.lastSlot=slot; saveVx();
+  vxFire(false);
+}
+function settleVip(){
+  if(!vx||!Array.isArray(vx.shots)) return;
+  let changed=false;
+  for(const r of vx.shots){
+    if(r.out) continue;
+    const o=candleOutcome(r.pair,'M1',r.dir,r.targetT);
+    if(!o) continue;
+    r.out=o.push?'push':(o.win?'win':'loss'); r.o=o.o; r.c=o.c; changed=true;   /* display-only mirror; verdicts flow through resolveSignal */
+  }
+  if(changed){ saveVx(); renderVip(); }
+}
+function vxOnSettled(sig,res,out){
+  const row=vx.shots.find(r=>r.id===sig.id);
+  if(row){ row.out=res; row.o=out?out.o:null; row.c=out?out.c:null; }
+  if(res==='win') vx.w++; else if(res==='loss') vx.l++; else vx.p=(vx.p||0)+1;
+  saveVx(); renderVip();
+  vipLog((res==='win'?'✅ WIN':res==='loss'?'❌ LOSS':'➖ PUSH')+' — '+PAIRCODE(sig.pair)+' '+sig.time);
+  if(tg.botVerify&&tgReady()){
+    (async()=>{
+      try{ await tgSendTo('vip',msgVerdict(res,sig,out)); }
+      catch(e){ tgLog('❌ VIP verdict failed: '+sanitizeErr(e.message)); }
+      await tgSticker(res==='win'?'win':res==='loss'?'loss':'push','vip','sig-'+sig.id);
+    })();
+  }
+}
+function renderVip(){
+  const rowsEl=$('vipRows'); if(!rowsEl) return;
+  const rows=vx.shots||[];
+  rowsEl.innerHTML=rows.length
+    ? rows.slice(0,12).map(r=>{
+        const tick=!r.out?'⏳':r.out==='win'?'✅':r.out==='loss'?'❌':'➖';
+        const cls=!r.out?'sig-open':r.out==='win'?'w':r.out==='loss'?'l':'p';
+        return '<div class="pred-row"><span>'+PAIRCODE(r.pair)+' • '+r.time+';'+r.dir
+          +' <span class="gradeA">·'+esc(String(r.grade||''))+' '+Math.round(r.score||0)+'</span></span>'
+          +'<span class="tick '+cls+'">'+tick+'</span></div>';
+      }).join('')
+    : '<div class="mini" style="text-align:center;padding:8px">No VIP shots yet — flip the VIP STREAM switch (TELEGRAM page → AUTOMATION) or press FIRE VIP SHOT NOW.</div>';
+  const sum=$('vipSummary');
+  if(sum) sum.textContent='✅ = Win ('+vx.w+') · ❌ = Loss ('+vx.l+') · ➖ = Push ('+(vx.p||0)+')';
+  const chip=$('vipChip');
+  if(chip){ chip.textContent=tg.vipStream?'live':'off'; chip.className='chip '+(tg.vipStream?'ok':''); }
+  const ph=$('vipPhase');
+  if(ph){
+    if(!tg.vipStream) ph.textContent='VIP stream: OFF — flip the switch on the TELEGRAM page';
+    else{
+      const now=new Date();
+      const mins=10-(now.getUTCMinutes()%10);
+      ph.textContent='next shot: in '+(mins-1)+'m '+(60-now.getUTCSeconds())+'s → '+chatLabel('vip');
+    }
+  }
+  const log=$('vipLog');
+  if(log) log.innerHTML=((vx.notes&&vx.notes.length)?vx.notes:['vip log: ready']).slice(0,8).map(l=>'<div>'+esc(l)+'</div>').join('');
+  const cl=$('vipChatLine');
+  if(cl) cl.textContent='VIP channel: '+chatLabel('vip');
+  const bar=$('vipBar');
+  if(bar) bar.style.width=(tg.vipStream?'100%':'0%');
+}
+
+/* ---------- 📢 community announcements — privacy-filtered, PUBLIC channel ---------- */
 const pubLogArr=[];
 function pubLogMsg(m){
   pubLogArr.unshift('['+new Date().toTimeString().slice(0,8)+'] '+m);
@@ -2731,7 +3261,7 @@ async function pubPost(custom){
   const txt=sanitizePublic(raw).trim();
   if(!txt||!txt.replace(/\[redacted[a-z-]*\]/g,'').trim()){ pubLogMsg('⚠ nothing safe to post'); return false; }
   if(!tgReady()){ pubLogMsg('❌ authorize Telegram first'); return false; }
-  const dest=pubChatOf(); if(!dest){ pubLogMsg('❌ set the public channel first'); return false; }
+  const dest=pubChatOf(); if(!dest){ pubLogMsg('❌ set the PUBLIC channel first (TELEGRAM page → block 1)'); return false; }
   try{ await tgCall('sendMessage',{chat_id:dest,text:txt});   /* plain text — user content never parsed as markup */
     pubLogMsg('✅ posted to '+dest);
     if(custom==null&&$('pubMsg')) $('pubMsg').value='';
@@ -2742,112 +3272,51 @@ function pubSummary(){ /* aggregate stats ONLY — never keys, chats, balances *
   const rows=(px&&px.rows)||[];
   const w=rows.filter(r=>r.out==='win').length, l=rows.filter(r=>r.out==='loss').length, pp=rows.filter(r=>r.out==='push').length;
   const dec=w+l;
-  return pubPost('📊 '+tgBrandName()+' — premium list summary\n✅ wins: '+w+' · ❌ losses: '+l+' · ➖ pushes: '+pp+' · settled: '+(w+l+pp)+'/'+rows.length
-    +'\nDecisive win rate: '+(dec?Math.round(w/dec*100):0)+'%\nAggregate research stats only — signal-only & paper trading. Not financial advice.');
+  return pubPost('📊 '+tgBrandName()+' — list summary\n✅ '+w+' · ❌ '+l+' · ➖ '+pp+' · settled '+(w+l+pp)+'/'+rows.length
+    +'\nDecisive win rate: '+(dec?Math.round(w/dec*100):0)+'%');
 }
 
-/* ---------- 🎨 captured style templates (VERBATIM mode only) ---------- */
-function entToHtml(text,ents){ /* Telegram entities → safe HTML (bold/italic/code/underline/pre) */
-  ents=(ents||[]).filter(e=>e&&typeof e.offset==='number').slice().sort((a,b)=>a.offset-b.offset);
-  let out='',pos=0;
-  for(const e of ents){
-    if(e.offset<pos||e.offset>text.length) continue;
-    out+=esc(text.slice(pos,e.offset));
-    const inner=esc(text.slice(e.offset,e.offset+e.length));
-    const tag=e.type==='bold'?'b':e.type==='italic'?'i':e.type==='code'?'code':e.type==='underline'?'u':e.type==='pre'?'pre':null;
-    out+=tag?'<'+tag+'>'+inner+'</'+tag+'>':inner;
-    pos=e.offset+e.length;
-  }
-  return (out+esc(text.slice(pos))).replace(/\n/g,'<br>');
+/* ---------- 🎧 bot commands + listener ---------- */
+function tgMatchesChat(chat){ /* configured MAIN channel OR any private chat with the owner bot */
+  if(!chat) return false;
+  if(chat.type==='private') return true;
+  const id=tgChat();
+  return !!(id&&(String(chat.id)===id||(id.startsWith('@')&&('@'+String(chat.username||'').toLowerCase())===id.toLowerCase())));
 }
-function applyTpl(tpl,rows,ctx){ /* rebuild the captured layout with live values */
-  if(!tpl||!tpl.text) return null;
-  const lines=entToHtml(tpl.text,tpl.entities).split('<br>');
-  const rowRe=/[A-Z]{6}\s*•?\s*\d{2}:\d{2}|CALL|PUT|UP|DOWN/;
-  let i0=lines.findIndex(l=>rowRe.test(l));
-  if(i0<0) return lines.join('\n');
-  let i1=i0; while(i1+1<lines.length&&rowRe.test(lines[i1+1])) i1++;
-  const pat=lines[i0];
-  const built=rows.map(r=>{
-    let s=pat;
-    s=s.replace(/[A-Z]{6}/,PAIRCODE(r.pair));
-    s=s.replace(/\d{2}:\d{2}/,r.time);
-    s=s.replace(/CALL|PUT|UP|DOWN|BUY|SELL/,r.dir);
-    s=s.replace(/✅|❌|⏳|✓|✗/,r.win===null?'⏳':(r.win?'✅':'❌'));
-    return s;
-  });
-  const fix=l=>l.replace(/\d{2}-\d{2}-\d{4}/,ctx.date||'').replace(/UTC[+−\-]\d{1,2}:\d{2}/,ctx.tz||'');
-  const head=lines.slice(0,i0).map(fix);
-  const tail=lines.slice(i1+1).map(l=>fix(l)
-    .replace(/(Win\s*\()\d+(\))/i,'$1'+(ctx.w||0)+'$2')
-    .replace(/(Loss\s*\()\d+(\))/i,'$1'+(ctx.l||0)+'$2'));
-  return head.concat(built,tail).join('\n');
-}
-async function tgCaptureStyle(kind){
-  if(!tgToken()){ tgLog('❌ no token'); return false; }
-  if(kind!=='list'&&kind!=='result') return false;
-  tgLog('fetching your example '+kind+' message from the bot inbox…');
-  try{
-    const res=await tgCall('getUpdates',{offset:tg.lastUpd+1,limit:50,timeout:0,allowed_updates:JSON.stringify(['message','channel_post'])});
-    let found=null;
-    for(const u of (Array.isArray(res)?res:[])){ tg.lastUpd=Math.max(tg.lastUpd,u.update_id);
-      const m=u.message||u.channel_post;
-      if(m&&m.text&&!m.text.startsWith('/')&&tgMatchesChat(m.chat)) found=m; }
-    if(!found){ tgLog('⚠ no example found — forward your '+kind+' example to the bot in Telegram, then press CAPTURE again'); return false; }
-    tg[kind==='list'?'listTpl':'resultTpl']={text:String(found.text).slice(0,3500),
-      entities:(found.entities||[]).map(e=>({type:e.type,offset:e.offset,length:e.length}))};
-    saveTg(); tplRender();
-    tgLog('✅ '+kind+' layout captured ('+found.text.length+' chars) — used in VERBATIM mode; HOUSE mode re-typesets everything');
-    return true;
-  }catch(e){ tgLog('❌ style capture failed: '+sanitizeErr(e.message)); return false; }
-}
-function tgClearStyle(){ tg.listTpl=null; tg.resultTpl=null; saveTg(); tplRender(); tgLog('captured layouts cleared'); }
-function setStyleMode(m){
-  tg.styleMode=m==='verbatim'?'verbatim':'house'; saveTg(); tplRender();
-  tgLog('🎨 message style: '+(tg.styleMode==='house'
-    ? 'HOUSE — every message re-typeset in the NEXUS format (bold headers · monospace rows · italic disclaimer)'
-    : 'VERBATIM — captured layout used when available, HOUSE as fallback'));
-}
-function tplRender(){
-  const hb=$('tgStyleHouse'), vb=$('tgStyleVerbatim');
-  if(hb) hb.className=tg.styleMode==='house'?'on':'';
-  if(vb) vb.className=tg.styleMode==='verbatim'?'on':'';
-  const el=$('tplInfo'); if(!el) return;
-  const has=(tg.listTpl?'list':'')+(tg.listTpl&&tg.resultTpl?' + ':'')+(tg.resultTpl?'result':'');
-  el.textContent = tg.styleMode==='house'
-    ? 'style: HOUSE — every message is re-typeset in the NEXUS format: bold brand header, monospace signal rows, bold summary, italic disclaimer. Telegram cannot load custom fonts — bold/italic/mono entities are the supported typography, and house style adapts all three (captured layouts: '+(has||'none')+')'
-    : (has?('style: VERBATIM — '+has+' layout captured; live values are merged into that exact layout')
-        :'style: VERBATIM selected but nothing captured yet — HOUSE format is used until you capture an example');
+function fmtHelpText(){
+  return '<b>FORMATS</b> — text /setformat &lt;kind&gt; then your layout. Kinds: signal · vip · row · list · result · verdict\n'
+    +'Placeholders: {pair} {dir} {time} {date} {tz} {grade} {score} {brand} {expiry} {count} {rows} {tick} {result} {open} {close} {win} {loss} {push}\n'
+    +'Markup: *bold* · _italic_ · `code`\n'
+    +'/resetformat &lt;kind|all&gt; restores defaults.\n\n'
+    +FMT_KINDS.map(k=>'<b>'+k+'</b>:\n<code>'+esc(fmtGet(k)).replace(/\n/g,'⏎')+'</code>').join('\n\n');
 }
 async function tgTest(){
-  if(!tgToken()||!tgChat()){ tgLog('❌ configure token + chat id first'); return; }
+  if(!tgToken()||!tgChat()){ tgLog('❌ configure token + MAIN chat first'); return; }
   if(!tg.auth){ tgLog('⚠ AUTHORIZED toggle is OFF — enable it to send'); return; }
   tgLog('sending test message…');
   try{
-    await tgSend('✅ <b>'+esc(tgBrandName())+'</b> test message — Telegram delivery is live.\n<i>Signal-only system. No financial advice.</i>');
+    await tgSend('✅ <b>'+esc(tgBrandName())+'</b> test — Telegram delivery is live.\nChannels: '+esc(chatLabel('main'))+' · '+esc(chatLabel('pub'))+' · '+esc(chatLabel('vip'))+' · '+esc(chatLabel('list')));
     tgLog('✅ test message delivered');
   }catch(e){ tgLog('❌ test failed: '+sanitizeErr(e.message)); }
 }
 async function tgSetCommands(){
   if(!tgReady()){ tgLog('❌ authorize Telegram first'); return; }
   const cmds=[{command:'start',description:'Introduction & risk notice'},
-    {command:'session',description:'Start a win-target SESSION (intro sticker + signals)'},
-    {command:'premium',description:'Start the PREMIUM study + scheduled list'},
+    {command:'session',description:'Start a win-target SESSION (MAIN channel)'},
+    {command:'premium',description:'Start the 10-min study + scheduled LIST'},
+    {command:'vip',description:'Fire a VIP shot now'},
     {command:'signal',description:'Latest live signal state'},
-    {command:'list',description:'Current premium list'},
+    {command:'list',description:'Current list'},
     {command:'results',description:'Results with win/loss ticks'},
     {command:'stats',description:'Paper performance summary'},
+    {command:'formats',description:'Show message formats + placeholders'},
+    {command:'setformat',description:'Set a format: /setformat signal your layout'},
+    {command:'resetformat',description:'Reset a format (or all) to default'},
     {command:'help',description:'How NEXUS works'}];
-  try{ await tgCall('setMyCommands',{commands:JSON.stringify(cmds)}); tgLog('✅ commands registered: /start /session /premium /signal /list /results /stats /help'); }
+  try{ await tgCall('setMyCommands',{commands:JSON.stringify(cmds)}); tgLog('✅ commands registered: /start /session /premium /vip /signal /list /results /stats /formats /setformat /resetformat /help'); }
   catch(e){ tgLog('❌ commands failed: '+sanitizeErr(e.message)); }
 }
 let tgListenTimer=null;
-function tgMatchesChat(chat){ /* configured channel OR any private chat with the owner bot */
-  if(!chat) return false;
-  if(chat.type==='private') return true;
-  const id=tgChat();
-  return !!(id&&(String(chat.id)===id||(id.startsWith('@')&&('@'+String(chat.username||'').toLowerCase())===id.toLowerCase())));
-}
 function tgListenLoop(){
   if(!tg.listen||!tgReady()||tgListenTimer) return;
   tgListenTimer=true;
@@ -2864,17 +3333,36 @@ function tgListenLoop(){
           tgLog('🎭 sticker received — queued in the bank (assign it on the TELEGRAM page)');
           continue; }
         const txt=(m.text||'').trim(); if(!txt.startsWith('/')) continue;
-        const cmd=txt.split(/\s+/)[0].split('@')[0].slice(1).toLowerCase();
         const chatId=m.chat&&m.chat.id;
-        if(cmd==='session'){ sxStart();
-          if(chatId){ try{ await tgCall('sendMessage',{chat_id:chatId,text:'🎯 SESSION starting — intro sticker first, then one signal per minute until the win target.',parse_mode:'HTML'}); }catch(e){} }
-          continue; }
-        if(cmd==='premium'){ premStart(false);
-          if(chatId){ try{ await tgCall('sendMessage',{chat_id:chatId,text:'📊 PREMIUM study starting — the scheduled list arrives in ~10 minutes.',parse_mode:'HTML'}); }catch(e){} }
-          continue; }
+        const cmd=txt.split(/\s+/)[0].split('@')[0].slice(1).toLowerCase();
+        const reply=t=>tgCall('sendMessage',{chat_id:chatId,text:t,parse_mode:'HTML',protect_content:tg.protect?'true':'false'}).catch(()=>{});
+        if(cmd==='session'){ sxStart(); if(chatId) reply('🎯 SESSION starting — quality signals until the win target.'); continue; }
+        if(cmd==='premium'){ premStart(false); if(chatId) reply('📊 Study starting — the scheduled list arrives in ~10 minutes.'); continue; }
+        if(cmd==='vip'){ vxFire(true); if(chatId) reply('💎 VIP shot firing now — best available window, grade shown honestly.'); continue; }
+        if(cmd==='setformat'){
+          const lines=(m.text||'').split('\n');
+          const first=lines[0].trim();
+          const rest=lines.slice(1).join('\n').trim();
+          const mm=first.match(/^\/setformat(@\w+)?\s+([a-z]+)/i);
+          const kind=mm?mm[2].toLowerCase():'';
+          const tpl=(first.replace(/^\/setformat(@\w+)?\s+[a-z]+/i,'').trim()+(rest?'\n'+rest:'')).trim();
+          if(!kind||!FMT_KINDS.includes(kind)){ if(chatId) reply('⚠ Usage: /setformat signal|vip|row|list|result|verdict then your layout. Placeholders: {pair} {dir} {time} {grade} …  Send /formats for the full list.'); continue; }
+          if(!tpl){ if(chatId) reply('⚠ Send the layout in the same message:\n/setformat '+kind+' 🔥 {pair} {dir} @ {time}'); continue; }
+          fmtSet(kind,tpl);
+          tgLog('🎨 '+kind+' format saved permanently (via bot)');
+          if(chatId) reply('✅ <b>'+kind+' format saved permanently.</b>\nPreview:\n\n'+renderFmt(kind,kind==='list'?{brand:tgBrandName(),date:displayDate(),tz:tzLabel(),rows:fmtDummyRows()}:kind==='result'?{brand:tgBrandName(),date:displayDate(),tz:tzLabel(),win:3,loss:0,push:1,rows:fmtDummyRows()}:kind==='verdict'?{result:'✅ WIN',pair:'EURUSD',dir:'CALL',time:'10:31',open:'1.08500',close:'1.08512'}:kind==='row'?{pair:'EURUSD',time:'10:31',dir:'CALL',tick:'⏳'}:sigCtx({pair:'EUR/USD',dir:'CALL',time:hhmmOf(Date.now()+60000),grade:'A',score:88})));
+          continue;
+        }
+        if(cmd==='resetformat'){
+          const kind=(txt.split(/\s+/)[1]||'all').toLowerCase();
+          const ok=fmtReset(kind);
+          if(chatId) reply(ok?('🧹 '+kind+' format reset to default.'):'⚠ Unknown kind — use signal|vip|row|list|result|verdict|all.');
+          continue;
+        }
+        if(cmd==='formats'){ if(chatId) reply(fmtHelpText()); continue; }
         const replies={
-          start:'📊 <b>'+esc(tgBrandName())+'</b> — multi-agent M1/M3 signal research system.\n\nCommands: /session /premium /signal /list /results /stats /help\n\n⚠ Signal-only + paper trading. Binary options carry a high risk of loss. Never money you cannot afford to lose.',
-          help:'<b>How it works</b>\n6 analysis agents + 16 strategies study real market candles → validation → risk gate → SESSION / PREMIUM streams.\n\n/session — win-target session (sticker on wins, OTM 💔 on losses)\n/premium — 10-min study + 4-min-spaced sure-shot list\n/list — current premium list\n/results — settled ticks\n/stats — paper performance\n\n<i>No live trading. No guarantees. Capital preservation first.</i>',
+          start:'📊 <b>'+esc(tgBrandName())+'</b> — multi-agent signal research.\n\n/session /premium /vip /signal /list /results /stats /formats /setformat /help\n\n⚠ Signal-only + paper trading. Binary options carry a high risk of loss.',
+          help:'<b>How it works</b>\n26 strategies + 6 agents study real candles → validation → risk gate → streams.\n\n/session — win-target session (MAIN)\n/vip — best shot now (VIP channel)\n/premium — 10-min study → scheduled list (LIST channel)\n/formats — set your own message layouts\n\n<i>No live trading. No guarantees.</i>',
           signal:latestSignalText(),
           list:msgList(),
           results:msgResult(),
@@ -2898,19 +3386,19 @@ function latestSignalText(){
   const lastS=histRows[0];
   return '⚡ <b>'+esc(tgBrandName())+' LIVE</b>\n\n'+(rows.length?rows.join('\n'):'No open signals right now — engines on standby.')
     +(lastS?('\nLast verdict: <b>'+lastS.tf+' '+esc(PAIRCODE(lastS.pair))+' '+esc(lastS.dir)+' → '+String(lastS.res).toUpperCase()+'</b>'):'');
-}
+};
 function tgRender(){
   const tok=tgToken();
   const chip=$('tgStatChip');
   if(chip) chip.textContent = !tok?'bot: not configured':(tg.auth?'bot: AUTHORIZED':'bot: configured (not authorized)');
   const v=$('tgVault');
-  if(v) v.innerHTML='🔐 token: <b>'+(tok?esc(maskKey(tok)):'none')+'</b> · chat: <b>'+(tgChat()?esc(String(tgChat())):'none')+'</b>'
+  if(v) v.innerHTML='🔐 token: <b>'+(tok?esc(maskKey(tok)):'none')+'</b><br>'
+    +esc(chatLabel('main'))+' · '+esc(chatLabel('pub'))+' · '+esc(chatLabel('vip'))+' · '+esc(chatLabel('list'))
     +(window.NEXUS_TG_TOKEN?' · source: keys.js':'');
-  renderStickers();
-  tplRender();
+  renderStickers(); renderStPending(); fmtRenderList(); renderPubInfo();
 }
 
-/* ---------- shared signal emitter (live stream + session + nonstop) ---------- */
+/* ---------- shared signal emitter (live stream + session + vip + public + nonstop) ---------- */
 function emitSignal(o){
   const pair=o.pair, tf=o.tf, dir=o.dir;
   const ck=cache[pair]; if(!ck||!ck.m1.length||!dir) return null;
@@ -2920,16 +3408,22 @@ function emitSignal(o){
   const ttOpen=Math.max(0,(targetT-Date.now())/1000);
   const time=hhmmOf(targetT);
   const id=++uid;
+  const origin=o.origin||'live';
   const sig={id,pair,tf,time,dir,votes:o.vote?o.vote.votes:{},conf:o.fx?o.fx.conf:0.5,
     score:o.score,grade:o.grade,targetT,agents:o.fx?agentMap(o.fx):{},stake:stakeOf(),
-    payout:paper.payout/100,ttOpen,regime:o.regime?o.regime.label:'',botSent:false,
+    payout:paper.payout/100,ttOpen,regime:o.regime?o.regime.label:'',origin,
+    pub:origin==='pub',vip:origin==='vip',botSent:false,
     forced:!!o.forced,note:o.forcedNote||''};
   openSigs.push(sig); saveOpen();
+  sbTrackPrediction(sig);          /* cloud mirror — fire-and-forget, never blocks a signal */
   addRow(pair,time,dir,id,o.grade,tf,o.score);
-  pushNote('sig','⚡ '+tf+' '+PAIRCODE(pair)+' '+time+' '+dir+' · '+o.grade+' '+Math.round(o.score||0)+(o.forced?' · relaxed ('+sig.note+')':''));
-  botDispatch(sig);
+  pushNote('sig','⚡ '+tf+' '+PAIRCODE(pair)+' '+time+' '+dir+' · '+o.grade+' '+Math.round(o.score||0)+(origin!=='live'?' · '+origin.toUpperCase():'')+(o.forced?' · relaxed ('+sig.note+')':''));
   if(navigator.vibrate) navigator.vibrate([80,40,80]);
-  if(sx.status==='hunting'&&!sx.current&&tf==='M1') sxClaim(sig);   /* 🎯 session claims the first M1 signal */
+  /* ONE downstream stream per signal — no duplicate messages, no double stickers */
+  if(origin==='pub'){ pubOnEmit(sig); return sig; }
+  if(origin==='vip'){ return sig; }                     /* vxFire sends the VIP message itself */
+  if(sx.status==='hunting'&&!sx.current&&tf==='M1'){ sig.origin='session'; sig.sx=true; saveOpen(); sxClaim(sig); return sig; }
+  botDispatch(sig);
   return sig;
 }
 
@@ -3314,7 +3808,7 @@ async function trainDeep(){
     }
     renderDeepInfo(); renderBrain(lastW[brainTf]); renderReady();
     setStatus('ok','🏋 deep training complete for '+pair+' — the brain now blends validated out-of-sample win rates');
-    pushNote('sys','🏋 deep training complete ('+pair+') — 16 strategies re-weighted from 5,000 bars');
+    pushNote('sys','🏋 deep training complete ('+pair+') — 26 strategies re-weighted from 5,000 bars');
   }catch(e){
     $('deepInfo').textContent='❌ deep training error: '+String(e.message||e).slice(0,120);
   }
@@ -3367,8 +3861,10 @@ function deepTrainSeries(series,tf){
 function renderDeepInfo(){
   const el=$('deepInfo'); if(!el) return;
   const d1=deep.M1,d3=deep.M3;
-  if(!d1&&!d3){ el.textContent='deep training: not run yet — one 5,000-bar fetch (1 credit) trains + validates all 16 strategies walk-forward and seeds their weights. Re-run weekly.'; return; }
-  const f=d=>d?(new Date(d.stamp).toISOString().slice(0,16).replace('T',' ')+' UTC · '+d.bars+' bars · ensemble validated '+(d.ensVwr*100).toFixed(1)+'% over '+d.ensVn+' trades'):'not trained';
+  if(!d1&&!d3){ el.textContent='deep training: not run yet — one 5,000-bar fetch (1 credit) trains + validates all 26 strategies walk-forward and seeds their weights. Re-run weekly.'; return; }
+  const f=d=>d?(d.src==='cloud'
+    ?('☁ cloud model '+new Date(d.stamp).toISOString().slice(0,16).replace('T',' ')+' UTC · '+Object.keys(d.strats||{}).length+' cloud-weighted strategies (re-run local training to roll back)')
+    :(new Date(d.stamp).toISOString().slice(0,16).replace('T',' ')+' UTC · '+d.bars+' bars · ensemble validated '+(d.ensVwr*100).toFixed(1)+'% over '+d.ensVn+' trades')):'not trained';
   el.innerHTML='deep training — M1: <b>'+f(d1)+'</b><br>M3: <b>'+f(d3)+'</b><br><span style="opacity:.75">validated segment = last 30% of history (out-of-sample). Weights blend: 22% quick + 33% deep-validated + 45% live memory.</span>';
 }
 
@@ -3430,25 +3926,40 @@ $('coolMin').addEventListener('change',e=>{ risk.cooldownMin=Math.min(120,Math.m
 $('minScore').addEventListener('change',e=>{ risk.minScore=Math.min(95,Math.max(40,+e.target.value||62)); saveRisk(); });
 $('premiumMin').addEventListener('change',e=>{ risk.premiumMin=Math.min(95,Math.max(60,+e.target.value||78)); saveRisk(); renderPred(); });
 
-/* ---------- telegram wiring (authorization strictness unchanged) ---------- */
+/* ---------- telegram wiring (4 channels; token/MAIN changes revoke authorization) ---------- */
 $('tgToken').value=tgToken();
 $('tgChat').value=tg.chatId||'';
 $('tgBrand').value=tg.brand||'NEXUS';
+$('pubChat').value=tg.pubChat||'';
+$('vipChat').value=tg.vipChat||'';
+$('listChat').value=tg.listChat||'';
 $('tgAuth').checked=!!tg.auth; $('tgAuto').checked=!!tg.auto;
 $('tgProtect').checked=tg.protect!==false; $('tgListen').checked=!!tg.listen;
-function tgApplyCreds(mutate){ /* ANY token / destination-chat change revokes send authorization */
-  const before=tgToken()+'\u0000'+tgChat()+'\u0000'+pubChatOf();
+function tgApplyCreds(mutate){ /* token / MAIN chat change revokes send authorization */
+  const before=tgToken()+'\u0000'+tgChat();
   mutate();
-  const after=tgToken()+'\u0000'+tgChat()+'\u0000'+pubChatOf();
+  const after=tgToken()+'\u0000'+tgChat();
   if(before!==after&&tg.auth){
     tg.auth=false;
     const cb=$('tgAuth'); if(cb) cb.checked=false;
-    tgLog('🔓 send authorization REVOKED — token/destination changed. Re-enable AUTHORIZED to send again.');
+    tgLog('🔓 send authorization REVOKED — token/MAIN changed. Re-enable AUTHORIZED to send again.');
   }
-  saveTg(); tgRender();
+  saveTg(); tgRender(); renderPred(); renderVip(); renderPubInfo();
   return before!==after;
 }
 const TG_CHAT_RE=/^(@?[A-Za-z0-9_+-]{1,64}|-\d{1,20})$/;
+function wireChat(id,key,label){
+  const el=$(id); if(!el) return;
+  el.addEventListener('change',e=>{
+    const v=e.target.value.trim();
+    if(v&&!TG_CHAT_RE.test(v)){ tgLog('⚠ invalid '+label+' channel format — numeric id or @channel'); e.target.value=tg[key]||''; return; }
+    tg[key]=v; saveTg(); tgRender(); renderVip(); renderPubInfo();
+    tgLog(v?('📍 '+label+' channel set: '+v):('📍 '+label+' channel cleared — falls back to MAIN'));
+  });
+}
+wireChat('pubChat','pubChat','PUBLIC');
+wireChat('vipChat','vipChat','VIP');
+wireChat('listChat','listChat','LIST');
 $('tgToken').addEventListener('change',e=>{ tgApplyCreds(()=>{ tg.token=e.target.value.trim(); }); });
 $('tgChat').addEventListener('change',e=>{
   const v=e.target.value.trim();
@@ -3456,33 +3967,29 @@ $('tgChat').addEventListener('change',e=>{
   tgApplyCreds(()=>{ tg.chatId=v; });
 });
 $('tgBrand').addEventListener('change',e=>{ tg.brand=e.target.value.trim()||'NEXUS'; saveTg(); tgRender(); renderPred(); });
-function tgSaveSettings(){ /* one-click save: token + chat + brand persist to this browser */
+function tgSaveSettings(){ /* one-click save: token + 4 channels + brand persist to this browser */
   const v=($('tgChat').value||'').trim();
-  if(v&&!TG_CHAT_RE.test(v)){ tgLog('⚠ not saved — invalid chat id format (numeric id or @channel)'); return false; }
+  if(v&&!TG_CHAT_RE.test(v)){ tgLog('⚠ not saved — invalid MAIN chat id format (numeric id or @channel)'); return false; }
+  const dst={pub:($('pubChat').value||'').trim(),vip:($('vipChat').value||'').trim(),list:($('listChat').value||'').trim()};
+  for(const k in dst) if(dst[k]&&!TG_CHAT_RE.test(dst[k])){ tgLog('⚠ not saved — invalid '+k.toUpperCase()+' channel format'); return false; }
   tgApplyCreds(()=>{
     tg.token=($('tgToken').value||'').trim();
     tg.chatId=v;
     tg.brand=($('tgBrand').value||'').trim()||'NEXUS';
+    tg.pubChat=dst.pub; tg.vipChat=dst.vip; tg.listChat=dst.list;
   });
-  tgLog('💾 telegram settings saved to this browser');
-  renderPred(); /* brand may have changed */
+  tgLog('💾 telegram settings saved — '+chatLabel('main')+' · '+chatLabel('pub')+' · '+chatLabel('vip')+' · '+chatLabel('list'));
+  renderPred(); renderVip(); renderPubInfo();
   return true;
 }
 $('tgAuth').addEventListener('change',e=>{
   if(e.target.checked){
-    if(!tgToken()||!tgChat()){ e.target.checked=false; tgLog('⚠ set bot token + chat id first'); return; }
-    if(!confirm('Authorize Telegram output to '+tgChat()+'?\nOnly this chat will receive messages.')){ e.target.checked=false; return; }
+    if(!tgToken()||!tgChat()){ e.target.checked=false; tgLog('⚠ set bot token + MAIN chat first'); return; }
+    if(!confirm('Authorize Telegram output to '+tgChat()+'?\nMessages go to MAIN, PUBLIC, VIP and LIST channels (empty ones fall back to MAIN).')){ e.target.checked=false; return; }
   }
   tg.auth=e.target.checked; saveTg(); tgRender();
   if(tg.auth&&tg.listen) tgListenLoop();
   tgLog(tg.auth?'🔐 AUTHORIZED — Telegram output enabled':'authorization revoked');
-});
-$('tgAuto').addEventListener('change',e=>{ tg.auto=e.target.checked; saveTg(); });
-$('tgProtect').addEventListener('change',e=>{ tg.protect=e.target.checked; saveTg(); });
-$('tgListen').addEventListener('change',e=>{
-  tg.listen=e.target.checked; saveTg();
-  if(tg.listen){ tgLog('🎧 command listener started (active while page is open)'); tgListenLoop(); }
-  else { if(tgListenTimer&&tgListenTimer!==true) clearTimeout(tgListenTimer); tgListenTimer=null; tgLog('listener stopped'); }
 });
 
 /* ---------- premium / session / bot / public wiring ---------- */
@@ -3504,17 +4011,16 @@ $('sessGuard').addEventListener('change',e=>{
   if(sx.status==='idle'||sx.status==='done'){ sx.guard=v; saveSx(); renderSess(); } });
 $('botAuto').checked=!!tg.botAuto; $('botVerify').checked=tg.botVerify!==false;
 $('botAuto').addEventListener('change',e=>{ tg.botAuto=e.target.checked; saveTg();
-  tgLog(tg.botAuto?'🤖 bot auto-send ON — every passed signal goes to the chat':'🤖 bot auto-send off'); });
+  tgLog(tg.botAuto?'🤖 bot auto-send ON — every passed signal goes to MAIN':'🤖 bot auto-send off'); });
 $('botVerify').addEventListener('change',e=>{ tg.botVerify=e.target.checked; saveTg(); });
-$('pubAuto').checked=!!tg.pubAuto; $('pubChat').value=tg.pubChat||'';
+$('pubAuto').checked=!!tg.pubAuto;
 $('pubAuto').addEventListener('change',e=>{ tg.pubAuto=e.target.checked; saveTg();
   pubLogMsg(tg.pubAuto?'🧾 auto daily summary ON (aggregate stats only)':'🧾 auto daily summary off'); });
-$('pubChat').addEventListener('change',e=>{
-  const v=e.target.value.trim();
-  if(v&&!TG_CHAT_RE.test(v)){ pubLogMsg('⚠ invalid channel format — numeric id or @channel'); e.target.value=tg.pubChat||''; return; }
-  tgApplyCreds(()=>{ tg.pubChat=v; });
-  pubLogMsg(v?('📢 public channel set: '+v):'📢 public channel cleared');
-});
+$('pubStream').checked=!!tg.pubStream; $('vipStream').checked=!!tg.vipStream;
+$('pubStream').addEventListener('change',e=>{ tg.pubStream=e.target.checked; saveTg(); renderPubInfo(); renderVip();
+  tgLog(tg.pubStream?('📢 PUBLIC stream ON — 1 quality signal/min, before the candle opens → '+chatLabel('pub')):'📢 PUBLIC stream off'); });
+$('vipStream').addEventListener('change',e=>{ tg.vipStream=e.target.checked; saveTg(); renderVip();
+  tgLog(tg.vipStream?('💎 VIP stream ON — best shot every 10 min → '+chatLabel('vip')):'💎 VIP stream off'); });
 
 /* ---------- scan controls ---------- */
 $('leadSec').value=store.get('nx_lead')||'30';
@@ -3526,9 +4032,9 @@ $('m5conf').addEventListener('change',e=>{ store.set('nx_m5',e.target.checked?'1
 $('auto').checked=store.get('nx_auto')==='1';
 $('auto').addEventListener('change',e=>{ store.set('nx_auto',e.target.checked?'1':'0');
   pushNote('sys',e.target.checked?'🤖 AUTO-MODE ON — scanning every candle, second-by-second countdown live':'🤖 AUTO-MODE off'); });
-$('nonstop').checked=store.get('nx_nonstop')!=='0';
+$('nonstop').checked=store.get('nx_nonstop')==='1';
 $('nonstop').addEventListener('change',e=>{ store.set('nx_nonstop',e.target.checked?'1':'0');
-  pushNote('sys',e.target.checked?'♾ NONSTOP ON — at least one honest signal every minute while the market is open':'♾ NONSTOP off — strict gates only'); });
+  pushNote('sys',e.target.checked?'♾ NONSTOP ON — at least one honest signal every minute while the market is open':'♾ NONSTOP off — quality gates only'); });
 $('tzoff').addEventListener('change',()=>{ renderPred(); });
 $('notifyOn').checked=store.get('nx_notify')==='1';
 $('notifyOn').addEventListener('change',e=>{
@@ -3540,12 +4046,7 @@ $('soundOn').checked=store.get('nx_sound')==='1';
 $('soundOn').addEventListener('change',e=>{ store.set('nx_sound',e.target.checked?'1':'0');
   if(e.target.checked) beep('push'); });
 
-/* ---------- keys UI ---------- */
-$('keyShow').addEventListener('click',()=>{
-  const show=$('keyShow').getAttribute('data-show')!=='1';
-  $('keyShow').setAttribute('data-show',show?'1':'0');
-  $('keyShow').textContent=show?'🙈 HIDE':'👁 SHOW';
-  for(let i=1;i<=4;i++){ const el=$('key'+i); if(el) el.type=show?'text':'password'; } });
+/* ---------- keys UI: show/hide handled inside renderKeyInputs ---------- */
 
 /* ---------- news blackout (manual switch — NEXUS has NO live news feed) ---------- */
 function blackoutOn(){ const el=$('blackout'); return !!(el&&el.checked); }
@@ -3589,22 +4090,347 @@ async function loadLocalArt(){
 }
 
 /* ---------- boot ---------- */
+/* ═══════════════════════════════════════════════════════════════════
+   CLOUD SYNC (Supabase mirror) — raw REST via fetch, NO SDK/CDN.
+   Contract: the browser is the live prediction source and only MIRRORS.
+   It inserts predictions + completed delivery results with the ANON key
+   (row-level security: insert-only, no update/delete) and reads public
+   monitoring data. Service-role key, market keys and the bot token never
+   appear here. With no config every sb* call is a silent no-op and the
+   engine behaves exactly as before.
+   ═══════════════════════════════════════════════════════════════════ */
+const SB_STORE_KEY='nx_sb';
+const SB_STRAT_VER='nexus-fusion-v1';
+let sbCfg=(function(){ try{ const v=loadJSON(SB_STORE_KEY,null); return (v&&typeof v==='object')?v:{}; }catch(e){ return {}; } })();
+let sbDeployed=null;
+const sbSentKeys=new Set();
+let sbFailT=0;
+function sbUrl(){ return String(sbCfg.url||window.NEXUS_SB_URL||'').trim().replace(/\/+$/,''); }
+function sbAnon(){ return String(sbCfg.anon||window.NEXUS_SB_ANON||'').trim(); }
+function sbReady(){ return /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(sbUrl())&&sbAnon().length>20; }
+function sbRecording(){ return sbReady()&&sbCfg.record!==false; }
+function sbRest(path,opts){
+  opts=opts||{};
+  const headers=Object.assign({'apikey':sbAnon(),'authorization':'Bearer '+sbAnon()},opts.headers||{});
+  return fetch(sbUrl()+'/rest/v1/'+path,Object.assign({},opts,{headers}));
+}
+function sbFail(e){                       /* throttled, non-intrusive cloud status */
+  const now=Date.now();
+  if(now-sbFailT<60000) return;
+  sbFailT=now;
+  const el=$('sbMsg'); if(el) el.innerHTML='⚠ cloud sync error: '+esc(String(e&&e.message||e).slice(0,140))+' — signals continue unaffected (engine is offline-first).';
+}
+/* ---- mirror: predictions (insert-only, idempotent by unique constraint) ---- */
+function sbTrackPrediction(sig){
+  try{
+    if(!sbRecording()||!sig||!sig.pair||!sig.dir||!sig.targetT) return Promise.resolve(false);
+    const key=sig.pair+'|'+sig.tf+'|'+sig.targetT;
+    if(sbSentKeys.has(key)) return Promise.resolve(false);
+    sbSentKeys.add(key);
+    const ck=cache[sig.pair];
+    const ref=(ck&&ck.m1&&ck.m1.length&&isFinite(ck.m1[ck.m1.length-1].c))?ck.m1[ck.m1.length-1].c:null;
+    const body={
+      pair_code:sig.pair,
+      timeframe:sig.tf==='M3'?'3m':'1m',
+      target_open_ts:new Date(sig.targetT).toISOString(),
+      direction:sig.dir,
+      confidence:+((sig.conf==null?0.5:sig.conf)*100).toFixed(2),
+      grade:sig.grade||null,
+      strategy_version:SB_STRAT_VER,
+      strategy_detail:{votes:sig.votes||{},agents:sig.agents||{},regime:sig.regime||'',origin:sig.origin||'',forced:!!sig.forced,score:sig.score==null?null:+sig.score,tf:sig.tf},
+      feature_version:'browser-live-v1',
+      evaluation_horizon:sig.tf==='M3'?3:1,
+      source:'browser',
+      is_shadow:false,
+      telegram_sent:false,
+      reference_price:ref
+    };
+    return sbRest('predictions',{method:'POST',headers:{'content-type':'application/json','prefer':'resolution=ignore-duplicates'},body:JSON.stringify(body)})
+      .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return true; })
+      .catch(e=>{ sbFail(e); return false; });
+  }catch(e){ return Promise.resolve(false); }
+}
+/* ---- mirror: delivery results (completed attempts only; worker retries failures) ---- */
+function sbRecordDelivery(channel,kind,status,error,text,chatId){
+  try{
+    if(!sbRecording()) return;
+    const chMap={main:'main',pub:'public',vip:'vip',list:'list',ops:'ops'};
+    const body={
+      channel:chMap[channel]||'main',
+      chat_id:String(chatId||''),
+      message_kind:(['signal','verdict','list','result','alert','sticker'].includes(kind)?kind:'other'),
+      status:(status==='sent'||status==='skipped')?status:'failed',
+      attempts:1,
+      telegram_message_id:null,
+      last_error:error?String(error).slice(0,200):null,
+      payload:String(text||'').slice(0,4096)
+    };
+    if(!body.chat_id) return;
+    sbRest('telegram_deliveries',{method:'POST',headers:{'content-type':'application/json','prefer':'resolution=ignore-duplicates'},body:JSON.stringify(body)})
+      .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); })
+      .catch(sbFail);
+  }catch(e){ /* delivery recording must never break a send */ }
+}
+/* ---- canonical JSON + SHA-256: exactly what the trainer hashes ---- */
+function sbCanonicalStr(s){
+  let out='"';
+  for(const ch of String(s)){
+    const c=ch.codePointAt(0);
+    if(ch==='"') out+='\\"';
+    else if(ch==='\\') out+='\\\\';
+    else if(ch==='\n') out+='\\n';
+    else if(ch==='\r') out+='\\r';
+    else if(ch==='\t') out+='\\t';
+    else if(ch==='\b') out+='\\b';
+    else if(ch==='\f') out+='\\f';
+    else if(c>0xffff){ const c2=c-0x10000;
+      out+='\\u'+(0xd800+(c2>>10)).toString(16).padStart(4,'0')+'\\u'+(0xdc00+(c2&0x3ff)).toString(16).padStart(4,'0'); }
+    else if(c<0x20||c>0x7e) out+='\\u'+c.toString(16).padStart(4,'0');
+    else out+=ch;
+  }
+  return out+'"';
+}
+function sbCanonical(v){
+  if(v===null||v===undefined) return 'null';
+  if(typeof v==='number') return String(v);
+  if(typeof v==='boolean') return v?'true':'false';
+  if(typeof v==='string') return sbCanonicalStr(v);
+  if(Array.isArray(v)) return '['+v.map(sbCanonical).join(',')+']';
+  return '{'+Object.keys(v).sort().map(k=>sbCanonicalStr(k)+':'+sbCanonical(v[k])).join(',')+'}';
+}
+function sbUtf8(str){
+  if(typeof TextEncoder!=='undefined') return new TextEncoder().encode(str);
+  const out=[];                                   /* manual UTF-8 for old engines */
+  for(const ch of String(str)){
+    const c=ch.codePointAt(0);
+    if(c<0x80) out.push(c);
+    else if(c<0x800) out.push(0xc0|(c>>6),0x80|(c&63));
+    else if(c<0x10000) out.push(0xe0|(c>>12),0x80|((c>>6)&63),0x80|(c&63));
+    else out.push(0xf0|(c>>18),0x80|((c>>12)&63),0x80|((c>>6)&63),0x80|(c&63));
+  }
+  return new Uint8Array(out);
+}
+async function sbSha256Hex(str){
+  const d=await crypto.subtle.digest('SHA-256',sbUtf8(str));
+  return [...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+/* ---- CLOUD page: config ---- */
+function sbChipRender(){
+  const chip=$('sbChip'); if(!chip) return;
+  if(!sbReady()){ chip.textContent='☁ OFFLINE'; chip.className='chip warn'; }
+  else if(sbCfg.record===false){ chip.textContent='☁ CONNECTED · recording off'; chip.className='chip warn'; }
+  else { chip.textContent='☁ SYNC ON'; chip.className='chip'; }
+}
+function sbSave(){
+  const u=String($('sbUrl')?$('sbUrl').value:'').trim().replace(/\/+$/,'');
+  const a=String($('sbAnon')?$('sbAnon').value:'').trim();
+  const rec=$('sbRecord')?$('sbRecord').checked:true;
+  const msg=$('sbMsg');
+  if(/service[_-]?role|SUPABASE_SERVICE/i.test(u+a)){
+    if(msg) msg.innerHTML='🚨 that looks like a <b>service-role key</b> — never paste it here. Use the <b>anon public</b> key (Settings → API).';
+    return;
+  }
+  if(u&&a){
+    if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(u)){ if(msg) msg.textContent='❌ project URL must look like https://yourproject.supabase.co'; return; }
+    if(a.length<20){ if(msg) msg.textContent='❌ anon key looks too short — paste the full anon public key.'; return; }
+  }
+  sbCfg={url:u,anon:a,record:rec};
+  store.set(SB_STORE_KEY,JSON.stringify(sbCfg));
+  sbChipRender();
+  if(msg) msg.innerHTML=sbReady()?'✅ cloud config saved — mirror '+(sbCfg.record===false?'paused':'active')+'. Testing connection…':'☁ cloud config cleared — NEXUS runs fully offline again.';
+  if(sbReady()) sbTest();
+}
+function sbClear(){
+  sbCfg={}; store.set(SB_STORE_KEY,'');
+  const u=$('sbUrl'),a=$('sbAnon');
+  if(u) u.value=''; if(a) a.value='';
+  sbChipRender(); sbDeployed=null;
+  ['sbModelInfo','sbPerf','sbFresh','sbDeliv'].forEach(id=>{ const el=$(id); if(el) el.textContent='not loaded — connect on block 1, then press REFRESH.'; });
+  const chip=$('sbModelChip'); if(chip) chip.textContent='no deployed model';
+  const btn=$('sbApplyBtn'); if(btn) btn.disabled=true;
+  const msg=$('sbMsg'); if(msg) msg.textContent='Cloud sync cleared — the engine keeps running exactly as before.';
+}
+async function sbTest(){
+  if(!sbReady()){ const msg=$('sbMsg'); if(msg) msg.textContent='cloud sync not configured.'; return; }
+  const msg=$('sbMsg'); if(msg) msg.textContent='⏳ testing connection…';
+  try{
+    const r=await sbRest('currency_pairs?select=code&limit=1');
+    if(!r.ok) throw new Error('HTTP '+r.status+' — check URL + anon key and that migrations are applied');
+    const rows=await r.json();
+    if(msg) msg.innerHTML='✅ connected — schema reachable ('+(rows&&rows.length?rows[0].code+' is live':'no pairs seeded yet')+').';
+    sbLoadModel(); sbLoadPerf(); sbLoadFresh(); sbLoadDeliv();
+  }catch(e){ if(msg) msg.innerHTML='❌ connection failed: '+esc(String(e.message||e).slice(0,120)); }
+}
+/* ---- CLOUD page: model registry ---- */
+async function sbLoadModel(){
+  const info=$('sbModelInfo'), chip=$('sbModelChip'), btn=$('sbApplyBtn');
+  if(!sbReady()){ if(info) info.textContent='cloud sync not configured — block 1.'; if(chip){chip.textContent='offline';chip.className='chip warn';} if(btn) btn.disabled=true; sbDeployed=null; return; }
+  if(info) info.textContent='⏳ loading model registry…';
+  try{
+    const r=await sbRest('model_versions?select=id,artifact_sha256,artifact_payload,metrics,trained_at,promoted_at,status&kind=eq.strategy-weights&is_deployed=is.true&limit=1');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const rows=await r.json();
+    if(!rows||!rows.length){
+      sbDeployed=null;
+      if(chip){ chip.textContent='no deployed model'; chip.className='chip warn'; }
+      if(btn) btn.disabled=true;
+      if(info) info.textContent='No deployed model in the registry yet — run the Python trainer (trainer/train.py run). Until then the brain uses its local weights.';
+      return;
+    }
+    sbDeployed=rows[0];
+    if(chip){ chip.textContent='deployed'; chip.className='chip'; }
+    if(btn) btn.disabled=false;
+    const m=(sbDeployed.metrics||{});
+    const ho=m.holdout||{}, wf=m.walk_forward||{};
+    if(info) info.innerHTML='<b>'+esc(sbDeployed.id)+'</b><br>'
+      +'promoted: '+esc(String(sbDeployed.promoted_at||'—').slice(0,19).replace('T',' '))+' UTC · trained: '+esc(String(sbDeployed.trained_at||'—').slice(0,19).replace('T',' '))+' UTC<br>'
+      +'SHA-256: <code>'+esc(String(sbDeployed.artifact_sha256||'').slice(0,16))+'…</code><br>'
+      +'walk-forward win rate: <b>'+esc(ho.win_rate!=null&&wf.win_rate!=null?(wf.win_rate*100).toFixed(1)+'%':'—')+'</b>'
+      +' · holdout (SIMULATED): <b>'+esc(ho.win_rate!=null?(ho.win_rate*100).toFixed(1)+'%':'—')+'</b> on '+esc(String(ho.n||'—'))+' replayed signals'
+      +' · expectancy '+esc(ho.expectancy_bps!=null?ho.expectancy_bps+' bps':'—');
+  }catch(e){ sbDeployed=null; if(btn) btn.disabled=true; if(info) info.textContent='⚠ model registry read failed: '+String(e.message||e).slice(0,120); }
+}
+async function sbApplyModel(){
+  const btn=$('sbApplyBtn'), msg=$('sbApplyMsg');
+  const model=sbDeployed;                       /* snapshot — a concurrent refresh can never corrupt an in-flight apply */
+  if(!model){ if(msg) msg.textContent='no deployed cloud model — run the trainer first.'; return; }
+  if(btn) btn.disabled=true;
+  if(msg) msg.textContent='⏳ verifying SHA-256 signature of the artifact…';
+  try{
+    const payload=model.artifact_payload;
+    if(!payload||!payload.timeframes||typeof payload.timeframes!=='object') throw new Error('artifact carries no timeframes');
+    const sha=await sbSha256Hex(sbCanonical(payload));
+    if(sha!==String(model.artifact_sha256||'')) throw new Error('checksum mismatch — artifact rejected (registry sha '+String(model.artifact_sha256).slice(0,12)+'… vs computed '+sha.slice(0,12)+'…)');
+    const tfMap={'1m':'M1','3m':'M3'};
+    let applied=0; const tfSeen=[];
+    for(const tk in payload.timeframes){
+      const tf=tfMap[tk]; if(!tf) continue;
+      if(!deep[tf]||typeof deep[tf]!=='object'||Array.isArray(deep[tf])||!deep[tf].strats){
+        const prev=(deep[tf]&&typeof deep[tf]==='object'&&!Array.isArray(deep[tf]))?deep[tf]:null;
+        deep[tf]={stamp:(prev&&prev.stamp)||Date.now(),bars:(prev&&prev.bars)||0,
+                  ensVwr:(prev&&prev.ensVwr)||0,ensVn:(prev&&prev.ensVn)||0,
+                  strats:(prev&&prev.strats)||{},src:'cloud'};
+      }
+      const strats=payload.timeframes[tk].strats||{};
+      for(const s in strats){
+        const w=strats[s];
+        if(!w||typeof w.vwr!=='number'||typeof w.vtrades!=='number') continue;
+        const vtr=Math.max(0,Math.min(5000,Math.round(w.vtrades)));
+        const vwr=Math.max(0,Math.min(1,w.vwr));
+        deep[tf].strats[s]={trades:0,wins:0,wr:0.5,vtrades:vtr,vwins:Math.round(vwr*vtr),vwr:vwr};
+        applied++;
+      }
+      deep[tf].cloud={id:model.id,at:Date.now()};
+      if(applied) tfSeen.push(tf);
+    }
+    if(!applied) throw new Error('artifact carries no usable strategy weights');
+    saveDeep(); renderDeepInfo();
+    if(lastW[brainTf]) renderBrain(lastW[brainTf]);
+    try{ renderReady(); }catch(e){}
+    store.set('nx_sb_applied',JSON.stringify({id:model.id,sha:sha.slice(0,12),t:Date.now()}));
+    if(msg) msg.innerHTML='✅ applied <b>'+esc(model.id)+'</b> — '+applied+' strategy weights merged into '+esc(tfSeen.join(' + '))+'. Weights only: prediction logic, agents and filters are untouched.';
+    pushNote('sys','☁ cloud model applied — '+applied+' SHA-256-verified weights merged into the brain');
+  }catch(e){
+    if(msg) msg.innerHTML='❌ '+esc(String(e.message||e));
+  }
+  if(btn) btn.disabled=!sbDeployed;
+}
+/* ---- CLOUD page: performance (SIMULATED, labelled) ---- */
+async function sbLoadPerf(){
+  const el=$('sbPerf');
+  if(!sbReady()){ if(el) el.textContent='cloud sync not configured — block 1.'; return; }
+  if(el) el.textContent='⏳ loading risk snapshots…';
+  try{
+    const r=await sbRest('risk_snapshots?select=scope,window,as_of,sample_size,win_rate,expectancy_bps,profit_factor,net_return_bps,max_drawdown_bps,current_losing_streak&scope=eq.global&order=as_of.desc&limit=60');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const rows=await r.json();
+    if(!rows||!rows.length){ if(el) el.textContent='No snapshots yet — they appear once the worker has evaluated recorded predictions (risk job runs every 5 minutes).'; return; }
+    const seen=new Set(), latest=[];
+    for(const row of rows){ if(seen.has(row.window)) continue; seen.add(row.window); latest.push(row); }
+    if(el) el.innerHTML=latest.map(s=>{
+      const wr=s.win_rate!=null?(s.win_rate*100).toFixed(1)+'%':'—';
+      const fresh=Date.now()-Date.parse(s.as_of)<15*60000;
+      return '<div class="usage-row" style="padding:7px 10px">'
+        +'<span class="k" style="flex:0 0 92px">'+esc(s.window.toUpperCase())+(fresh?'':' <span class="mini">stale</span>')+'</span>'
+        +'<span style="flex:1;text-align:left;font-size:12px">WR <b>'+esc(wr)+'</b> ('+esc(String(s.sample_size))+' signals)'
+        +' · expectancy <b>'+esc(s.expectancy_bps!=null?s.expectancy_bps+' bps':'—')+'</b>'
+        +' · PF <b>'+esc(s.profit_factor!=null?s.profit_factor:'—')+'</b>'
+        +' · sim net '+esc(s.net_return_bps!=null?s.net_return_bps+' bps':'—')
+        +' · max DD '+esc(s.max_drawdown_bps!=null?s.max_drawdown_bps+' bps':'—')
+        +' · losing streak '+esc(String(s.current_losing_streak))+'</span>'
+        +'<span class="chip warn" style="font-size:9px">SIM</span></div>';
+    }).join('');
+  }catch(e){ if(el) el.textContent='⚠ performance read failed: '+String(e.message||e).slice(0,120); }
+}
+/* ---- CLOUD page: market data health ---- */
+async function sbLoadFresh(){
+  const el=$('sbFresh');
+  if(!sbReady()){ if(el) el.textContent='cloud sync not configured — block 1.'; return; }
+  if(el) el.textContent='⏳ loading feed health…';
+  try{
+    const r=await sbRest('v_market_freshness?select=pair,is_active,age_seconds,candle_count&is_active=eq.true&order=pair.asc');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const rows=await r.json();
+    if(!rows||!rows.length){ if(el) el.textContent='No pairs active yet — the worker ingests the 10 seeded pairs on its first run.'; return; }
+    if(el) el.innerHTML=rows.map(f=>{
+      const age=f.age_seconds==null?'—':f.age_seconds<90?f.age_seconds+'s':f.age_seconds<3600?Math.round(f.age_seconds/60)+'m':Math.round(f.age_seconds/3600)+'h';
+      const lag=f.age_seconds!=null&&f.age_seconds>180;
+      return '<div class="usage-row" style="padding:5px 10px">'
+        +'<span class="k" style="flex:0 0 88px">'+esc(f.pair)+'</span>'
+        +'<span style="flex:1;text-align:left;font-size:12px">newest candle <b'+(lag?' style="color:var(--warn)"':'')+'>'+esc(String(age))+'</b> ago'
+        +' · stored bars <b>'+esc(String(f.candle_count==null?'—':f.candle_count))+'</b></span>'
+        +(lag?'<span class="chip warn" style="font-size:9px">LAG</span>':'')+'</div>';
+    }).join('');
+  }catch(e){ if(el) el.textContent='⚠ feed health read failed: '+String(e.message||e).slice(0,120); }
+}
+/* ---- CLOUD page: delivery log ---- */
+async function sbLoadDeliv(){
+  const el=$('sbDeliv');
+  if(!sbReady()){ if(el) el.textContent='cloud sync not configured — block 1.'; return; }
+  if(el) el.textContent='⏳ loading deliveries…';
+  try{
+    const r=await sbRest('v_deliveries_public?select=channel,message_kind,status,attempts,has_error,created_at&order=created_at.desc&limit=10');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const rows=await r.json();
+    if(!rows||!rows.length){ if(el) el.textContent='No deliveries recorded yet — they appear once this browser (or the worker) records a send with cloud sync on.'; return; }
+    const stChip=s=>s==='sent'?'<span class="chip" style="font-size:9px">SENT</span>':s==='failed'?'<span class="chip warn" style="font-size:9px">FAILED</span>':'<span class="chip warn" style="font-size:9px">'+esc(String(s).toUpperCase())+'</span>';
+    if(el) el.innerHTML=rows.map(d=>'<div class="usage-row" style="padding:5px 10px">'
+      +'<span class="k" style="flex:0 0 72px">'+esc(String(d.created_at||'').slice(11,19))+'</span>'
+      +'<span style="flex:1;text-align:left;font-size:12px">'+esc(String(d.channel))+' · '+esc(String(d.message_kind))+' · attempts '+esc(String(d.attempts))+(d.has_error?' · ⚠ error':'')+'</span>'
+      +stChip(d.status)+'</div>').join('');
+  }catch(e){ if(el) el.textContent='⚠ delivery log read failed: '+String(e.message||e).slice(0,120); }
+}
+function sbInit(){
+  const u=$('sbUrl'),a=$('sbAnon'),rec=$('sbRecord');
+  if(u) u.value=sbCfg.url||'';
+  if(a) a.value=sbCfg.anon||'';
+  if(rec) rec.checked=sbCfg.record!==false;
+  sbChipRender();
+  const applied=loadJSON('nx_sb_applied',null);
+  if(applied&&applied.id){ const m=$('sbApplyMsg'); if(m) m.innerHTML='last applied: <b>'+esc(applied.id)+'</b> ('+esc(applied.sha||'')+'…) — re-run TRAIN THE DATA AT MAX on the BRAIN page to return to local weights.'; }
+  if(sbReady()){ sbLoadModel(); sbLoadPerf(); sbLoadFresh(); sbLoadDeliv(); }
+}
+
 initTabs();
 showPage(store.get('nx_page')||'dash');
-syncKeyInputs();
+renderKeyInputs();
 syncSettings();
 ensureDay();
 setBrainTf(brainTf);
 renderStats(); renderHist(); renderPaper(); renderPerf(); renderVault(); renderBudget(true);
 renderPred(); renderSess(); tgRender(); renderStPending(); renderNotes();
+renderUsage(); renderVip(); renderPubInfo();
 renderDeepInfo(); renderReady(); renderFeedTzNote(); livePairsRender(); renderTopLive();
 if($('tgLog')&&tg.log.length) $('tgLog').innerHTML=tg.log.map(l=>'<div>'+esc(l)+'</div>').join('');
 if($('sessLog')&&sx.hist.length) $('sessLog').innerHTML=sx.hist.map(l=>'<div>'+esc(l)+'</div>').join('');
+if($('vipLog')&&vx.notes&&vx.notes.length) $('vipLog').innerHTML=vx.notes.slice(0,8).map(l=>'<div>'+esc(l)+'</div>').join('');
 if(tg.listen&&tgReady()) tgListenLoop();
-if(sx.status==='hunting'&&!sx.huntStart) sx.huntStart=Date.now();   /* resume the 60-s guarantee after reload */
+if(sx.status==='hunting'&&!sx.huntStart) sx.huntStart=Date.now();   /* resume the hunt after reload */
 loadLocalArt();
+sbInit();
 setInterval(()=>{ livePairsRender(); renderTopLive(); },5000);       /* pair grid ages refresh without hogging the main tick */
-setStatus('wait','NEXUS v5.0 Meridian ready — 10 pairs · 16 strategies · SESSION + PREMIUM engines. Turn on AUTO-MODE (SIGNALS page) for continuous operation.');
+setInterval(()=>{ if(sbReady()&&curPage==='cloud'&&document.visibilityState!=='hidden'){ sbLoadFresh(); sbLoadDeliv(); } },60000);
+setStatus('wait','NEXUS v5.1 Meridian ready — 10 pairs · 26 strategies · 4 channels (PUBLIC · VIP · LIST · MAIN) · fast verdicts. Flip the streams on the TELEGRAM page.');
 </script>
 </body>
 </html>

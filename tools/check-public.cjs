@@ -5,6 +5,8 @@
      - keys.js copied into the public dir (or present in repo root at build time)
      - non-empty PERMANENT_KEYS entries embedded in the published HTML
      - non-empty window.NEXUS_KEYS / NEXUS_TG_TOKEN / NEXUS_TG_CHAT assignments
+     - any Supabase SERVICE-ROLE key material (the anon key is public by design;
+       the service-role key is full database access and must never be deployed)
    Documentation examples with empty strings ("") or the placeholder
    ["your_key"] inside comments do NOT count as embedded credentials,
    but any real-looking assignment does. */
@@ -45,10 +47,15 @@ for (const f of files) {
   for (const re of [
     /window\.NEXUS_KEYS\s*=\s*\[\s*"(?!your_key")[^"]+"/g,
     /window\.NEXUS_TG_TOKEN\s*=\s*"(?!")[^"]+"/g,
-    /window\.NEXUS_TG_CHAT\s*=\s*"(?!yourchannel")[^"]+"/g,
+    /window\.NEXUS_TG_CHAT\s*=\s*"(?!yourchannel)[^"]+"/g,
+    /* cloud: anon key is public BY DESIGN; service-role key material is fatal */
+    /SUPABASE_SERVICE_ROLE/i,
+    /service_role_key/i,
+    /"role"\s*:\s*"service_role"/,
+    /sbServiceKey/i,
   ]) {
     const m = re.exec(src);
-    if (m) bad.push(f + ' embeds a credential: ' + m[0].slice(0, 40) + '…');
+    if (m) bad.push(f + ' embeds a credential: ' + String(m[0]).slice(0, 40) + '…');
   }
 }
 

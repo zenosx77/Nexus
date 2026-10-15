@@ -1,0 +1,2 @@
+# NEXUS trainer — Python 3.9+ standard library only.
+# No third-party packages required (Supabase REST + Storage accessed via urllib).

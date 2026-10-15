@@ -1,42 +1,45 @@
-# NEXUS Glass v5.0 · Meridian
+# NEXUS Glass v5.1 · Meridian
 
 A single-file, glassmorphic **multi-pair M1/M3 signal research engine** for binary-options-style
-candle prediction — built around **confirmed settlement**, two one-click Telegram shows
-(**SESSION** and **PREMIUM LIST**), and a **win-only sticker bank**.
+candle prediction — built around **4 Telegram channels** (PUBLIC · VIP · LIST · MAIN),
+**bot-configured message formats**, a **per-event sticker bank**, **fast confirmed settlement**
+and **quality-first signals**.
 
 > ⚠️ **Signal-only + paper-trading.** NEXUS never places, clicks, or automates real trades.
-> No system can guarantee a win rate; every verdict here is settled from real, confirmed candle
-> data and the UI says so plainly. Binary options carry a very high risk of loss.
+> No system can guarantee a win rate — VIP posts the *best available* window and simply skips
+> when there is no clean shot, but losses can and do happen. Every verdict is settled from real,
+> confirmed candle data. Binary options carry a very high risk of loss.
 
-## What's new in v5.0 (Meridian)
+## What's new in v5.1 (Meridian)
 
 | Area | Change |
 |---|---|
-| **Verdict correctness** | Targets are keyed to the **feed clock** (not the device clock); a candle settles only when the snapshot postdates its close **and** a confirming candle exists; `close == open` is a **PUSH** (stake refunded, never a loss). This fixes "a win shown as a loss". |
-| **Telegram · SESSION** | One click: **intro sticker** → ≥1 signal within 60 s sent straight to the channel → auto-verification → **WIN = ✅ + random sticker from your bank**, **LOSS = OTM 💔 message (never a sticker)**, PUSH = ➖ tie notice → until the win target (default 7) → **summary + your 2 outro stickers**. 2 straight losses pause 5 min; the quality guard stops the session at N losses. |
-| **Telegram · PREMIUM LIST** | One click: **intro sticker** → **10-minute market study** → schedules sure-shot windows **4 minutes apart, none inside the study window** (multi-timeframe consensus projection) → sends the picture-format list → verifies every outcome from confirmed closes → **one RESULT message with ✅/❌ ticks + 2 outro stickers**. |
-| **Sticker bank** | Capture many stickers from your bot (private chat works now — the old channel-match bug is gone) and assign roles: **INTRO**, **WIN×12** (random per win), **OUTRO 1/2**. Stickers fire on wins, intros and completions only. |
-| **Message style** | **HOUSE** (default) re-typesets every message in the NEXUS format — bold brand header, monospace rows, italic disclaimer — so forwarded lists stop looking copied. **VERBATIM** mode still adopts a captured layout with live values merged. (Telegram has no custom fonts; bold/italic/mono entities are the supported typography.) |
-| **Multi-pair** | 10 live pairs (EUR/USD, GBP/USD, USD/JPY, AUD/USD, USD/CAD, USD/CHF, EUR/JPY, GBP/JPY, NZD/USD, EUR/GBP), parallel fetches, live pair grid, quota-safe round-robin ticker and a **credit budget meter** that throttles cadence before you hit 429s/daily caps. |
-| **NONSTOP signals** | ≥1 honest signal per minute while the market is open: strict gates first, then a clearly-labelled relaxed fallback (B−/C grades). The status line and notification centre **never say "no trades"**. |
-| **Pages** | Nine ordered tab pages (DASH · SIGNALS · SESSION · PREMIUM · BOT · TELEGRAM · RESULTS · BRAIN · DATA) with a persistent live top bar (price, countdown, heartbeat, bell). |
-| **Strategies** | 16 total — adds SuperTrend 10×3, VWAP bounce, CCI-14 flip, Williams %R flip, Parabolic SAR flip, Ichimoku TK cross, ADX DI cross, Heikin-Ashi flip. |
-| **Training** | `TRAIN THE DATA AT MAX` — 5,000-candle walk-forward deep training with a 70/30 train/validation split; validated win rates blend into the brain's weights. A **readiness meter** tracks the measured win rate against the 1-loss-in-20 (95%) goal — live trading stays disabled by design. |
-| **Branding** | New Meridian mark (rising candles + trend arrow), matching favicon, no third-party artwork. |
+| **4 channels** | One bot, four destinations set on the TELEGRAM page: **MAIN** (session show + bot stream), **PUBLIC** (normal 1-min signals + announcements), **VIP** (one high-grade shot every 10 min), **LIST** (premium lists + results). Empty channels fall back to MAIN. |
+| **PUBLIC stream** | One **quality-only** signal per minute (B grade and above, no relaxed fallback), computed and delivered **seconds before the candle opens** so subscribers can enter at the open. Skips the minute when nothing qualifies. |
+| **VIP stream** | Every 10 minutes the best available shot across all pairs goes to the VIP channel ~20 s before the candle opens, **grade shown honestly** (A+/A/B). Never a filler shot. |
+| **Fast verification** | Verdicts settle **seconds after the candle closes** — the old confirming-candle wait (up to an extra minute) is gone. Pending candles fetch in parallel and retry every ~4 s. |
+| **Quality first** | NONSTOP relaxed signals are **off by default**; the SESSION floor **never decays** into low grades — it waits for quality. 26 strategies (10 new: TRIX, Awesome Oscillator, Chande Momentum, Envelope stretch, BB squeeze break, Fractal breakout, EMA-50 pullback, ROC flip, 3-bar reversal, Stoch+RSI combo). |
+| **API credit usage** | A dedicated **API CREDIT USAGE** section reads each key's real spend from Twelve Data's `api_usage` endpoint (0 credits) with per-key bars, remaining counts and a live call meter. |
+| **10 API keys** | Up from 4 — ten rotating slots with quota cooldown, plus PERMANENT_KEYS / keys.js sources merged into one pool. |
+| **Bot-configured formats** | Text `/setformat signal` (or `vip` · `row` · `list` · `result` · `verdict`) with your layout — placeholders like `{pair} {dir} {time} {grade}`, markup `*bold* _italic_ \`code\`` — saved permanently. `/formats` lists them, `/resetformat` restores defaults. Defaults are **ultra-minimal**: pair · direction · entry time · 1-min expiry. |
+| **Premium emoji** | Telegram **blocks bots from sending premium/custom emoji** — the format engine never emits those entities, so pasted premium emoji are auto-normalized to regular emoji and messages can never fail on them. |
+| **Sticker bank v2** | Nine assignable events: **SESSION START · WIN (bank) · LOSS · PUSH · VIP SHOT · LIST POST · RESULT · OUTRO 1 · OUTRO 2**. Nothing fires unless you assigned it, each event fires **exactly once** (the double-sticker bug is fixed), and empty = silence. |
+| **Simpler copy** | Verbose paragraphs trimmed across every page; the old HOUSE/VERBATIM style-capture system is replaced by the simple `/setformat` engine. |
 
 ## Run it
 
 ```bash
 npm install     # only needed for the test suite (jsdom)
-npm test        # smoke + regression suite (~25 s)
+npm test        # smoke + regression suite (~40 s)
 ```
 
 Then open `index.html` in a browser (or serve the folder). No build step, no CDN,
-everything is one self-contained file with a strict CSP (`api.twelvedata.com` + `api.telegram.org` only).
+everything is one self-contained file with a strict CSP (`api.twelvedata.com` + `api.telegram.org`
++ `*.supabase.co` when cloud sync is configured).
 
 ### Keys (never committed)
 
-1. **Browser slots (recommended):** DATA page → paste up to 4 Twelve Data keys → **SAVE ALL KEYS**.
+1. **Browser slots (recommended):** DATA page → paste up to **10** Twelve Data keys → **SAVE ALL KEYS**.
    Stored only in that browser's localStorage. Keys rotate; quota-hit keys cool down 60 s.
 2. **Private file:** create `keys.js` (gitignored) from `keys.example.js` with
    `window.NEXUS_KEYS`, `window.NEXUS_TG_TOKEN`, `window.NEXUS_TG_CHAT`.
@@ -44,31 +47,48 @@ everything is one self-contained file with a strict CSP (`api.twelvedata.com` + 
 
 The CI credential guard (`tools/check-public.cjs`) refuses to publish if any key/token would ship.
 
-### Telegram show setup (2 minutes)
+### Telegram setup (3 minutes)
 
-1. TELEGRAM page → block **1**: paste bot token + channel (`@yourchannel`), SAVE, flip **AUTHORIZED**.
-2. Block **2**: send your stickers to the bot in Telegram → **PULL STICKERS** → assign
-   INTRO / WIN+ (several) / OUTRO 1 / OUTRO 2.
-3. Block **3**: keep **HOUSE** style (or capture a layout and switch to VERBATIM).
-4. Block **4**: enable AUTO-SEND so SESSION/PREMIUM lists, results and stickers go out by themselves.
-5. SESSION page → **START SESSION**, or PREMIUM page → **START PREMIUM LIST**.
+1. **TELEGRAM page → block 1:** paste the bot token, your brand, and the four channels
+   (MAIN · PUBLIC · VIP · LIST — empty ones fall back to MAIN). Add the bot as **admin** in each channel. SAVE, flip **AUTHORIZED**.
+2. **Block 2:** send your stickers to the bot in Telegram → **PULL STICKERS** → assign each one to its event (session start, win bank, loss, push, vip, list, result, outro 1/2). Unassigned = never sent.
+3. **Block 3:** text `/setformat signal <your layout>` to the bot to set your own message formats permanently (or keep the ultra-minimal defaults).
+4. **Block 4:** flip the automation switches — **PUBLIC STREAM** (1 quality signal/min), **VIP STREAM** (best shot every 10 min), auto list + result, bot stream, verdicts.
+5. SESSION page → **START SESSION**, PREMIUM page → **START PREMIUM LIST**, VIP page → **FIRE VIP SHOT NOW** — or use `/session`, `/premium`, `/vip` in the bot chat.
+
+### Bot commands
+
+`/start` `/help` `/session` `/premium` `/vip` `/signal` `/list` `/results` `/stats`
+`/formats` `/setformat <kind> <layout>` `/resetformat <kind|all>`
+
+## Cloud sync (Supabase — optional)
+
+The engine runs **fully offline by default**. If you want server-grade record-keeping,
+outcome evaluation, risk monitoring and self-learning, connect a Supabase project:
+
+- **CLOUD page** in the app — paste the project URL + **anon public key** (never the
+  service-role key). The browser *mirrors* signals and delivery results (insert-only,
+  enforced by row-level security) and can apply SHA-256-verified cloud-trained weights
+  to the brain — a button, never silent. With no config every cloud call is a no-op.
+- **`server/`** — Node worker (service-role key, server only): 1-minute candle ingestion
+  with gap/duplicate/revision detection, outcome evaluation (direction-adjusted returns
+  minus estimated costs), risk snapshots, Telegram retries, ops alerts, retention.
+- **`trainer/`** — Python trainer (stdlib only): leakage-free chronological walk-forward
+  training, gated promotion (shadow mode first), rollback support, private model artifacts.
+- **`supabase/migrations/`** — versioned SQL schema (10 tables + views + RLS + retention).
+
+Full setup: **[SUPABASE_SETUP.md](SUPABASE_SETUP.md)** · architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
+Simulated returns shown anywhere (cloud performance included) are **signal-quality
+metrics, never realized account profits**.
 
 ## Repo map
 
 - `index.html` — the entire app (UI + engines)
-- `tests/smoke.cjs` — jsdom regression suite (settlement math, engines, privacy, migrations, chaos pass)
+- `tests/smoke.cjs` — jsdom regression suite (settlement math, channels, formats, sticker dedupe, engines, privacy, migrations, cloud mirror, chaos pass)
 - `tools/check-public.cjs` — credential guard used by the Pages deploy workflow
-- `assets/fonts/` — self-hosted Inter variable + OFL 1.1 license
-- `AUDIT.md` / `IMPROVEMENTS.md` — historical audit & roadmap (v4.x line references; the v5 rewrite
-  implements Tier 0–2 items: confirmed settlement, feed-clock targets, persisted history/CSV,
-  budget throttling, multi-pair, notifications)
-- `keys.example.js` — private keys template (copy to `keys.js`, gitignored)
-
-## Honesty notes
-
-- The 95% goal is tracked **measured vs. promised** on the BRAIN page — the app will tell you when
-  reality falls short instead of dressing it up.
-- Premium "sure-shot" windows are multi-timeframe **projections**; distance decay and overextension
-  penalties are applied, and the engine sends **nothing** when no window clears the conviction floor.
-- Session losses are reported with the OTM 💔 format you asked for, but losses cannot be engineered
-  away — the guards (pauses, quality guard, daily stop, breaker) are the protection.
+- `server/` — Supabase worker (ingestion, evaluation, risk, retries, alerts) — `npm test` inside
+- `trainer/` — Python trainer + promotion pipeline — `python3 -m unittest` inside
+- `supabase/migrations/` — versioned database schema
+- `docs/ARCHITECTURE.md` — inspection report + target architecture
+- `SUPABASE_SETUP.md` — end-to-end cloud setup guide

@@ -1,29 +1,42 @@
 // ═══════════════════════════════════════════════════════════
 // keys.example.js — template for NEXUS optional permanent keys
 //
-// NORMAL PATH (recommended): use the four 🔑 key slots in the app
+// NORMAL PATH (recommended): use the ten 🔑 key slots in the app
 // and press "SAVE ALL KEYS" — they persist in your browser's
 // localStorage only, rotate automatically, cool down on quota,
 // and never touch this repository.
 //
 // This file is only for OPTIONAL permanent keys:
 //   1. Copy this file to:  keys.js
-//   2. Put your keys between the quotes below (up to 4).
+//   2. Put your keys between the quotes below (up to 10).
 //   3. keys.js is gitignored — it will NOT be committed, and the
 //      Pages deploy refuses to publish if it ever appears.
 //
 // ⚠ SECURITY: this repository is PUBLIC. Never commit keys.js.
 // ═══════════════════════════════════════════════════════════
 
-// Twelve Data market-data keys (0–4 — merged with browser slots, auto-rotating)
+// Twelve Data market-data keys (0–10 — merged with browser slots, auto-rotating)
 window.NEXUS_KEYS = [
   "", // Twelve Data key 1
   "", // key 2 (optional — auto-rotates)
   "", // key 3 (optional)
   "", // key 4 (optional)
+  "", // key 5 (optional)
+  "", // key 6 (optional)
+  "", // key 7 (optional)
+  "", // key 8 (optional)
+  "", // key 9 (optional)
+  "", // key 10 (optional)
 ];
 
 // Telegram bot (from @BotFather) — used for signal delivery
 // Changing token/chat in the app revokes send authorization automatically.
 window.NEXUS_TG_TOKEN = "";   // e.g. "123456789:AAH..."
 window.NEXUS_TG_CHAT  = "";   // chat id (numeric) or "@yourchannel"
+
+// Supabase cloud sync (optional) — ANON PUBLIC KEY ONLY.
+// The anon key is safe to expose (row-level security: insert-only mirror);
+// the SERVICE-ROLE key must NEVER go in any frontend file — server/.env only.
+// Same values can also be entered on the CLOUD page (stored in localStorage).
+window.NEXUS_SB_URL  = "";    // e.g. "https://yourproject.supabase.co"
+window.NEXUS_SB_ANON = "";    // anon public key from Supabase → Settings → API
