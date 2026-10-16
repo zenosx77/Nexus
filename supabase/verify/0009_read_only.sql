@@ -1,11 +1,13 @@
 -- Read-only. Confirm project identity first. This must NOT reserve a credit.
 begin transaction read only;
-select public.twelvedata_quota_status() as quota_contract;
-select account,usage_day,daily_calls,cardinality(recent_calls) as rolling_reservations,
-  blocked_until,updated_at from public.twelvedata_account_budget;
 do $$
 declare r text; t text; s jsonb;
 begin
+  if to_regclass('public.twelvedata_account_budget') is null
+     or to_regprocedure('public.reserve_twelvedata_account_credit(text,integer,integer,text,integer)') is null
+     or to_regprocedure('public.twelvedata_quota_status()') is null then
+    raise exception '0009 missing: shared account quota migration 0009_shared_account_quota.sql is not applied';
+  end if;
   s := public.twelvedata_quota_status();
   if s->>'guard_version'<>'1' or s->>'daily_limit'<>'700' or s->>'minute_limit'<>'6'
      or s->>'rolling_window_seconds'<>'61' or s->>'initialized'<>'true' then
@@ -22,6 +24,9 @@ begin
       if r<>'service_role' and has_table_privilege(r,'public.'||t,'SELECT') then
         raise exception 'quota table readable by public client';
       end if;
+      if r='service_role' and not has_table_privilege(r,'public.'||t,'SELECT') then
+        raise exception 'missing service-role quota SELECT';
+      end if;
     end loop;
   end loop;
   foreach r in array array['anon','authenticated'] loop
@@ -32,7 +37,16 @@ begin
       raise exception 'quota RPC callable by public client';
     end if;
   end loop;
+  if not has_function_privilege('service_role','public.reserve_twelvedata_account_credit(text,integer,integer,text,integer)','EXECUTE')
+    or not has_function_privilege('service_role','public.reserve_twelvedata_credit(integer,integer)','EXECUTE')
+    or not has_function_privilege('service_role','public.reserve_twelvedata_browser_credit(integer,integer,text,integer)','EXECUTE')
+    or not has_function_privilege('service_role','public.twelvedata_quota_status()','EXECUTE') then
+    raise exception 'missing service-role quota RPC EXECUTE';
+  end if;
 end $$;
+select public.twelvedata_quota_status() as quota_contract;
+select account,usage_day,daily_calls,cardinality(recent_calls) as rolling_reservations,
+  blocked_until,updated_at from public.twelvedata_account_budget;
 -- Review these definitions against migration 0009; a version result alone is not
 -- proof the actual installed code is intact or that ALL account clients use it.
 select p.oid::regprocedure as function, p.prosecdef as security_definer, p.proconfig,

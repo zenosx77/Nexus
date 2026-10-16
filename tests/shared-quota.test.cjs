@@ -9,8 +9,18 @@ test('shared quota migration 0009 in disposable PostgreSQL (PGlite)',async t=>{
   await pg.exec(`create role anon;create role authenticated;create role service_role bypassrls;
     grant usage on schema public to anon,authenticated,service_role;
     alter default privileges in schema public grant all on tables to anon,authenticated,service_role;`);
-  for(const name of fs.readdirSync('supabase/migrations').filter(n=>n.endsWith('.sql')).sort())
+  const migrations=fs.readdirSync('supabase/migrations').filter(n=>n.endsWith('.sql')).sort();
+  for(const name of migrations.filter(n=>!n.startsWith('0009_')))
     await pg.exec(fs.readFileSync(`supabase/migrations/${name}`,'utf8'));
+  await t.test('pre-0009 database passes 0008 verifier and fails 0009 verifier with explicit missing-0009 error',async()=>{
+    await pg.exec(fs.readFileSync('supabase/verify/0008_read_only.sql','utf8'));
+    await assert.rejects(
+      pg.exec(fs.readFileSync('supabase/verify/0009_read_only.sql','utf8')),
+      /0009 missing: shared account quota migration 0009_shared_account_quota\.sql is not applied/,
+    );
+    await pg.exec('rollback;');
+  });
+  await pg.exec(fs.readFileSync('supabase/migrations/0009_shared_account_quota.sql','utf8'));
   // PGlite's prepared-query API rejects multiple statements. exec returns their results.
   const db={query:async sql=>(await pg.exec(sql)).at(-1)};
   await quotaCases(t,db);
