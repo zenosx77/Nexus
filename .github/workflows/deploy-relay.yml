@@ -70,6 +70,7 @@ jobs:
           NEXUS_VERIFY_TELEGRAM: ${{ inputs.verify_telegram || false }}
         run: node tools/deploy-relay.cjs
       - name: Verify actual authenticated session and read-only Cloud Sync access
+        if: always()
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
