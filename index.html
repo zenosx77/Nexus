@@ -26,90 +26,110 @@
     unicode-range:U+0000-00FF,U+0131,U+0132,U+0133,U+0134,U+0135,U+0136,U+0137,U+0138,U+0139,U+013A,U+013B,U+013C,U+013D,U+013E,U+013F,U+0140,U+0141,U+0142,U+0143,U+0144,U+0145,U+0146,U+0147,U+0148,U+0149,U+014A,U+014B,U+014C,U+014D,U+014E,U+014F,U+0150,U+0151,U+0152,U+0153,U+0154,U+0155,U+0156,U+0157,U+0158,U+0159,U+015A,U+015B,U+015C,U+015D,U+015E,U+015F,U+0160,U+0161,U+0162,U+0163,U+0164,U+0165,U+0166,U+0167,U+0168,U+0169,U+016A,U+016B,U+016C,U+016D,U+016E,U+016F,U+0170,U+0171,U+0172,U+0173,U+0174,U+0175,U+0176,U+0177,U+0178,U+0179,U+017A,U+017B,U+017C,U+017D,U+017E,U+017F,U+0180,U+0181,U+0182,U+0183,U+0184,U+0185,U+0186,U+0187,U+0188,U+0189,U+018A,U+018B,U+018C,U+018D,U+018E,U+018F,U+0190,U+0191,U+0192,U+0193,U+0194,U+0195,U+0196,U+0197,U+0198,U+0199,U+019A,U+019B,U+019C,U+019D,U+019E,U+019F,U+01A0,U+01A1,U+01A2,U+01A3,U+01A4,U+01A5,U+01A6,U+01A7,U+01A8,U+01A9,U+01AA,U+01AB,U+01AC,U+01AD,U+01AE,U+01AF,U+01B0,U+01B1,U+01B2,U+01B3,U+01B4,U+01B5,U+01B6,U+01B7,U+01B8,U+01B9,U+01BA,U+01BB,U+01BC,U+01BD,U+01BE,U+01BF,U+01C0,U+01C1,U+01C2,U+01C3,U+01C4,U+01C5,U+01C6,U+01C7,U+01C8,U+01C9,U+01CA,U+01CB,U+01CC,U+01CD,U+01CE,U+01CF,U+01D0,U+01D1,U+01D2,U+01D3,U+01D4,U+01D5,U+01D6,U+01D7,U+01D8,U+01D9,U+01DA,U+01DB,U+01DC,U+01DD,U+01DE,U+01DF,U+01E0,U+01E1,U+01E2,U+01E3,U+01E4,U+01E5,U+01E6,U+01E7,U+01E8,U+01E9,U+01EA,U+01EB,U+01EC,U+01ED,U+01EE,U+01EF,U+01F0,U+01F1,U+01F2,U+01F3,U+01F4,U+01F5,U+01F6,U+01F7,U+01F8,U+01F9,U+01FA,U+01FB,U+01FC,U+01FD,U+01FE,U+01FF,U+0131,U+0152,U+0153,U+02BB,U+02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
   }
 
+  /* ── 0b · self-hosted display face: Cinzel (latin, 400/600).
+        Source: https://fonts.google.com/specimen/Cinzel · © Google Inc.
+        License: SIL Open Font License 1.1 — full text in
+        assets/fonts/CINZEL-OFL-LICENSE.txt (shipped; no external requests). ── */
+  @font-face{
+    font-family:'Cinzel'; font-style:normal; font-display:swap; font-weight:400;
+    src:url('assets/fonts/cinzel-latin-400-normal.woff2') format('woff2');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+  }
+  @font-face{
+    font-family:'Cinzel'; font-style:normal; font-display:swap; font-weight:600;
+    src:url('assets/fonts/cinzel-latin-600-normal.woff2') format('woff2');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+  }
+
   /* ── 1 · design tokens ─────────────────────────────────────────── */
   :root{
     color-scheme:dark;
 
-    /* palette — deep midnight blue · black · ocean blue · silver · cyan */
+    /* palette — midnight ocean: black-blue ground, silver ink, cyan accent */
     --nx-accent:#3ad2ff;
-    --nx-accent-2:#8b6cff;
-    --nx-accent-soft:rgba(58,210,255,.16);
+    --nx-accent-2:#5b86d6;
+    --nx-accent-soft:rgba(58,210,255,.15);
     --nx-accent-ink:#03141d;
+    --nx-accent-ui:#4ecdf5;   /* softer tint for large glass surfaces */
 
-    --nx-bg:#04060d;
-    --nx-bg-2:#070c18;
-    --nx-bg-3:#0b1223;
-    --nx-ink:#eaf3ff;
-    --nx-ink-2:#aac0dd;
-    --nx-ink-3:#8195b2;
+    --nx-bg:#03060f;
+    --nx-bg-2:#060c1a;
+    --nx-bg-3:#0a1223;
+    --nx-ink:#eef4ff;
+    --nx-ink-2:#b3c4dc;
+    --nx-ink-3:#7f92ae;
 
-    --nx-win:#35f0a8;
-    --nx-loss:#ff6484;
+    --nx-win:#43e5a0;
+    --nx-loss:#ff6b83;
     --nx-push:#93baff;
-    --nx-warn:#ffcf5c;
+    --nx-warn:#ffc95c;
 
-    --nx-line:rgba(255,255,255,.13);
+    --nx-line:rgba(255,255,255,.12);
     --nx-line-2:rgba(255,255,255,.07);
     --nx-line-3:rgba(255,255,255,.04);
 
-    /* glass surfaces */
-    --glass-1:rgba(255,255,255,.085);
-    --glass-2:rgba(255,255,255,.028);
-    --glass-brd:rgba(255,255,255,.14);
-    --glass-brd-2:rgba(255,255,255,.075);
-    --glass-blur:22px;
-    --glass-sat:165%;
-    --glass-shadow:0 22px 54px -26px rgba(0,0,0,.82), 0 2px 10px -6px rgba(0,0,0,.6);
-    --glass-inner:inset 0 1px 0 rgba(255,255,255,.20), inset 0 -1px 0 rgba(255,255,255,.035);
-    --glass-sheen:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,0) 44%);
+    /* glass surfaces — highly transparent, artwork stays readable through them */
+    --glass-1:rgba(255,255,255,.075);
+    --glass-2:rgba(15,27,48,.38);
+    --glass-brd:rgba(255,255,255,.13);
+    --glass-brd-2:rgba(255,255,255,.07);
+    --glass-blur:16px;
+    --glass-sat:150%;
+    --glass-shadow:0 20px 48px -30px rgba(0,0,0,.85), 0 2px 8px -6px rgba(0,0,0,.55);
+    --glass-inner:inset 0 1px 0 rgba(255,255,255,.20), inset 0 -1px 0 rgba(255,255,255,.035), inset 0 0 60px -30px rgba(150,215,255,.35);
+    --glass-sheen:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,0) 40%);
 
     /* geometry + rhythm */
-    --r-xl:28px; --r-lg:22px; --r-md:15px; --r-sm:11px; --r-xs:8px; --r-pill:999px;
-    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:22px; --sp-6:30px; --sp-7:46px;
+    --r-xl:24px; --r-lg:18px; --r-md:14px; --r-sm:10px; --r-xs:8px; --r-pill:999px;
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:14px; --sp-5:17px; --sp-6:28px; --sp-7:42px;
     --font:'Inter','Segoe UI',system-ui,Roboto,Arial,sans-serif;
+    --display:'Cinzel',Georgia,'Times New Roman',serif;
     --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace;
     --ease:cubic-bezier(.22,1,.36,1);
     --dur:.26s;
-    --rail:246px;
-    --scene-opacity:.42;
+    --rail:216px;
+    --creator:322px;
+    --shell-pad:14px;
+    --scene-opacity:.80;
     /* original adventure artwork tints (inline SVG reads these tokens) */
-    --scene-sky-1:#050b1c; --scene-sky-2:#0d2a4d;
-    --scene-sea-1:#071a33; --scene-sea-2:#030913;
-    --scene-moon:#dbeeff; --scene-cloud:#1b3a5e; --scene-glow:#5fd8ff; --scene-ship:#020610;
+    --scene-sky-1:#05101f; --scene-sky-2:#1f5891;
+    --scene-sea-1:#0e3450; --scene-sea-2:#030a15;
+    --scene-moon:#eef7ff; --scene-cloud:#3f6f9f; --scene-glow:#8fe4ff; --scene-ship:#01040c;
+    --scene-warm:#ffd9a8; --scene-deep:#061523;
   }
 
   /* light theme — the same system, re-pointed at a misty harbour palette */
   :root[data-theme="light"]{
     color-scheme:light;
-    --nx-accent:#0a84c8;
-    --nx-accent-2:#5b46d6;
-    --nx-accent-soft:rgba(10,132,200,.14);
+    --nx-accent:#0b7fb8;
+    --nx-accent-2:#4a54c8;
+    --nx-accent-soft:rgba(11,127,184,.13);
     --nx-accent-ink:#ffffff;
 
-    --nx-bg:#e9eff7;
-    --nx-bg-2:#f4f7fc;
+    --nx-bg:#e6edf6;
+    --nx-bg-2:#f2f6fb;
     --nx-bg-3:#ffffff;
-    --nx-ink:#0c1b2e;
-    --nx-ink-2:#3f5878;
-    --nx-ink-3:#5d7593;
+    --nx-ink:#0a1a2d;
+    --nx-ink-2:#39516f;
+    --nx-ink-3:#5b7290;
 
     --nx-line:rgba(10,32,64,.14);
     --nx-line-2:rgba(10,32,64,.09);
     --nx-line-3:rgba(10,32,64,.05);
 
-    --glass-1:rgba(255,255,255,.78);
-    --glass-2:rgba(255,255,255,.52);
-    --glass-brd:rgba(255,255,255,.9);
+    --glass-1:rgba(255,255,255,.60);
+    --glass-2:rgba(255,255,255,.34);
+    --glass-brd:rgba(255,255,255,.85);
     --glass-brd-2:rgba(10,32,64,.10);
-    --glass-blur:20px;
-    --glass-sat:150%;
-    --glass-shadow:0 20px 46px -26px rgba(16,40,74,.42), 0 2px 8px -4px rgba(16,40,74,.18);
-    --glass-inner:inset 0 1px 0 rgba(255,255,255,.95), inset 0 -1px 0 rgba(10,32,64,.04);
-    --glass-sheen:linear-gradient(180deg,rgba(255,255,255,.85),rgba(255,255,255,0) 46%);
-    --scene-opacity:.18;
-    --scene-sky-1:#dceafb; --scene-sky-2:#b7d3ef;
-    --scene-sea-1:#c6dcf1; --scene-sea-2:#a9c6e4;
-    --scene-moon:#ffffff; --scene-cloud:#e8f1fb; --scene-glow:#2f8fd0; --scene-ship:#5b7593;
+    --glass-blur:15px;
+    --glass-sat:140%;
+    --glass-shadow:0 18px 42px -28px rgba(16,40,74,.45), 0 2px 8px -4px rgba(16,40,74,.16);
+    --glass-inner:inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(10,32,64,.04);
+    --glass-sheen:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,0) 46%);
+    --scene-opacity:.26;
+    --scene-sky-1:#dceafb; --scene-sky-2:#a9c9ea;
+    --scene-sea-1:#bcd6ef; --scene-sea-2:#9dbde0;
+    --scene-moon:#ffffff; --scene-cloud:#dfeaf8; --scene-glow:#2f8fd0; --scene-ship:#4b6484;
   }
 
   /* ── 2 · reset + base ──────────────────────────────────────────── */
@@ -123,9 +143,9 @@
   body::before{ /* ambient gradient bed */
     content:''; position:fixed; inset:0; z-index:-3; pointer-events:none;
     background:
-      radial-gradient(1200px 680px at 12% -8%, rgba(0,120,190,.26), transparent 62%),
-      radial-gradient(900px 620px at 92% 6%, rgba(96,60,200,.22), transparent 60%),
-      radial-gradient(1000px 760px at 50% 118%, rgba(0,150,160,.18), transparent 64%),
+      radial-gradient(1200px 680px at 10% -10%, rgba(6,64,116,.30), transparent 62%),
+      radial-gradient(900px 620px at 92% 4%, rgba(46,36,120,.22), transparent 60%),
+      radial-gradient(1000px 760px at 50% 116%, rgba(4,86,104,.20), transparent 64%),
       linear-gradient(180deg,var(--nx-bg) 0%, var(--nx-bg-2) 52%, var(--nx-bg) 100%);
   }
   :root[data-theme="light"] body::before{
@@ -146,8 +166,26 @@
     position:fixed; inset:0; z-index:-2; pointer-events:none;
     opacity:var(--scene-opacity); transition:opacity .5s var(--ease);
     background-size:cover; background-position:center;
-    filter:saturate(115%);
+    filter:saturate(112%);
   }
+  .nx-scene::after{ /* vignette keeps text readable over the artwork */
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(132% 98% at 50% 6%, rgba(3,6,15,0) 40%, rgba(3,6,15,.5) 80%, rgba(3,6,15,.84) 100%);
+  }
+  :root[data-theme="light"] .nx-scene::after{
+    background:radial-gradient(130% 96% at 50% 8%, rgba(233,239,247,0) 34%, rgba(233,239,247,.5) 78%, rgba(233,239,247,.78) 100%); }
+  :root[data-theme="light"] .rail-art{ display:none; }
+  :root[data-theme="light"] .rail-quote{ color:rgba(24,48,78,.78); text-shadow:none; }
+  :root[data-theme="light"] .rail-quote em{ color:rgba(60,90,124,.7); }
+  :root[data-theme="light"] .rail-foot{ background:linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,.6) 42%, rgba(248,251,254,.85)); }
+  :root[data-theme="light"] .rail-link.active{ box-shadow:0 10px 22px -16px rgba(20,70,120,.5), inset 0 1px 0 rgba(255,255,255,.9); }
+  :root[data-theme="light"] .cr-hero .word b,
+  :root[data-theme="light"] .cr-hero .kanji,
+  :root[data-theme="light"] .cr-hero .kanji-sm{ text-shadow:0 2px 14px rgba(255,255,255,.75); color:#0b2745; }
+  :root[data-theme="light"] .live-pill,
+  :root[data-theme="light"] .hero-ico{ backdrop-filter:blur(8px); }
+  :root[data-theme="light"] .stat-card .vl,
+  :root[data-theme="light"] .feat-card h3{ color:#0a2138; }
   :root[data-theme="light"] .nx-scene{ filter:saturate(120%) contrast(96%); }
   .nx-scene svg{ width:100%; height:100%; display:block; }
 
@@ -176,22 +214,29 @@
   }
   :root[data-motion="off"] html{ scroll-behavior:auto; }
 
-  /* ── 5 · layout shell ───────────────────────────────────────────── */
-  .app-shell{ display:flex; min-height:100vh; position:relative; z-index:1; }
-  .wrap{ flex:1 1 auto; width:100%; max-width:1180px; margin:0 auto; padding:14px 14px 104px; position:relative; z-index:1; }
-  .orb{ position:fixed; border-radius:50%; filter:blur(100px); opacity:.4; z-index:-1; pointer-events:none; }
-  .o1{ width:440px; height:440px; background:#0b3a6e; top:-150px; left:-130px; }
-  .o2{ width:400px; height:400px; background:#34165c; top:28%; right:-150px; }
-  .o3{ width:360px; height:360px; background:#053f3a; bottom:-130px; left:18%; }
-  .orb{ animation:orbFloat 14s ease-in-out infinite alternate; will-change:transform; }
-  .o2{ animation-delay:-4s; animation-duration:17s; }
-  .o3{ animation-delay:-8s; animation-duration:19s; }
+  /* ── 5 · layout shell — nav rail · workspace · creator rail ─────── */
+  .app-shell{
+    display:grid; align-items:start;
+    grid-template-columns:minmax(0,1fr);
+    gap:var(--shell-pad);
+    padding:var(--shell-pad) var(--shell-pad) 0;
+    max-width:1680px; margin:0 auto;
+    position:relative; z-index:1;
+  }
+  .wrap{ min-width:0; width:100%; padding:0 0 12px; position:relative; z-index:1; }
+  .orb{ position:fixed; border-radius:50%; filter:blur(110px); opacity:.34; z-index:-1; pointer-events:none; }
+  .o1{ width:520px; height:520px; background:#0a3060; top:-190px; left:-150px; }
+  .o2{ width:460px; height:460px; background:#1b1240; top:24%; right:-170px; }
+  .o3{ width:420px; height:420px; background:#04333c; bottom:-150px; left:22%; }
+  .orb{ animation:orbFloat 16s ease-in-out infinite alternate; will-change:transform; }
+  .o2{ animation-delay:-5s; animation-duration:19s; }
+  .o3{ animation-delay:-9s; animation-duration:21s; }
   @media (prefers-reduced-motion: reduce){ .orb{ transform:none!important; } }
 
   /* ── 6 · glass surfaces ────────────────────────────────────────── */
   .glass{
     position:relative;
-    background:var(--glass-sheen), linear-gradient(160deg, var(--glass-1), var(--glass-2));
+    background:var(--glass-sheen), linear-gradient(158deg, var(--glass-1), var(--glass-2));
     border:1px solid var(--glass-brd);
     border-radius:var(--r-lg);
     backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-sat));
@@ -201,118 +246,398 @@
     animation:cardIn .5s var(--ease) both;
     transition:transform var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), background var(--dur) var(--ease);
   }
+  /* specular top edge — the thin highlight the reference shows on every panel */
+  .glass::before{
+    content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,0) 24%);
+    mask-image:linear-gradient(180deg,#000,rgba(0,0,0,.28) 38%,transparent 60%);
+  }
+  :root[data-theme="light"] .glass::before{ background:linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,0) 30%); }
   .glass.flat{ background:var(--glass-2); }
-  .glass.tint{ background:var(--glass-sheen), linear-gradient(160deg, rgba(58,210,255,.12), rgba(139,108,255,.08)); }
+  .glass.tint{ background:var(--glass-sheen), linear-gradient(160deg, rgba(78,205,245,.11), rgba(91,134,214,.07)); }
   .glass.tight{ padding:var(--sp-4); }
   /* solid fallback when the platform has no backdrop blur */
   @supports not ((backdrop-filter:blur(2px)) or (-webkit-backdrop-filter:blur(2px))){
-    .glass{ background:linear-gradient(160deg, rgba(16,26,44,.96), rgba(10,16,30,.97)); }
-    :root[data-theme="light"] .glass{ background:linear-gradient(160deg, rgba(255,255,255,.98), rgba(246,249,253,.98)); }
-    .topbar,.pagetabs,.side-rail,.mobile-nav,.utility-btn,.net-pill{ background:var(--nx-bg-3); }
+    .glass{ background:linear-gradient(160deg, rgba(13,22,40,.94), rgba(7,12,24,.96)); }
+    :root[data-theme="light"] .glass{ background:linear-gradient(160deg, rgba(255,255,255,.97), rgba(244,248,253,.98)); }
+    .topbar,.pagetabs,.side-rail,.mobile-nav,.utility-btn,.net-pill,.nx-rail{ background:var(--nx-bg-3); }
     :root[data-theme="light"] .topbar,:root[data-theme="light"] .pagetabs,
     :root[data-theme="light"] .side-rail,:root[data-theme="light"] .mobile-nav{ background:#ffffff; }
   }
 
   /* ── 7 · desktop rail (sidebar) ────────────────────────────────── */
   .side-rail{
-    display:none; flex-direction:column; gap:var(--sp-4);
+    display:none; flex-direction:column; gap:10px; isolation:isolate;
     width:var(--rail); flex:0 0 var(--rail);
-    position:sticky; top:0; align-self:flex-start;
-    height:100vh; padding:18px 14px 18px 18px;
-    background:var(--glass-sheen), linear-gradient(180deg, rgba(10,18,34,.78), rgba(6,11,22,.86));
-    border-right:1px solid var(--glass-brd-2);
-    backdrop-filter:blur(26px) saturate(160%);
-    -webkit-backdrop-filter:blur(26px) saturate(160%);
-    z-index:30;
+    position:sticky; top:var(--shell-pad); align-self:start;
+    max-height:calc(100vh - 2*var(--shell-pad)); padding:16px 12px 0;
+    border-radius:var(--r-xl); border:1px solid var(--glass-brd);
+    background:var(--glass-sheen), linear-gradient(184deg, rgba(9,15,29,.55), rgba(5,9,18,.66));
+    backdrop-filter:blur(20px) saturate(155%);
+    -webkit-backdrop-filter:blur(20px) saturate(155%);
+    box-shadow:var(--glass-shadow), var(--glass-inner);
+    overflow:hidden; z-index:30;
   }
-  :root[data-theme="light"] .side-rail{ background:linear-gradient(180deg, rgba(255,255,255,.9), rgba(240,245,252,.92)); }
-  .rail-brand{ display:flex; align-items:center; gap:11px; padding:4px 6px 10px; }
+  :root[data-theme="light"] .side-rail{ background:linear-gradient(180deg, rgba(255,255,255,.72), rgba(240,245,252,.76)); }
+  .rail-brand{ position:relative; z-index:1; display:flex; align-items:center; gap:10px; padding:2px 4px 12px; }
   .rail-word{ min-width:0; }
-  .rail-mark{ display:block; font-size:17px; font-weight:800; letter-spacing:3.4px; line-height:1.1;
-    background:linear-gradient(92deg,var(--nx-accent),var(--nx-accent-2));
+  .rail-mark{ display:block; font-family:var(--display); font-size:16px; font-weight:600; letter-spacing:3.2px; line-height:1.1;
+    background:linear-gradient(92deg,#dff3ff,var(--nx-accent));
     -webkit-background-clip:text; background-clip:text; color:transparent; }
-  .rail-sub{ display:block; font-size:9.5px; letter-spacing:.5px; color:var(--nx-ink-3); margin-top:3px;
+  .rail-sub{ display:block; font-size:8.6px; letter-spacing:1.1px; color:var(--nx-ink-3); margin-top:3px; text-transform:uppercase;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .rail-nav{ flex:1 1 auto; overflow-y:auto; display:flex; flex-direction:column; gap:14px; padding-right:2px; }
+  .rail-nav{ position:relative; z-index:1; flex:1 1 auto; overflow-y:auto; display:flex; flex-direction:column; gap:11px;
+    padding:2px 2px 6px; scrollbar-width:thin; }
   .rail-nav::-webkit-scrollbar{ width:5px; }
   .rail-nav::-webkit-scrollbar-thumb{ background:var(--glass-brd-2); border-radius:9px; }
-  .rail-group{ display:flex; flex-direction:column; gap:3px; }
-  .rail-group > span{ font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--nx-ink-3);
-    font-weight:800; padding:0 8px 5px; }
+  .rail-group{ display:flex; flex-direction:column; gap:2px; }
+  .rail-group > span{ font-size:8px; letter-spacing:1.6px; text-transform:uppercase; color:rgba(127,146,174,.72);
+    font-weight:800; padding:0 8px 4px; }
   .rail-link{
-    display:flex; align-items:center; gap:10px; width:100%; text-align:left;
-    padding:9px 11px; border-radius:var(--r-md); font-size:12.5px; font-weight:600;
+    display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+    padding:8px 10px; border-radius:11px; font-size:12px; font-weight:600; letter-spacing:.1px;
     color:var(--nx-ink-2); background:transparent; border:1px solid transparent;
     transition:background .18s var(--ease), color .18s var(--ease), border-color .18s var(--ease);
   }
-  .rail-link .ic{ font-size:14px; width:18px; text-align:center; flex-shrink:0; }
-  .rail-link:hover{ background:rgba(255,255,255,.06); color:var(--nx-ink); }
+  .rail-link .ic{ width:17px; height:17px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; opacity:.9; }
+  .rail-link .ic svg{ width:15px; height:15px; display:block; }
+  .rail-link .lb{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rail-link:hover{ background:rgba(255,255,255,.055); color:var(--nx-ink); }
   :root[data-theme="light"] .rail-link:hover{ background:rgba(10,40,80,.06); }
   .rail-link.active{
-    color:var(--nx-ink); border-color:rgba(58,210,255,.35);
-    background:linear-gradient(100deg, rgba(58,210,255,.20), rgba(139,108,255,.16));
-    box-shadow:0 6px 18px -10px rgba(58,210,255,.6);
+    color:#fff; border-color:rgba(150,215,255,.28);
+    background:linear-gradient(97deg, rgba(78,205,245,.30), rgba(70,116,190,.24) 62%, rgba(78,205,245,.10));
+    box-shadow:0 10px 24px -14px rgba(78,205,245,.75), inset 0 1px 0 rgba(255,255,255,.20);
   }
+  :root[data-theme="light"] .rail-link.active{ color:#08243c; }
   .rail-link .badge{ margin-left:auto; font-size:9px; font-weight:800; letter-spacing:.4px;
     padding:2px 7px; border-radius:var(--r-pill); background:rgba(255,255,255,.1); color:var(--nx-ink-2); }
-  .rail-foot{ border-top:1px solid var(--nx-line-2); padding-top:12px; display:flex; flex-direction:column; gap:8px; }
-  .rail-health{ font-size:10.5px; color:var(--nx-ink-3); display:flex; flex-direction:column; gap:5px; }
-  .rail-credit{ font-size:9.5px; color:var(--nx-ink-3); letter-spacing:.4px; }
+  .rail-foot{ position:relative; z-index:2; margin-top:auto; padding:11px 6px 12px;
+    display:flex; flex-direction:column; gap:7px;
+    background:linear-gradient(180deg, rgba(4,8,18,0), rgba(4,8,18,.62) 38%, rgba(4,8,18,.78)); }
+  .rail-quote-wrap{ border-top:1px solid var(--nx-line-2); padding-top:9px; }
+  .rail-health{ font-size:10px; color:var(--nx-ink-3); display:flex; flex-direction:column; gap:5px; }
+  .rail-credit{ font-size:9px; color:var(--nx-ink-3); letter-spacing:.4px; }
   .rail-credit b{ color:var(--nx-ink-2); font-weight:700; }
+  /* artwork showing through the bottom of the rail, as in the reference */
+  .rail-art{ position:absolute; left:0; right:0; bottom:0; height:34%; z-index:0; opacity:.75; pointer-events:none;
+    mask-image:linear-gradient(180deg, transparent, rgba(0,0,0,.28) 46%, rgba(0,0,0,.7) 88%);
+    -webkit-mask-image:linear-gradient(180deg, transparent, rgba(0,0,0,.28) 46%, rgba(0,0,0,.7) 88%); }
+  .rail-art svg{ width:100%; height:100%; display:block; }
+  .rail-quote{ font-size:10.2px; line-height:1.6; color:rgba(226,238,252,.86); text-shadow:0 1px 10px rgba(0,0,0,.9); }
+  .rail-quote em{ display:block; margin-top:6px; font-style:normal; letter-spacing:1.4px; font-size:8.4px; color:rgba(186,212,240,.72); }
 
-  /* ── 8 · top bar ───────────────────────────────────────────────── */
-  .topbar{
-    position:sticky; top:8px; z-index:40;
-    display:flex; align-items:center; gap:12px;
-    padding:11px 14px; margin-bottom:12px;
-    border-radius:var(--r-lg); border:1px solid var(--glass-brd);
-    background:var(--glass-sheen), linear-gradient(150deg, rgba(10,17,32,.82), rgba(6,11,21,.78));
-    backdrop-filter:blur(24px) saturate(170%);
-    -webkit-backdrop-filter:blur(24px) saturate(170%);
+  /* ── 7b · creator rail (right column) ─────────────────────────── */
+  .creator-rail{
+    display:none; flex-direction:column; gap:10px;
+    width:var(--creator); flex:0 0 var(--creator);
+    position:sticky; top:var(--shell-pad); align-self:start;
+    max-height:calc(100vh - 2*var(--shell-pad)); overflow-y:auto; padding-right:2px;
+    scrollbar-width:thin;
+  }
+  .creator-rail::-webkit-scrollbar{ width:5px; }
+  .creator-rail::-webkit-scrollbar-thumb{ background:var(--glass-brd-2); border-radius:9px; }
+  .cr-card{ border-radius:var(--r-lg); border:1px solid var(--glass-brd); padding:13px 15px;
+    background:var(--glass-sheen), linear-gradient(158deg, rgba(11,19,36,.5), rgba(6,10,20,.58));
+    backdrop-filter:blur(16px) saturate(150%); -webkit-backdrop-filter:blur(16px) saturate(150%);
+    box-shadow:var(--glass-shadow), var(--glass-inner); }
+  :root[data-theme="light"] .cr-card{ background:linear-gradient(158deg, rgba(255,255,255,.72), rgba(244,248,253,.7)); }
+  .cr-top{ display:flex; align-items:center; gap:11px; }
+  .cr-top .who{ min-width:0; }
+  .cr-kicker{ font-size:9.5px; color:var(--nx-ink-3); letter-spacing:.3px; }
+  .cr-name{ font-family:var(--display); font-size:15px; font-weight:600; letter-spacing:1.2px; color:var(--nx-ink); margin-top:2px; }
+  .cr-role{ font-size:9.5px; color:var(--nx-ink-3); letter-spacing:.9px; margin-top:2px; text-transform:uppercase; }
+  .cr-hero{ position:relative; border-radius:var(--r-lg); border:1px solid var(--glass-brd); overflow:hidden;
+    min-height:330px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+    box-shadow:var(--glass-shadow); }
+  .cr-hero svg{ position:absolute; inset:0; width:100%; height:100%; }
+  .cr-hero .veil{ position:absolute; inset:0; background:linear-gradient(180deg, rgba(3,6,15,.12), rgba(3,6,15,.52)); }
+  .cr-hero .crest{ position:relative; width:132px; height:132px; }
+  .cr-hero .word{ position:relative; text-align:center; }
+  .cr-hero .word b{ display:block; font-family:var(--display); font-size:26px; font-weight:600; letter-spacing:8px; color:#fff;
+    text-shadow:0 2px 24px rgba(0,0,0,.8), 0 0 30px rgba(120,200,255,.35); }
+  .cr-hero .word span{ display:block; margin-top:5px; font-size:8.4px; letter-spacing:3.4px; color:rgba(214,232,250,.86); text-transform:uppercase; }
+  .cr-hero .kanji,.cr-hero .kanji-sm{ position:absolute; right:12px; top:14px; writing-mode:vertical-rl;
+    font-size:10px; letter-spacing:5px; color:rgba(226,240,255,.72); text-shadow:0 2px 12px rgba(0,0,0,.9);
+    font-weight:600; text-transform:uppercase; }
+  .cr-hero .kanji-sm{ right:31px; top:20px; font-size:9px; letter-spacing:4px; color:rgba(196,220,246,.5); }
+  .cr-bio{ font-size:11.5px; line-height:1.7; color:var(--nx-ink-2); }
+  .cr-bio .say{ color:var(--nx-ink-3); }
+  .cr-sign{ font-family:var(--display); font-size:19px; letter-spacing:1.6px; color:var(--nx-ink); transform:rotate(-6deg);
+    display:inline-block; margin-top:10px; }
+  .cr-socials{ display:flex; gap:9px; justify-content:center; margin-top:12px; }
+  .cr-socials a{ width:38px; height:38px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+    border:1px solid var(--glass-brd); background:rgba(255,255,255,.06); color:var(--nx-ink-2); }
+  .cr-socials a:hover{ color:var(--nx-ink); border-color:rgba(150,215,255,.4); }
+  .cr-socials svg{ width:17px; height:17px; }
+  .cr-state{ display:flex; flex-direction:column; gap:6px; margin-top:4px; }
+  .cr-state .r{ display:flex; align-items:center; gap:8px; font-size:10.5px; color:var(--nx-ink-3); }
+  .cr-state .r b{ margin-left:auto; color:var(--nx-ink-2); font-weight:700; font-variant-numeric:tabular-nums; }
+  .cr-dots{ position:relative; margin-top:8px; height:54px; }
+  .cr-dots svg{ width:100%; height:100%; }
+
+  /* ── 8 · hero banner ───────────────────────────────────────────── */
+  .topbar{ /* kept as the panel id/class for the busy-sheen hook */
+    position:relative; overflow:hidden;
+    border-radius:var(--r-xl); border:1px solid var(--glass-brd);
+    background:rgba(4,8,18,.42);
     box-shadow:var(--glass-shadow), var(--glass-inner);
-    animation:none;
+    margin-bottom:var(--sp-4);
+    min-height:252px;
   }
-  :root[data-theme="light"] .topbar{ background:var(--glass-sheen), linear-gradient(150deg, rgba(255,255,255,.92), rgba(244,248,253,.86)); }
+  .topbar .hero-art{ position:absolute; inset:0; }
+  .topbar .hero-art svg{ width:100%; height:100%; display:block; }
+  .topbar .hero-veil{ position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(4,8,18,.5) 0%, rgba(4,8,18,.14) 34%, rgba(4,8,18,.55) 82%, rgba(4,8,18,.72) 100%); }
+  :root[data-theme="light"] .topbar .hero-veil{ background:linear-gradient(180deg, rgba(236,244,253,.72), rgba(232,241,251,.6) 40%, rgba(226,238,250,.84)); }
+  .hero-inner{ position:relative; z-index:1; padding:13px 20px 15px; display:flex; flex-direction:column; min-height:252px;
+    backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); }
+  .hero-top{ display:flex; align-items:center; gap:10px; }
   .logo{
-    width:46px; height:46px; border-radius:15px; flex-shrink:0;
-    background:linear-gradient(150deg, rgba(58,210,255,.20), rgba(139,108,255,.20));
+    width:38px; height:38px; border-radius:12px; flex-shrink:0;
+    background:linear-gradient(150deg, rgba(78,205,245,.20), rgba(91,134,214,.20));
     border:1px solid var(--glass-brd); display:flex; align-items:center; justify-content:center;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.2);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.22);
   }
-  .logo svg{ animation:logoGlow 5.5s ease-in-out infinite; }
-  .topbar .brand{ min-width:0; }
-  .topbar .brand h1{
-    font-size:17px; letter-spacing:3.6px; line-height:1.1; font-weight:800;
-    background:linear-gradient(92deg,var(--nx-accent),var(--nx-accent-2));
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-  }
-  .topbar .brand p{ font-size:9.5px; color:var(--nx-ink-3); letter-spacing:.4px; margin-top:3px;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:46vw; }
-  .toplive{ margin-left:auto; text-align:right; flex-shrink:0; }
-  .toplive .px{ font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.15; }
-  .toplive .cd{ font-size:10px; color:var(--nx-ink-3); font-variant-numeric:tabular-nums; }
-  .toplive .cd b{ color:var(--nx-accent); font-size:11px; }
-  .pulse{ width:8px; height:8px; border-radius:50%; background:var(--nx-win); flex-shrink:0;
-    animation:pulseDot 2s infinite; align-self:flex-start; margin-top:4px; }
-  .pulse.idle{ background:#55677e; animation:none; }
-  .bell{ position:relative; background:rgba(255,255,255,.08); border:1px solid var(--glass-brd-2);
-    border-radius:13px; width:40px; height:40px; font-size:15px; flex-shrink:0; padding:0; }
-  :root[data-theme="light"] .bell{ background:rgba(255,255,255,.7); }
+  .logo svg{ animation:logoGlow 6s ease-in-out infinite; }
+  .hero-name{ font-family:var(--display); font-size:19px; font-weight:600; letter-spacing:2.6px; color:var(--nx-ink);
+    text-shadow:0 2px 14px rgba(0,0,0,.6); }
+  .hero-actions{ margin-left:auto; display:flex; align-items:center; gap:9px; }
+  .live-pill{ display:inline-flex; align-items:center; gap:8px; padding:7px 14px; border-radius:var(--r-pill);
+    font-size:10.5px; letter-spacing:.4px; color:var(--nx-ink-2);
+    border:1px solid var(--glass-brd); background:rgba(8,14,28,.5); backdrop-filter:blur(12px); }
+  .live-pill b{ color:var(--nx-ink); font-weight:700; }
+  .live-pill .dot{ width:7px; height:7px; border-radius:50%; background:var(--nx-win); animation:pulseDot 2.2s infinite; flex-shrink:0; }
+  .live-pill.idle .dot{ background:#6b7f99; animation:none; }
+  .live-pill.warn .dot{ background:var(--nx-warn); }
+  .live-pill.bad .dot{ background:var(--nx-loss); }
+  .hero-ico{ width:38px; height:38px; padding:0; border-radius:50%; font-size:14px; color:var(--nx-ink-2);
+    background:rgba(8,14,28,.5); border:1px solid var(--glass-brd); backdrop-filter:blur(12px); }
+  .hero-ico:hover{ color:var(--nx-ink); }
+  .bell{ position:relative; background:rgba(8,14,28,.5); border:1px solid var(--glass-brd);
+    border-radius:50%; width:38px; height:38px; font-size:14px; flex-shrink:0; padding:0; color:var(--nx-ink-2); }
+  :root[data-theme="light"] .bell,:root[data-theme="light"] .hero-ico{ background:rgba(255,255,255,.72); }
   .bell .cnt{ position:absolute; top:-5px; right:-5px; min-width:17px; height:17px; border-radius:9px;
     background:var(--nx-loss); color:#fff; font-size:9px; font-weight:800; display:none;
     align-items:center; justify-content:center; padding:0 4px; }
+  .hero-body{ margin-top:auto; padding-top:20px; }
+  .hero-word{ font-family:var(--display); font-weight:600; font-size:clamp(38px,5.4vw,64px); line-height:1;
+    letter-spacing:.12em; color:#fff; margin:0 0 6px -3px;
+    text-shadow:0 3px 30px rgba(0,0,0,.72), 0 0 46px rgba(120,195,255,.22); }
+  :root[data-theme="light"] .hero-word{ color:#08243c; text-shadow:0 2px 18px rgba(255,255,255,.6); }
+  .hero-sub{ font-size:clamp(12px,1.3vw,15px); letter-spacing:.22em; text-transform:uppercase; color:var(--nx-ink);
+    font-weight:500; text-shadow:0 2px 16px rgba(0,0,0,.66); }
+  .hero-line{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:12px;
+    font-size:11px; letter-spacing:.06em; color:var(--nx-ink-2); text-shadow:0 2px 14px rgba(0,0,0,.7); }
+  .hero-line i{ font-style:normal; color:rgba(127,146,174,.6); }
+  .hero-foot{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:12px;
+    padding-top:11px; border-top:1px solid rgba(255,255,255,.10); }
+  :root[data-theme="light"] .hero-foot{ border-top-color:rgba(10,32,64,.12); }
+  .hero-foot .pulse{ width:8px; height:8px; border-radius:50%; background:var(--nx-win); flex-shrink:0;
+    animation:pulseDot 2s infinite; }
+  .hero-foot .pulse.idle{ background:#55677e; animation:none; }
+  .toplive{ margin-left:auto; display:flex; align-items:center; gap:14px; flex-shrink:0; }
+  .toplive .px{ font-size:13px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.15;
+    text-shadow:0 2px 12px rgba(0,0,0,.7); }
+  .toplive .cd{ font-size:10px; color:var(--nx-ink-3); font-variant-numeric:tabular-nums; }
+  .toplive .cd b{ color:var(--nx-accent); font-size:11px; }
+  /* compact page hero used by every route except Overview */
+  .page-hero{ position:relative; overflow:hidden; border-radius:var(--r-xl); border:1px solid var(--glass-brd);
+    margin-bottom:var(--sp-4); box-shadow:var(--glass-shadow), var(--glass-inner); }
+  .page-hero .hero-art{ position:absolute; inset:0; }
+  .page-hero .hero-art svg{ width:100%; height:100%; display:block; }
+  .page-hero .hero-veil{ position:absolute; inset:0;
+    background:linear-gradient(100deg, rgba(4,8,18,.86) 8%, rgba(4,8,18,.5) 52%, rgba(4,8,18,.28)); }
+  :root[data-theme="light"] .page-hero .hero-veil{ background:linear-gradient(100deg, rgba(236,244,253,.9) 8%, rgba(232,241,251,.7) 52%, rgba(228,238,250,.5)); }
+  .page-hero .ph-in{ position:relative; z-index:1; display:flex; align-items:center; gap:14px; padding:17px 20px; }
+  .page-hero .ph-ic{ width:44px; height:44px; border-radius:14px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    border:1px solid var(--glass-brd); background:linear-gradient(150deg, rgba(78,205,245,.20), rgba(91,134,214,.16)); }
+  .page-hero .ph-ic svg{ width:22px; height:22px; }
+  .page-hero h2{ font-family:var(--display); font-size:23px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--nx-ink); text-shadow:0 2px 16px rgba(0,0,0,.55); }
+  .page-hero p{ font-size:11.5px; color:var(--nx-ink-2); margin-top:5px; max-width:70ch; line-height:1.55; }
+  .page-hero .ph-actions{ margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap; flex-shrink:0; }
 
-  /* ── 9 · page tabs + mobile nav ────────────────────────────────── */
+  /* ── 8b · hero-adjacent quick cards (summary · features) ───────── */
+  .nx-rowband{ margin-bottom:var(--sp-4); }
+  .nx-statrow{ display:grid; gap:10px; grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .stat-card{ display:flex; align-items:center; gap:12px; padding:14px 15px; border-radius:var(--r-lg);
+    border:1px solid var(--glass-brd); background:var(--glass-sheen), linear-gradient(158deg, rgba(11,19,36,.44), rgba(6,10,20,.5));
+    backdrop-filter:blur(15px) saturate(150%); -webkit-backdrop-filter:blur(15px) saturate(150%);
+    box-shadow:var(--glass-shadow), var(--glass-inner); animation:cardIn .45s var(--ease) both; min-width:0; }
+  :root[data-theme="light"] .stat-card{ background:linear-gradient(158deg, rgba(255,255,255,.7), rgba(244,248,253,.66)); }
+  .stat-card .ic{ width:42px; height:42px; border-radius:13px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    border:1px solid var(--glass-brd); background:linear-gradient(150deg, rgba(78,205,245,.20), rgba(91,134,214,.16)); }
+  .stat-card .ic svg{ width:20px; height:20px; }
+  .stat-card .bd{ min-width:0; }
+  .stat-card .lb{ font-size:9.6px; letter-spacing:.5px; color:var(--nx-ink-3); }
+  .stat-card .vl{ font-size:24px; font-weight:700; letter-spacing:-.4px; margin-top:1px; font-variant-numeric:tabular-nums; line-height:1.12;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .stat-card .dl{ font-size:9.8px; color:var(--nx-ink-3); margin-top:3px; display:flex; align-items:center; gap:5px; }
+  .stat-card .dl .up{ color:var(--nx-win); } .stat-card .dl .dn{ color:var(--nx-loss); }
+  .stat-card.good .vl{ color:var(--nx-win); } .stat-card.bad .vl{ color:var(--nx-loss); }
+  .stat-card.warn .vl{ color:var(--nx-warn); } .stat-card.accent .vl{ color:var(--nx-accent); }
+
+  .nx-featrow{ display:grid; gap:10px; grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .feat-card{ text-align:left; padding:15px; border-radius:var(--r-lg); border:1px solid var(--glass-brd);
+    background:var(--glass-sheen), linear-gradient(158deg, rgba(11,19,36,.42), rgba(6,10,20,.5));
+    backdrop-filter:blur(15px) saturate(150%); -webkit-backdrop-filter:blur(15px) saturate(150%);
+    box-shadow:var(--glass-shadow), var(--glass-inner); font-weight:400; animation:cardIn .45s var(--ease) both; min-width:0; }
+  :root[data-theme="light"] .feat-card{ background:linear-gradient(158deg, rgba(255,255,255,.7), rgba(244,248,253,.66)); }
+  .feat-card .ic{ width:42px; height:42px; border-radius:13px; display:flex; align-items:center; justify-content:center;
+    border:1px solid var(--glass-brd); background:linear-gradient(150deg, rgba(78,205,245,.18), rgba(91,134,214,.14)); }
+  .feat-card .ic svg{ width:21px; height:21px; }
+  .feat-card h3{ font-size:14.5px; font-weight:700; margin-top:12px; color:var(--nx-ink); letter-spacing:.1px; }
+  .feat-card p{ font-size:10.5px; color:var(--nx-ink-3); line-height:1.6; margin-top:5px; }
+  .feat-card .st{ display:flex; align-items:center; gap:7px; font-size:10.5px; color:var(--nx-ink-2); margin-top:11px; }
+  .feat-card .st i{ width:8px; height:8px; border-radius:50%; background:var(--nx-win); flex-shrink:0; }
+  .feat-card .st.warn i{ background:var(--nx-warn); } .feat-card .st.bad i{ background:var(--nx-loss); }
+  .feat-card .st.idle i{ background:#6b7f99; }
+  .feat-card:hover{ border-color:rgba(150,215,255,.3); }
+
+  /* ── 8c · logo variation strip (bottom band) ───────────────────── */
+  .brand-strip{ max-width:1680px; margin:0 auto; padding:0 var(--shell-pad) 14px; }
+  .brand-strip .strip{ display:grid; grid-template-columns:1.05fr 1.5fr 1.1fr auto 1fr; gap:10px; align-items:stretch;
+    border-radius:var(--r-xl); border:1px solid var(--glass-brd); padding:12px 14px;
+    background:var(--glass-sheen), linear-gradient(158deg, rgba(11,19,36,.5), rgba(6,10,20,.58));
+    backdrop-filter:blur(16px) saturate(150%); -webkit-backdrop-filter:blur(16px) saturate(150%);
+    box-shadow:var(--glass-shadow), var(--glass-inner); }
+  :root[data-theme="light"] .brand-strip .strip{ background:linear-gradient(158deg, rgba(255,255,255,.72), rgba(244,248,253,.68)); }
+  .strip .col{ min-width:0; display:flex; flex-direction:column; }
+  .strip .k{ font-size:9.4px; letter-spacing:1.1px; text-transform:uppercase; color:var(--nx-ink-3); font-weight:800; margin-bottom:8px; }
+  .strip .tiles{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .brand-tile{ aspect-ratio:1; border-radius:14px; border:1px solid var(--glass-brd); display:flex; align-items:center; justify-content:center;
+    overflow:hidden; background:rgba(255,255,255,.04); }
+  .brand-tile svg{ width:74%; height:74%; }
+  .strip .tags{ display:flex; gap:7px; flex-wrap:wrap; }
+  .strip .tag{ display:inline-flex; align-items:center; gap:6px; font-size:10px; padding:6px 11px; border-radius:var(--r-pill);
+    border:1px solid var(--glass-brd); background:rgba(255,255,255,.05); color:var(--nx-ink-2); }
+  .strip .tag i{ width:6px; height:6px; border-radius:50%; background:var(--nx-accent); }
+  .strip .swatches{ display:flex; gap:11px; margin-top:12px; }
+  .strip .sw{ width:38px; height:38px; border-radius:50%; border:1px solid var(--glass-brd); }
+  .strip .quote{ justify-content:center; text-align:center; font-family:var(--display); font-size:16px; letter-spacing:.8px;
+    color:var(--nx-ink); line-height:1.5; }
+  .strip .sat{ width:78px; height:78px; align-self:center; }
+  .strip .mini-brand{ display:flex; align-items:center; gap:11px; justify-content:flex-end; }
+  .strip .mini-brand .logo{ width:40px; height:40px; border-radius:13px; }
+  .strip .mini-brand .wm{ font-family:var(--display); font-size:17px; letter-spacing:2.6px; color:var(--nx-ink); }
+  .strip .mini-brand .cr{ font-size:9px; color:var(--nx-ink-3); letter-spacing:.4px; margin-top:2px; }
+  .strip .mini-brand .sg{ font-family:var(--display); font-size:14px; color:var(--nx-ink-2); margin-top:3px; letter-spacing:1px; }
+
+  /* ── 9b · overview composite panels (reference composition) ────── */
+  .ov-grid{ display:grid; gap:var(--sp-4); margin-bottom:var(--sp-4); }
+  .ov-grid.split-2{ grid-template-columns:minmax(0,1.78fr) minmax(0,1fr); }
+  .ov-grid.split-3{ grid-template-columns:minmax(0,1fr) minmax(0,1.04fr) minmax(0,.92fr); }
+  .ov-grid > *{ margin:0; }
+  .ph{ display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .ph h3{ font-size:12.6px; font-weight:700; letter-spacing:.2px; color:var(--nx-ink); }
+  .ph .sub{ font-size:10px; color:var(--nx-ink-3); }
+  .ph .rt{ margin-left:auto; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .ph .more{ font-size:10.5px; color:var(--nx-ink-3); background:none; border:0; padding:3px 2px; }
+  .ph .more:hover{ color:var(--nx-accent); }
+  .seg-pills{ display:flex; gap:4px; padding:3px; border-radius:10px; border:1px solid var(--glass-brd-2); background:rgba(4,9,18,.4); }
+  :root[data-theme="light"] .seg-pills{ background:rgba(255,255,255,.55); }
+  .seg-pills button{ border:0; background:transparent; border-radius:8px; padding:5px 10px; font-size:10px; font-weight:800;
+    letter-spacing:.4px; color:var(--nx-ink-3); }
+  .seg-pills button.on{ color:var(--nx-ink); background:rgba(78,205,245,.18); box-shadow:inset 0 0 0 1px rgba(78,205,245,.28); }
+  .seg-pills button:disabled{ opacity:.4; cursor:not-allowed; }
+  .chart-head{ display:flex; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
+  .chart-head .pair{ display:flex; align-items:center; gap:9px; min-width:0; }
+  .chart-head .pair .nm{ font-size:14.5px; font-weight:700; letter-spacing:.2px; }
+  .chart-head .pair .tf{ font-size:11px; color:var(--nx-ink-3); font-weight:600; }
+  .chart-head .px{ font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:2px; }
+  .chart-head .chg{ font-size:11px; font-weight:700; margin-left:7px; }
+  .chart-head .chg.up{ color:var(--nx-win); } .chart-head .chg.dn{ color:var(--nx-loss); }
+  .chart-head .legend{ font-size:10px; color:var(--nx-ink-3); margin-top:3px; }
+
+  .sig-list{ display:flex; flex-direction:column; }
+  .sig-item{ display:flex; align-items:center; gap:10px; padding:9px 2px; border-bottom:1px solid var(--nx-line-3); }
+  .sig-item:last-child{ border-bottom:0; }
+  .sig-item .pair{ display:flex; align-items:center; gap:8px; min-width:0; flex:1; }
+  .sig-item .pair b{ font-size:11.6px; font-weight:700; letter-spacing:.2px; }
+  .sig-item .tm{ font-size:10.5px; color:var(--nx-ink-3); font-variant-numeric:tabular-nums; flex-shrink:0; }
+  .sig-item .dv{ font-size:10.5px; font-variant-numeric:tabular-nums; flex-shrink:0; width:48px; text-align:right; font-weight:700; }
+  .sig-item .dv.up{ color:var(--nx-win); } .sig-item .dv.dn{ color:var(--nx-loss); } .sig-item .dv.flat{ color:var(--nx-ink-3); }
+  .sbadge{ font-size:9.6px; font-weight:800; letter-spacing:.7px; padding:4px 10px; border-radius:7px; flex-shrink:0;
+    border:1px solid transparent; min-width:52px; text-align:center; }
+  .sbadge.buy{ color:#9df3c9; background:rgba(67,229,160,.14); border-color:rgba(67,229,160,.34); }
+  .sbadge.sell{ color:#ffb3c1; background:rgba(255,107,131,.14); border-color:rgba(255,107,131,.34); }
+  .sbadge.push{ color:#c1d5ff; background:rgba(147,186,255,.13); border-color:rgba(147,186,255,.3); }
+  .sbadge.open{ color:#ffdfa6; background:rgba(255,201,92,.13); border-color:rgba(255,201,92,.32); }
+  .flag{ width:20px; height:20px; border-radius:50%; overflow:hidden; flex-shrink:0; box-shadow:0 0 0 1px rgba(255,255,255,.16); }
+  .flag svg{ width:100%; height:100%; display:block; }
+
+  .mkt-tabs{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .mkt-tabs button{ border:1px solid transparent; background:rgba(255,255,255,.05); border-radius:9px; padding:6px 12px;
+    font-size:10.4px; font-weight:700; color:var(--nx-ink-3); }
+  :root[data-theme="light"] .mkt-tabs button{ background:rgba(255,255,255,.5); }
+  .mkt-tabs button.on{ color:var(--nx-ink); background:rgba(78,205,245,.16); border-color:rgba(78,205,245,.3); }
+  .mkt-table{ width:100%; border-collapse:collapse; font-size:11.4px; }
+  .mkt-table th{ font-size:8.8px; letter-spacing:.9px; text-transform:uppercase; color:var(--nx-ink-3); text-align:left;
+    padding:7px 6px; border-bottom:1px solid var(--nx-line-2); font-weight:800; }
+  .mkt-table td{ padding:6px 6px; border-bottom:1px solid var(--nx-line-3); color:var(--nx-ink-2); }
+  .mkt-table tr:last-child td{ border-bottom:0; }
+  .mkt-table .pcell{ display:flex; align-items:center; gap:8px; }
+  .mkt-table .pcell b{ color:var(--nx-ink); font-weight:700; font-size:11.4px; white-space:nowrap; }
+  .mkt-table .num{ font-variant-numeric:tabular-nums; font-family:var(--mono); font-size:11px; }
+  .mkt-table .num.up{ color:var(--nx-win); } .mkt-table .num.dn{ color:var(--nx-loss); }
+  .mkt-table .num.na{ color:var(--nx-ink-3); }
+  .mkt-empty{ padding:16px 8px; text-align:center; font-size:11.4px; color:var(--nx-ink-3); line-height:1.6; }
+  /* compact variant — the overview column is narrower than the markets page */
+  .mkt-table.compact{ font-size:10.6px; }
+  .mkt-table.compact th{ font-size:8.2px; letter-spacing:.6px; padding:6px 4px; }
+  .mkt-table.compact td{ padding:6px 4px; }
+  .mkt-table.compact .pcell{ gap:6px; }
+  .mkt-table.compact .pcell b{ font-size:10.6px; }
+  .mkt-table.compact .num{ font-size:10.2px; }
+  .mkt-table.compact .flag{ width:17px; height:17px; }
+  .mkt-table.compact .sbadge{ font-size:8.6px; padding:3px 6px; min-width:0; letter-spacing:.4px; }
+  .mkt-table.compact .chip{ font-size:8.6px; padding:2px 6px; }
+
+  .perf-donut{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .perf-donut .ring{ width:132px; height:132px; flex-shrink:0; position:relative; }
+  .perf-donut .ring svg{ width:100%; height:100%; }
+  .perf-donut .ring .ctr{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .perf-donut .ring .ctr b{ font-size:25px; font-weight:700; letter-spacing:-.5px; line-height:1; }
+  .perf-donut .ring .ctr span{ font-size:8.4px; letter-spacing:1px; color:var(--nx-ink-3); text-transform:uppercase; margin-top:4px; }
+  .perf-legend{ display:flex; flex-direction:column; gap:9px; flex:1; min-width:130px; }
+  .perf-legend .r{ display:flex; align-items:center; gap:8px; font-size:11px; color:var(--nx-ink-3); }
+  .perf-legend .r i{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .perf-legend .r b{ margin-left:auto; color:var(--nx-ink); font-weight:700; font-variant-numeric:tabular-nums; }
+  .perf-spark{ margin-top:12px; }
+  .perf-spark svg{ width:100%; height:auto; display:block; }
+  .perf-spark .lab{ display:flex; justify-content:space-between; font-size:9.4px; color:var(--nx-ink-3); margin-top:5px; }
+
+  .health-row{ display:flex; align-items:center; gap:9px; padding:7.5px 0; border-bottom:1px solid var(--nx-line-3); font-size:11.4px; }
+  .health-row:last-child{ border-bottom:0; }
+  .health-row .nm{ display:flex; align-items:center; gap:8px; color:var(--nx-ink-2); min-width:0; }
+  .health-row .nm svg{ width:14px; height:14px; opacity:.85; flex-shrink:0; }
+  .health-row .st{ margin-left:auto; display:flex; align-items:center; gap:7px; font-size:10.4px; color:var(--nx-ink-3); }
+  .health-row .st i{ width:7px; height:7px; border-radius:50%; background:var(--nx-win); }
+  .health-row .st.warn i{ background:var(--nx-warn); } .health-row .st.bad i{ background:var(--nx-loss); }
+  .health-row .st.idle i{ background:#6b7f99; }
+  .health-banner{ display:flex; align-items:center; gap:8px; font-size:11.4px; padding:8px 11px; border-radius:11px; margin-bottom:9px;
+    border:1px solid rgba(67,229,160,.26); background:rgba(67,229,160,.09); color:#a9f2d0; }
+  :root[data-theme="light"] .health-banner{ color:#135c40; }
+  .health-banner.warn{ border-color:rgba(255,201,92,.3); background:rgba(255,201,92,.09); color:#ffe0a3; }
+  .health-banner.bad{ border-color:rgba(255,107,131,.3); background:rgba(255,107,131,.09); color:#ffc0cb; }
+  .health-banner i{ width:8px; height:8px; border-radius:50%; background:currentColor; flex-shrink:0; }
+  .health-foot{ display:flex; gap:12px; margin-top:11px; padding-top:10px; border-top:1px solid var(--nx-line-2); }
+  .health-foot .c{ flex:1; }
+  .health-foot .c span{ font-size:9.4px; color:var(--nx-ink-3); letter-spacing:.4px; }
+  .health-foot .c b{ display:block; font-size:12.4px; margin-top:3px; font-variant-numeric:tabular-nums; }
+
+
   .pagetabs{
-    position:sticky; top:76px; z-index:39; display:flex; gap:6px; overflow-x:auto; align-items:center;
+    position:relative; display:none; gap:6px; overflow-x:auto; align-items:center;
     padding:7px; margin-bottom:var(--sp-4); border-radius:var(--r-lg); border:1px solid var(--glass-brd);
-    background:var(--glass-sheen), linear-gradient(150deg, rgba(10,17,32,.80), rgba(6,11,21,.76));
-    backdrop-filter:blur(22px) saturate(165%);
-    -webkit-backdrop-filter:blur(22px) saturate(165%);
+    background:var(--glass-sheen), linear-gradient(150deg, rgba(10,17,32,.72), rgba(6,11,21,.7));
+    backdrop-filter:blur(18px) saturate(160%);
+    -webkit-backdrop-filter:blur(18px) saturate(160%);
     box-shadow:var(--glass-shadow), var(--glass-inner);
     scrollbar-width:none; -ms-overflow-style:none; animation:none;
   }
-  :root[data-theme="light"] .pagetabs{ background:var(--glass-sheen), linear-gradient(150deg, rgba(255,255,255,.92), rgba(244,248,253,.88)); }
+  :root[data-theme="light"] .pagetabs{ background:var(--glass-sheen), linear-gradient(150deg, rgba(255,255,255,.9), rgba(244,248,253,.86)); }
   .pagetabs::-webkit-scrollbar{ display:none; }
   .pagetabs button{
     flex:0 0 auto; font-size:10.5px; font-weight:800; letter-spacing:.7px; color:var(--nx-ink-3);
@@ -321,9 +646,9 @@
   }
   :root[data-theme="light"] .pagetabs button{ background:rgba(255,255,255,.55); }
   .pagetabs button:active{ transform:scale(.95); }
-  .pagetabs button.active{ color:var(--nx-ink); border-color:rgba(58,210,255,.45);
-    background:linear-gradient(120deg, rgba(58,210,255,.24), rgba(139,108,255,.22));
-    box-shadow:0 6px 18px -10px rgba(58,210,255,.8); }
+  .pagetabs button.active{ color:var(--nx-ink); border-color:rgba(78,205,245,.45);
+    background:linear-gradient(120deg, rgba(78,205,245,.24), rgba(91,134,214,.22));
+    box-shadow:0 6px 18px -10px rgba(78,205,245,.8); }
   .pagetabs button .ic{ margin-right:5px; }
 
   .mobile-nav{
@@ -350,14 +675,15 @@
   .page.on > .glass:nth-child(2){ animation-delay:.04s; }
   .page.on > .glass:nth-child(3){ animation-delay:.08s; }
   .page.on > .glass:nth-child(4){ animation-delay:.12s; }
-  .t{ font-size:10.5px; color:var(--nx-ink-3); letter-spacing:1.7px; text-transform:uppercase; font-weight:800;
+  .t{ font-size:12.6px; color:var(--nx-ink); letter-spacing:.2px; text-transform:none; font-weight:700;
     display:flex; align-items:center; gap:9px; margin-bottom:12px; flex-wrap:wrap; }
-  .t .num{ flex-shrink:0; width:21px; height:21px; border-radius:7px; font-size:10px; font-weight:900;
-    display:inline-flex; align-items:center; justify-content:center; color:#fff;
-    background:linear-gradient(135deg,var(--nx-accent),var(--nx-accent-2));
-    box-shadow:0 3px 10px -4px rgba(58,210,255,.8); }
+  .t .num{ flex-shrink:0; width:22px; height:22px; border-radius:8px; font-size:10.5px; font-weight:800;
+    display:inline-flex; align-items:center; justify-content:center; color:var(--nx-accent);
+    background:rgba(78,205,245,.13); border:1px solid rgba(78,205,245,.24); }
+  .t .num svg{ width:13px; height:13px; }
   .t .tail{ margin-left:auto; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
   .t h2{ font-size:13px; letter-spacing:.4px; color:var(--nx-ink); text-transform:none; font-weight:700; }
+  .t .sub{ font-size:10.4px; color:var(--nx-ink-3); font-weight:500; letter-spacing:0; }
 
   /* ── 11 · form primitives ──────────────────────────────────────── */
   select,input,textarea{
@@ -404,10 +730,10 @@
   :root[data-theme="light"] button{ background:rgba(255,255,255,.72); }
   button:active{ transform:scale(.975); }
   button:disabled{ opacity:.42; cursor:not-allowed; }
-  .b-on{ border-color:rgba(58,210,255,.5)!important; color:var(--nx-accent); box-shadow:0 0 14px rgba(58,210,255,.22); }
-  .b-gen{ background-image:linear-gradient(100deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.22) 50%, rgba(255,255,255,0) 70%), linear-gradient(90deg,#0a6fd6,var(--nx-accent));
+  .b-on{ border-color:rgba(78,205,245,.5)!important; color:var(--nx-accent); box-shadow:0 0 14px rgba(78,205,245,.22); }
+  .b-gen{ background-image:linear-gradient(100deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.22) 50%, rgba(255,255,255,0) 70%), linear-gradient(90deg,#1160b8,var(--nx-accent));
     background-size:220% 100%, 100% 100%; animation:sheen 3.6s ease-in-out infinite; box-shadow:0 8px 24px -10px rgba(0,150,220,.9); }
-  .b-vio{ background:linear-gradient(90deg,#5b2fd0,var(--nx-accent-2)); box-shadow:0 8px 24px -12px rgba(139,108,255,.9); }
+  .b-vio{ background:linear-gradient(90deg,#2f47b0,var(--nx-accent-2)); box-shadow:0 8px 24px -12px rgba(91,134,214,.9); }
   .b-gold{ background:linear-gradient(90deg,#b8860b,var(--nx-warn)); color:#231700; box-shadow:0 8px 24px -12px rgba(255,207,92,.7); }
   .b-ghost{ background:rgba(255,255,255,.08); font-size:12px; padding:10px; border:1px solid var(--glass-brd-2); }
   :root[data-theme="light"] .b-ghost{ background:rgba(255,255,255,.6); }
@@ -594,14 +920,16 @@
   .history div{ display:flex; justify-content:space-between; padding:7px 9px; border-bottom:1px solid var(--nx-line-2); gap:10px; }
   .w{ color:var(--nx-win); } .l{ color:var(--nx-loss); } .p{ color:var(--nx-push); }
   .clock{ text-align:center; color:var(--nx-ink-3); font-size:11px; margin-top:10px; }
-  .disclaimer{ font-size:11px; color:var(--nx-ink-3); text-align:center; margin-top:14px; line-height:1.6; padding:0 4px; }
+  .disclaimer{ font-size:10.4px; color:rgba(127,146,174,.85); text-align:center; margin-top:14px; line-height:1.65;
+    padding:0 4px; max-width:112ch; margin-left:auto; margin-right:auto; }
   .chk{ display:flex; flex-wrap:wrap; gap:7px; margin-top:7px; }
   .chk label{ font-size:12px; background:rgba(4,9,18,.4); border:1px solid var(--glass-brd-2);
     border-radius:var(--r-sm); padding:7px 11px; cursor:pointer; transition:.16s var(--ease); display:inline-flex; align-items:center; }
   :root[data-theme="light"] .chk label{ background:rgba(255,255,255,.58); }
   .chk label:hover{ border-color:rgba(58,210,255,.4); }
   .chk input{ width:auto; margin:0 5px 0 0; }
-  .ver{ text-align:center; font-size:10px; color:var(--nx-ink-3); margin-top:10px; line-height:1.7; }
+  .ver{ text-align:center; font-size:9.6px; color:rgba(127,146,174,.72); margin-top:10px; line-height:1.7; max-width:120ch;
+    margin-left:auto; margin-right:auto; }
 
   .usage-row{ display:flex; align-items:center; gap:10px; background:rgba(4,9,18,.4);
     border:1px solid var(--nx-line-2); border-radius:var(--r-md); padding:9px 12px; margin-top:7px; font-size:12px; }
@@ -627,11 +955,11 @@
   .nx-split{ display:grid; gap:var(--sp-4); grid-template-columns:1fr; }
   @media (min-width:820px){ .nx-split{ grid-template-columns:1fr 1fr; } .nx-split.thirds{ grid-template-columns:repeat(3,1fr); } }
   .nx-kpis{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); }
-  .nx-kpi{ background:rgba(4,9,18,.4); border:1px solid var(--nx-line-2); border-radius:var(--r-md);
-    padding:12px 13px; position:relative; overflow:hidden; }
-  :root[data-theme="light"] .nx-kpi{ background:rgba(255,255,255,.58); }
-  .nx-kpi .k{ font-size:9.5px; letter-spacing:1.2px; text-transform:uppercase; color:var(--nx-ink-3); font-weight:800; }
-  .nx-kpi .v{ font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; margin-top:5px; letter-spacing:-.4px; line-height:1.15; word-break:break-word; }
+  .nx-kpi{ background:linear-gradient(158deg, rgba(11,19,36,.42), rgba(6,10,20,.5)); border:1px solid var(--glass-brd); border-radius:var(--r-md);
+    padding:12px 13px; position:relative; overflow:hidden; box-shadow:var(--glass-inner); }
+  :root[data-theme="light"] .nx-kpi{ background:linear-gradient(158deg, rgba(255,255,255,.7), rgba(244,248,253,.66)); }
+  .nx-kpi .k{ font-size:9.5px; letter-spacing:.6px; color:var(--nx-ink-3); font-weight:600; }
+  .nx-kpi .v{ font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:5px; letter-spacing:-.4px; line-height:1.15; word-break:break-word; }
   .nx-kpi .s{ font-size:10px; color:var(--nx-ink-3); margin-top:3px; }
   .nx-kpi.good .v{ color:var(--nx-win); } .nx-kpi.bad .v{ color:var(--nx-loss); } .nx-kpi.warn .v{ color:var(--nx-warn); }
   .nx-kpi.accent .v{ color:var(--nx-accent); }
@@ -651,7 +979,9 @@
   .nx-scroll::-webkit-scrollbar-thumb{ background:var(--glass-brd-2); border-radius:9px; }
   .nx-table{ width:100%; border-collapse:collapse; font-size:11.5px; min-width:420px; }
   .nx-table th{ font-size:9px; letter-spacing:1px; text-transform:uppercase; color:var(--nx-ink-3);
-    text-align:left; padding:8px 9px; border-bottom:1px solid var(--nx-line-2); font-weight:800; position:sticky; top:0; background:var(--nx-bg-2); z-index:1; }
+    text-align:left; padding:8px 9px; border-bottom:1px solid var(--nx-line-2); font-weight:800; position:sticky; top:0;
+    background:rgba(6,11,22,.86); backdrop-filter:blur(10px); z-index:1; }
+  :root[data-theme="light"] .nx-table th{ background:rgba(244,248,253,.9); }
   .nx-table td{ padding:8px 9px; border-bottom:1px solid var(--nx-line-3); color:var(--nx-ink-2); }
   .nx-table td b{ color:var(--nx-ink); font-family:var(--mono); }
   .nx-table tbody tr:hover td{ background:rgba(255,255,255,.035); }
@@ -716,7 +1046,7 @@
   .nx-note b{ color:var(--nx-ink-2); }
 
   /* ── 14 · utility layer ────────────────────────────────────────── */
-  .utility-dock{ position:fixed; right:max(14px,calc((100vw - 1180px)/2 - 8px)); bottom:18px; z-index:70;
+  .utility-dock{ position:fixed; right:max(14px,calc((100vw - 1680px)/2 + 12px)); bottom:18px; z-index:70;
     display:flex; flex-direction:column; gap:9px; align-items:flex-end; }
   .utility-btn{ width:42px; height:42px; padding:0; border-radius:14px; color:var(--nx-ink);
     background:rgba(10,17,31,.92); border:1px solid var(--glass-brd); box-shadow:var(--glass-shadow);
@@ -759,45 +1089,86 @@
     padding:3px 8px; border-radius:8px; backdrop-filter:blur(6px); }
 
   /* ── 16 · responsive ───────────────────────────────────────────── */
-  @media (min-width:1080px){
-    .side-rail{ display:flex; }
-    .wrap{ padding:20px 26px 46px; }
+  /* large desktop: nav rail + workspace + creator rail (reference composition) */
+  @media (min-width:1440px){
+    .side-rail,.creator-rail{ display:flex; }
+    .app-shell{ grid-template-columns:var(--rail) minmax(0,1fr) var(--creator); }
     .mobile-nav{ display:none; }
     .utility-dock{ bottom:22px; }
     .toast-stack{ bottom:22px; }
   }
-  @media (max-width:1079px){ .side-rail{ display:none; } }
+  /* medium desktop / tablet landscape: nav rail only, creator rail folds into the workspace */
+  @media (min-width:1080px) and (max-width:1439px){
+    .side-rail{ display:flex; }
+    .app-shell{ grid-template-columns:var(--rail) minmax(0,1fr); }
+    .creator-rail{ display:none; }
+    .creator-rail.in-workspace{ display:grid; position:static; width:auto; max-height:none; margin:0 0 var(--sp-4);
+      grid-template-columns:minmax(0,1fr) minmax(0,1.05fr) minmax(0,1fr); align-items:stretch; }
+    .creator-rail.in-workspace .cr-hero{ min-height:230px; }
+    .mobile-nav{ display:none; }
+    .utility-dock{ bottom:22px; }
+    .toast-stack{ bottom:22px; }
+  }
+  @media (max-width:1079px){
+    .side-rail{ display:none; }
+    .creator-rail{ display:none; }
+    .creator-rail.in-workspace{ display:grid; position:static; width:auto; max-height:none; margin:0 0 var(--sp-4);
+      grid-template-columns:1fr; align-items:stretch; }
+    .creator-rail.in-workspace .cr-hero{ min-height:210px; }
+    .pagetabs{ display:flex; }
+    .brand-strip .strip{ grid-template-columns:1fr 1fr; }
+    .brand-strip .strip .quote{ text-align:left; }
+    .ov-grid.split-3{ grid-template-columns:1fr 1fr; }
+  }
+  @media (max-width:900px){
+    .nx-statrow{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .nx-featrow{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .ov-grid.split-2{ grid-template-columns:1fr; }
+    .ov-grid.split-3{ grid-template-columns:1fr; }
+  }
   @media (max-width:760px){
+    :root{ --shell-pad:10px; }
     .glass{ padding:var(--sp-4); border-radius:var(--r-md); }
-    .topbar{ padding:9px 11px; gap:9px; border-radius:var(--r-md); }
-    .logo{ width:40px; height:40px; border-radius:13px; }
-    .logo svg{ width:26px; height:26px; }
-    .topbar .brand h1{ font-size:15px; letter-spacing:2.6px; }
-    .topbar .brand p{ font-size:9px; max-width:40vw; }
+    .topbar{ border-radius:var(--r-md); min-height:0; }
+    .hero-inner{ padding:12px 13px 15px; min-height:0; }
+    .logo{ width:34px; height:34px; border-radius:11px; }
+    .logo svg{ width:23px; height:23px; }
+    .hero-name{ font-size:15px; letter-spacing:1.8px; }
+    .hero-word{ font-size:40px; letter-spacing:.1em; }
+    .hero-sub{ font-size:11.6px; letter-spacing:.16em; }
+    .hero-line{ font-size:10px; gap:7px; }
+    .live-pill{ padding:6px 10px; font-size:9.6px; }
+    .page-hero h2{ font-size:18px; }
+    .page-hero .ph-in{ padding:14px; }
     .price{ font-size:26px; }
-    .pagetabs{ top:66px; border-radius:var(--r-md); }
     .stats{ grid-template-columns:repeat(3,1fr); }
     .sess-meter{ grid-template-columns:repeat(2,1fr); }
     .usage-row{ flex-wrap:wrap; }
     .usage-row .k{ flex:0 0 96px; }
     .usage-row .ubar{ order:3; flex:1 1 100%; }
-    .utility-dock{ right:12px; bottom:78px; }
+    .utility-dock{ right:10px; bottom:76px; }
+    .utility-btn{ width:40px; height:40px; border-radius:13px; }
     .net-pill{ display:none; }
     .toast-stack{ bottom:80px; }
     .stslot{ flex-wrap:wrap; }
     .stslot .role{ width:auto; }
+    .brand-strip .strip{ grid-template-columns:1fr; }
+    .strip .mini-brand{ justify-content:flex-start; }
+  }
+  @media (max-width:520px){
+    .nx-statrow,.nx-featrow{ grid-template-columns:1fr; }
+    .stat-card .vl{ font-size:20px; }
   }
   @media (max-width:420px){
     .stats{ grid-template-columns:repeat(2,1fr); }
     .pairgrid{ grid-template-columns:1fr 1fr; }
     #themeToggle{ display:none; }
-    .topbar .brand p{ display:none; }
     .nx-kpi .v{ font-size:18px; }
+    .hero-word{ font-size:33px; }
   }
   @media (min-width:761px) and (max-width:1079px){
     /* tablet: two comfortable columns where the content allows it */
     .nx-split{ grid-template-columns:1fr 1fr; }
-    .wrap{ padding:16px 18px 96px; }
   }
   @media (hover:hover) and (pointer:fine){
     .glass:hover{ transform:translateY(-2px); border-color:rgba(120,190,255,.24); box-shadow:0 26px 60px -28px rgba(0,0,0,.9), var(--glass-inner); }
@@ -812,14 +1183,14 @@
 <body>
 <div class="nx-scene" id="nxScene" aria-hidden="true"></div>
 <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
-<div class="app-shell">
+<div class="app-shell" id="appShellHost">
 
-  <!-- ═══ DESKTOP RAIL — modular navigation, generated from the feature registry ═══ -->
+  <!-- ═══ NAV RAIL — modular navigation, generated from the feature registry ═══ -->
   <aside class="side-rail" id="sideRail" aria-label="Primary navigation">
     <div class="rail-brand">
       <div class="logo" aria-label="NEXUS mark"><svg viewBox="0 0 64 64" width="30" height="30" aria-hidden="true">
         <defs><linearGradient id="ngx" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#3ad2ff"/><stop offset=".55" stop-color="#3d7bff"/><stop offset="1" stop-color="#8b6cff"/>
+          <stop offset="0" stop-color="#7fdcff"/><stop offset=".55" stop-color="#3d7bff"/><stop offset="1" stop-color="#8a7bff"/>
         </linearGradient></defs>
         <g stroke="url(#ngx)" stroke-width="3.2" stroke-linecap="round">
           <path d="M17 50V36"/><path d="M30 50V28"/><path d="M43 50V21"/>
@@ -838,42 +1209,61 @@
       </div>
     </div>
     <nav class="rail-nav" id="sideNav" aria-label="Sections"></nav>
+    <div class="rail-art" id="railArt" aria-hidden="true"></div>
     <div class="rail-foot">
+      <div class="nx-inline" style="gap:7px"><span class="pulse idle" id="railPulse"></span>
+        <span style="font-size:9.4px;color:var(--nx-ink-3)">engine heartbeat</span></div>
       <div class="rail-health" id="railHealth" role="status"></div>
+      <div class="rail-quote-wrap"><p class="rail-quote">“The future belongs to those who never stop exploring.”<em>— NEXUS</em></p></div>
       <div class="rail-credit">Created by <b>Vinayyyy</b></div>
     </div>
   </aside>
 
   <div class="wrap" id="appWrap">
 
-  <!-- ═══ PERSISTENT TOP BAR: brand · live price · countdown · heartbeat · bell ═══ -->
+  <!-- ═══ HERO BANNER — brand · live status · wordmark · tagline ═══ -->
   <header class="topbar" id="topbar">
-    <div class="logo" aria-label="NEXUS meridian mark"><svg viewBox="0 0 64 64" width="30" height="30" aria-hidden="true">
-      <defs><linearGradient id="ngxTop" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#3ad2ff"/><stop offset=".55" stop-color="#3d7bff"/><stop offset="1" stop-color="#8b6cff"/>
-      </linearGradient></defs>
-      <g stroke="url(#ngxTop)" stroke-width="3.2" stroke-linecap="round">
-        <path d="M17 50V36"/><path d="M30 50V28"/><path d="M43 50V21"/>
-      </g>
-      <g fill="url(#ngxTop)">
-        <rect x="13.4" y="38" width="7.2" height="9.5" rx="2"/>
-        <rect x="26.4" y="31" width="7.2" height="14" rx="2"/>
-        <rect x="39.4" y="24" width="7.2" height="18" rx="2"/>
-      </g>
-      <path d="M14 30 L27 21 L38 25 L52 11" fill="none" stroke="#ffffff" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>
-      <path d="M45.5 11 H52 V17.5" fill="none" stroke="#ffffff" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>
-    </svg></div>
-    <div class="brand">
-      <h1 id="brandMark">NEXUS</h1>
-      <p id="brandSub">Predict. Learn. Grow. · 10 pairs · 26 strategies · 4 channels</p>
+    <div class="hero-art" id="heroArt" aria-hidden="true"></div>
+    <div class="hero-veil" aria-hidden="true"></div>
+    <div class="hero-inner">
+      <div class="hero-top">
+        <div class="logo" aria-label="NEXUS meridian mark"><svg viewBox="0 0 64 64" width="30" height="30" aria-hidden="true">
+          <defs><linearGradient id="ngxTop" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#7fdcff"/><stop offset=".55" stop-color="#3d7bff"/><stop offset="1" stop-color="#8a7bff"/>
+          </linearGradient></defs>
+          <g stroke="url(#ngxTop)" stroke-width="3.2" stroke-linecap="round">
+            <path d="M17 50V36"/><path d="M30 50V28"/><path d="M43 50V21"/>
+          </g>
+          <g fill="url(#ngxTop)">
+            <rect x="13.4" y="38" width="7.2" height="9.5" rx="2"/>
+            <rect x="26.4" y="31" width="7.2" height="14" rx="2"/>
+            <rect x="39.4" y="24" width="7.2" height="18" rx="2"/>
+          </g>
+          <path d="M14 30 L27 21 L38 25 L52 11" fill="none" stroke="#ffffff" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>
+          <path d="M45.5 11 H52 V17.5" fill="none" stroke="#ffffff" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>
+        </svg></div>
+        <span class="hero-name">Nexus</span>
+        <div class="hero-actions">
+          <span class="live-pill idle" id="heroLive"><i class="dot"></i>Live · <b id="heroLiveText">Engine idle</b></span>
+          <button class="hero-ico" id="heroSearch" type="button" title="Quick actions (Ctrl/⌘ K)" aria-label="Open quick actions"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.4"/><path d="M15.8 15.8 21 21"/></svg></button>
+          <button class="bell" id="themeToggle" type="button" title="Toggle light / dark theme" aria-label="Toggle light or dark theme"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="4.6"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M5.4 18.6 7 17M17 7l1.6-1.6"/></svg></button>
+          <button class="bell" id="noteBell" type="button" title="Notification centre" onclick="showPage('dash')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 10.2a5.6 5.6 0 0 1 11.2 0c0 4 1.4 5.6 1.4 5.6H5s1.4-1.6 1.4-5.6z"/><path d="M10.2 19a2 2 0 0 0 3.6 0"/></svg><span class="cnt" id="noteCount">0</span></button>
+        </div>
+      </div>
+      <div class="hero-body">
+        <h1 class="hero-word" id="brandMark">NEXUS</h1>
+        <p class="hero-sub" id="brandSub">Forex prediction &amp; self-learning system</p>
+        <div class="hero-line"><span>Smarter Signals</span><i>|</i><span>Better Decisions</span><i>|</i><span>Continuous Growth</span></div>
+      </div>
+      <div class="hero-foot">
+        <span class="pulse idle" id="pulse" title="live heartbeat — pulses while the engine runs"></span>
+        <span class="mini" id="heroMeta" style="text-align:left">10 pairs · 26 strategies · 6 agents · 4 channels</span>
+        <div class="toplive">
+          <div class="px" id="topPrice">—</div>
+          <div class="cd" id="topCd">⏳ <b>—</b></div>
+        </div>
+      </div>
     </div>
-    <span class="pulse idle" id="pulse" title="live heartbeat — pulses while the engine runs"></span>
-    <div class="toplive">
-      <div class="px" id="topPrice">—</div>
-      <div class="cd" id="topCd">⏳ <b>—</b></div>
-    </div>
-    <button class="bell" id="themeToggle" type="button" title="Toggle light / dark theme" aria-label="Toggle light or dark theme">◐</button>
-    <button class="bell" id="noteBell" type="button" title="Notification centre" onclick="showPage('dash')">🔔<span class="cnt" id="noteCount">0</span></button>
   </header>
 
   <!-- ═══ PAGE TABS — every section lives on its own page, in workflow order ═══ -->
@@ -898,79 +1288,114 @@
   <!-- ═══════════ PAGE · OVERVIEW ═══════════ -->
   <div class="page on" id="page-dash">
 
-    <div class="glass nx-widget" id="sec-status" data-widget="status" data-widget-title="Live status">
-      <span class="t"><span class="num">◈</span> LIVE STATUS <span class="tail">
-        <span class="chip" id="budgetChip">⚡ budget: —</span>
-        <button class="b-ghost" style="padding:3px 9px;font-size:10px" onclick="openWidgetDrawer()">⚙ WIDGETS</button>
-      </span></span>
-      <div class="status wait" id="status">NEXUS idle — turn on AUTO-MODE (Signals page) for continuous second-by-second operation</div>
-      <div class="price" id="price">—</div>
-      <div class="mini" id="pxinfo">—</div>
-      <div class="countdown cd-ok" id="cd">
-        <div id="cd1w">⏳ M1 closes in <b>—</b></div>
-        <div id="cd3w" style="display:none">⏳ M3 closes in <b>—</b></div>
-        <div class="mini" id="tgtBadge" style="margin-top:5px">🎯 next M1 candle opens: —</div>
-        <div class="mini" style="margin-top:5px">signals predict the <b>next</b> candle · enter at its open · <b>paper-trade only</b></div>
-      </div>
-      <div class="mini" id="credits" style="margin-top:7px">API credits this session: 0</div>
-      <div class="mini" id="budgetInfo" style="margin-top:3px">credit budget: —</div>
+    <!-- summary cards (widget: summary) -->
+    <div class="nx-rowband" id="row-summary">
+      <section class="nx-statrow nx-widget" id="sec-dash-summary" data-widget="summary" data-widget-title="Summary cards">
+        <div class="nx-skeleton" style="grid-column:1/-1;min-height:88px"></div>
+      </section>
+      <div class="mini left" id="dashSummaryNote" style="margin:8px 2px 0">Live counters are filled from the engine state — nothing is estimated.</div>
     </div>
 
-    <div class="glass nx-widget" id="sec-dash-summary" data-widget="summary" data-widget-title="Market summary">
-      <span class="t"><span class="num">◈</span> MARKET SUMMARY</span>
-      <div class="nx-kpis" id="dashSummary"><div class="nx-skeleton" style="min-height:76px"></div></div>
-      <div class="mini left" style="margin-top:10px" id="dashSummaryNote">Live counters are filled from the engine's own state — nothing here is estimated.</div>
+    <!-- chart + recent signals (widgets: chart · signals) -->
+    <div class="ov-grid split-2" id="row-chart">
+      <section class="glass nx-widget" id="sec-dash-chart" data-widget="chart" data-widget-title="Price chart">
+        <div class="chart-head" id="dashChartHead"></div>
+        <div class="nx-chart" id="dashChart"><div class="empty-note">No candles cached yet — the chart draws from the same live feed the engines read.<br><b>Open MARKETS</b> to load candles, or run a scan.</div></div>
+        <div class="nx-chart-legend" id="dashChartLegend"></div>
+      </section>
+
+      <section class="glass nx-widget" id="sec-dash-signals" data-widget="signals" data-widget-title="Recent signals">
+        <div class="ph"><h3>Recent Signals</h3><div class="rt">
+          <button class="more" type="button" onclick="showPage('sig')">View all →</button></div></div>
+        <div id="dashSignals"><div class="empty-note">No signals yet — run a scan on the SIGNALS page.</div></div>
+      </section>
     </div>
 
-    <div class="glass nx-widget" id="sec-live" data-widget="pairs" data-widget-title="Active pairs">
-      <span class="t"><span class="num">◈</span> ACTIVE CURRENCY PAIRS <span class="tail"><span class="chip" id="tickChip">ticker: —</span></span></span>
-      <div class="pairgrid" id="pairGrid"><div class="empty-note">Tick pairs on the SIGNALS page — prices stream here live.</div></div>
-      <div class="mini" style="margin-top:9px">candles refresh pair-by-pair within your API budget · ✅ fresh · ⚠ stale</div>
+    <!-- feature cards (widget: features) -->
+    <div class="nx-rowband" id="row-features">
+      <section class="nx-featrow nx-widget" id="sec-dash-features" data-widget="features" data-widget-title="Module shortcuts">
+        <div class="nx-skeleton" style="grid-column:1/-1;min-height:130px"></div>
+      </section>
     </div>
 
-    <div class="glass nx-widget" id="sec-dash-signals" data-widget="signals" data-widget-title="Recent signals">
-      <span class="t"><span class="num">◈</span> RECENT SIGNALS <span class="tail">
-        <button class="b-ghost" style="padding:3px 9px;font-size:10px" onclick="showPage('sig')">VIEW ALL</button></span></span>
-      <div id="dashSignals"><div class="empty-note">No signals yet — run a scan on the SIGNALS page.</div></div>
+    <!-- market overview · performance · system health -->
+    <div class="ov-grid split-3" id="row-lower">
+      <section class="glass nx-widget" id="sec-dash-market" data-widget="market" data-widget-title="Market overview">
+        <div class="ph"><h3>Market Overview</h3><div class="rt"><button class="more" type="button" onclick="showPage('markets')">View all →</button></div></div>
+        <div class="mkt-tabs" id="dashMarketTabs"></div>
+        <div class="nx-scroll"><div id="dashMarketRows"><div class="mkt-empty">No monitored pairs yet.</div></div></div>
+      </section>
+
+      <section class="glass nx-widget" id="sec-dash-stats" data-widget="stats" data-widget-title="Performance">
+        <div class="ph"><h3>Performance</h3><div class="rt">
+          <div class="seg-pills" id="dashRangePills">
+            <button type="button" data-range="7" class="on">LAST 7 DAYS</button>
+            <button type="button" data-range="30">30D</button>
+            <button type="button" data-range="0">ALL</button>
+          </div></div></div>
+        <div class="perf-donut" id="dashPerfDonut"></div>
+        <div class="perf-spark" id="dashPerfSpark"></div>
+        <div class="nx-kpis" id="dashStats"></div>
+        <div class="mini left" id="dashStatsNote" style="margin-top:10px">Settled outcomes only — pending verdicts are excluded.</div>
+      </section>
+
+      <section class="glass nx-widget" id="sec-dash-health" data-widget="health" data-widget-title="System health">
+        <div class="ph"><h3>System Health</h3><div class="rt"><button class="more" type="button" onclick="showPage('health')">Detail →</button></div></div>
+        <div id="dashHealth"><div class="empty-note">Health state loads from the relay, database and worker.</div></div>
+      </section>
     </div>
 
-    <div class="glass nx-widget" id="sec-dash-stats" data-widget="stats" data-widget-title="Prediction statistics">
-      <span class="t"><span class="num">◈</span> PREDICTION STATISTICS <span class="tail">
-        <button class="b-ghost" style="padding:3px 9px;font-size:10px" onclick="showPage('res')">DETAIL</button></span></span>
-      <div class="nx-kpis" id="dashStats"><div class="nx-skeleton" style="min-height:76px"></div></div>
-      <div class="mini" id="dashStatsNote" style="margin-top:10px">Settled outcomes only — pending verdicts are excluded.</div>
-    </div>
-
-    <div class="glass nx-widget" id="sec-dash-health" data-widget="health" data-widget-title="System health">
-      <span class="t"><span class="num">◈</span> SYSTEM HEALTH <span class="tail">
-        <button class="b-ghost" style="padding:3px 9px;font-size:10px" onclick="showPage('health')">DETAIL</button></span></span>
-      <div id="dashHealth"><div class="empty-note">Health state loads from the relay, database and worker.</div></div>
-    </div>
-
-    <div class="glass nx-widget" id="sec-notif" data-widget="activity" data-widget-title="Recent activity">
-      <span class="t"><span class="num">◈</span> NOTIFICATION CENTRE <span class="tail">
-        <button class="b-ghost" style="padding:3px 9px;font-size:10px" onclick="clearNotes()">🧹 CLEAR</button></span></span>
-      <div class="toggle" style="margin-bottom:6px">
-        <span>🖥 BROWSER ALERTS <span class="mini">(signal + verdict popups)</span></span>
-        <label class="switch"><input type="checkbox" id="notifyOn"><span class="slider"></span></label>
-      </div>
-      <div class="toggle">
-        <span>🔊 SOUND <span class="mini">(win chime / loss tone)</span></span>
-        <label class="switch"><input type="checkbox" id="soundOn"><span class="slider"></span></label>
-      </div>
-      <div class="notelist" id="noteList"><div class="empty-note">Live feed — signals, verdicts and channel progress in real time.</div></div>
-    </div>
-
-    <div class="glass nx-widget" id="sec-regime" data-widget="regime" data-widget-title="Market regime">
-      <span class="t"><span class="num">◈</span> MARKET REGIME</span>
-      <div id="regimeRows">
-        <div class="regime">
-          <div class="rg"><b>—</b>ADX(14)</div>
-          <div class="rg"><b>—</b>ATR pct</div>
-          <div class="rg on"><b>—</b>family bias</div>
+    <!-- engine status · active pairs · regime · notification centre -->
+    <div class="ov-grid split-2" id="row-extra">
+      <section class="glass nx-widget" id="sec-status" data-widget="status" data-widget-title="Live status">
+        <span class="t"><span class="num">◈</span> LIVE STATUS <span class="tail">
+          <span class="chip" id="budgetChip">⚡ budget: —</span>
+          <button class="b-ghost" style="padding:3px 9px;font-size:10px" onclick="openWidgetDrawer()">⚙ WIDGETS</button>
+        </span></span>
+        <div class="status wait" id="status">NEXUS idle — turn on AUTO-MODE (Signals page) for continuous second-by-second operation</div>
+        <div class="price" id="price">—</div>
+        <div class="mini" id="pxinfo">—</div>
+        <div class="countdown cd-ok" id="cd">
+          <div id="cd1w">⏳ M1 closes in <b>—</b></div>
+          <div id="cd3w" style="display:none">⏳ M3 closes in <b>—</b></div>
+          <div class="mini" id="tgtBadge" style="margin-top:5px">🎯 next M1 candle opens: —</div>
+          <div class="mini" style="margin-top:5px">signals predict the <b>next</b> candle · enter at its open · <b>paper-trade only</b></div>
         </div>
-      </div>
-      <div class="mini" style="margin-top:9px">ADX&gt;25 → trend (75% threshold) · ADX&lt;20 → range (70%) · 20-25 mixed (80%) · doji candles blocked 👿 · M3 = 3×M1 candles aggregated</div>
+        <div class="mini" id="credits" style="margin-top:7px">API credits this session: 0</div>
+        <div class="mini" id="budgetInfo" style="margin-top:3px">credit budget: —</div>
+      </section>
+
+      <section class="glass nx-widget" id="sec-live" data-widget="pairs" data-widget-title="Active pairs">
+        <span class="t"><span class="num">◈</span> ACTIVE CURRENCY PAIRS <span class="tail"><span class="chip" id="tickChip">ticker: —</span></span></span>
+        <div class="pairgrid" id="pairGrid"><div class="empty-note">Tick pairs on the SIGNALS page — prices stream here live.</div></div>
+        <div class="mini" style="margin-top:9px">candles refresh pair-by-pair within your API budget · ✅ fresh · ⚠ stale</div>
+      </section>
+
+      <section class="glass nx-widget" id="sec-regime" data-widget="regime" data-widget-title="Market regime">
+        <span class="t"><span class="num">◈</span> MARKET REGIME</span>
+        <div id="regimeRows">
+          <div class="regime">
+            <div class="rg"><b>—</b>ADX(14)</div>
+            <div class="rg"><b>—</b>ATR pct</div>
+            <div class="rg on"><b>—</b>family bias</div>
+          </div>
+        </div>
+        <div class="mini" style="margin-top:9px">ADX&gt;25 → trend (75% threshold) · ADX&lt;20 → range (70%) · 20-25 mixed (80%) · doji candles blocked 👿 · M3 = 3×M1 candles aggregated</div>
+      </section>
+
+      <section class="glass nx-widget" id="sec-notif" data-widget="activity" data-widget-title="Recent activity">
+        <span class="t"><span class="num">◈</span> NOTIFICATION CENTRE <span class="tail">
+          <button class="b-ghost" style="padding:3px 9px;font-size:10px" onclick="clearNotes()">🧹 CLEAR</button></span></span>
+        <div class="toggle" style="margin-bottom:6px">
+          <span>🖥 BROWSER ALERTS <span class="mini">(signal + verdict popups)</span></span>
+          <label class="switch"><input type="checkbox" id="notifyOn"><span class="slider"></span></label>
+        </div>
+        <div class="toggle">
+          <span>🔊 SOUND <span class="mini">(win chime / loss tone)</span></span>
+          <label class="switch"><input type="checkbox" id="soundOn"><span class="slider"></span></label>
+        </div>
+        <div class="notelist" id="noteList"><div class="empty-note">Live feed — signals, verdicts and channel progress in real time.</div></div>
+      </section>
     </div>
   </div>
 
@@ -1802,12 +2227,89 @@
     </div>
   </div>
 
+  <div id="creatorSlot"></div>
   <div class="clock" id="clock"></div>
   <div class="mini" id="feedTzNote" style="display:none;margin-top:5px"></div>
   <p class="disclaimer">⚠️ NEXUS never guarantees profits — no system can, and no setting makes losses impossible. It is a decision-support tool in <b>signal-only + paper-trading mode</b>; it does not click, place, or automate real trades.<br>Binary options carry a very high risk of losing money. Preserving capital comes first: respect the daily stop-loss, cooldowns, session guards and position limits. Past performance — real or backtested — does not predict future results. Trade responsibly.</p>
-  <div class="ver">NEXUS Glass v5.2 · Meridian edition · multi-pair · M1 + M3 · PUBLIC + VIP + LIST + SESSION channels · per-event stickers · revision-safe confirmed settlement (ties = push)<br>Typeface: Inter (self-hosted, variable) — © The Inter Project Authors, SIL Open Font License 1.1 · license: assets/fonts/INTER-OFL-LICENSE.txt</div>
+  <div class="ver">NEXUS Glass v5.3 · Meridian edition · Voyage interface (cinematic ocean glass) · multi-pair · M1 + M3 · PUBLIC + VIP + LIST + SESSION channels · per-event stickers · revision-safe confirmed settlement (ties = push)<br>Typefaces: Inter (self-hosted, variable) — © The Inter Project Authors · Cinzel — © Google Inc. · both under the SIL Open Font License 1.1 · licenses in assets/fonts/</div>
   </div><!-- /.wrap -->
+
+  <!-- ═══ CREATOR RAIL — attribution, artwork, identity ═══ -->
+  <aside class="creator-rail" id="creatorRail" aria-label="Creator and branding">
+    <div class="cr-card">
+      <div class="cr-top">
+        <div class="logo" aria-label="NEXUS mark"><svg viewBox="0 0 64 64" width="26" height="26" aria-hidden="true"><g stroke="#7fdcff" stroke-width="3.4" stroke-linecap="round"><path d="M17 50V36"/><path d="M30 50V28"/><path d="M43 50V21"/></g><g fill="#3d7bff"><rect x="13.4" y="38" width="7.2" height="9.5" rx="2"/><rect x="26.4" y="31" width="7.2" height="14" rx="2"/><rect x="39.4" y="24" width="7.2" height="18" rx="2"/></g><path d="M14 30 L27 21 L38 25 L52 11" fill="none" stroke="#ffffff" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/><path d="M45.5 11 H52 V17.5" fill="none" stroke="#ffffff" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/></svg></div>
+        <div class="who">
+          <div class="cr-kicker">Created by</div>
+          <div class="cr-name" id="crName">Vinayyyy</div>
+          <div class="cr-role">Dream · Build · Automate</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cr-hero" id="crHero">
+      <div class="veil"></div>
+      <div class="crest" id="crCrest"></div>
+      <div class="word"><b>NEXUS</b><span>Predict · Learn · Grow</span></div>
+      <div class="kanji" id="crKanji" aria-hidden="true">PREDICT</div>
+      <div class="kanji-sm" id="crKanjiSm" aria-hidden="true">LEARN · GROW</div>
+    </div>
+
+    <div class="cr-card">
+      <div class="cr-top">
+        <div class="cr-avatar" id="crAvatar"></div>
+        <div class="who">
+          <div class="cr-kicker">Created by</div>
+          <div class="cr-name" id="crName2">Vinayyyy</div>
+          <div class="cr-role">Developer · Builder · Dreamer</div>
+        </div>
+      </div>
+      <p class="cr-bio" style="margin-top:11px" id="crBio">
+        <span class="say">“</span>Just a guy who turned his ideas into code. Building NEXUS for a smarter tomorrow.<span class="say">”</span>
+      </p>
+      <div style="display:flex;align-items:flex-end;gap:10px;margin-top:4px">
+        <span class="mini left">— Creator</span>
+        <span class="cr-sign" id="crSign">Vinayyyy</span>
+      </div>
+      <div class="mini left" style="margin-top:2px">NEXUS · Predict. Learn. Grow. · signal-only, paper-first</div>
+      <div class="cr-socials" id="crSocials"></div>
+    </div>
+
+    <div class="cr-card">
+      <div class="strip k">Live state · this browser</div>
+      <div class="cr-state" id="crState"></div>
+      <div class="cr-dots" id="crDots"></div>
+    </div>
+  </aside>
 </div><!-- /.app-shell -->
+
+<!-- ═══ BRANDING STRIP — logo variations · design tokens · identity ═══ -->
+<div class="brand-strip">
+  <div class="strip">
+    <div class="col">
+      <div class="k">Logo variations</div>
+      <div class="tiles" id="stripLogos"></div>
+    </div>
+    <div class="col" style="justify-content:center">
+      <div class="k">Branding elements</div>
+      <div class="tags">
+        <span class="tag"><i></i>Clean</span><span class="tag"><i></i>Modern</span>
+        <span class="tag"><i></i>Minimal</span><span class="tag"><i></i>Powerful</span>
+      </div>
+      <div class="swatches" id="stripSwatches"></div>
+    </div>
+    <div class="col quote">More than a bot.<br>It&rsquo;s a journey.</div>
+    <div class="col"><div class="sat" id="stripSaturn" aria-hidden="true"></div></div>
+    <div class="col mini-brand">
+      <div class="logo" aria-label="NEXUS mark"><svg viewBox="0 0 64 64" width="26" height="26" aria-hidden="true"><g stroke="#7fdcff" stroke-width="3.4" stroke-linecap="round"><path d="M17 50V36"/><path d="M30 50V28"/><path d="M43 50V21"/></g><g fill="#3d7bff"><rect x="13.4" y="38" width="7.2" height="9.5" rx="2"/><rect x="26.4" y="31" width="7.2" height="14" rx="2"/><rect x="39.4" y="24" width="7.2" height="18" rx="2"/></g><path d="M14 30 L27 21 L38 25 L52 11" fill="none" stroke="#ffffff" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/><path d="M45.5 11 H52 V17.5" fill="none" stroke="#ffffff" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/></svg></div>
+      <div>
+        <div class="wm">NEXUS</div>
+        <div class="cr">Created by<br>Vinayyyy</div>
+        <div class="sg">Vinayyyy</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ MOBILE NAVIGATION ═══ -->
 <nav class="mobile-nav" id="mobileNav" aria-label="Quick navigation"></nav>
@@ -5143,9 +5645,9 @@ async function loadLocalArt(){
     if(!r.ok) return false;
     const man=await r.json();
     if(man.hero){
-      const d=document.createElement('div'); d.className='heroArt'; d.style.backgroundImage=artUrl(man.hero);
-      const wrap=document.querySelector('.wrap'), nav=$('pageTabs');
-      wrap.insertBefore(d,nav||wrap.firstChild);
+      const slot=$('heroArt');
+      if(slot){ slot.style.backgroundImage='linear-gradient(rgba(3,6,15,.25),rgba(3,6,15,.35)), url('+artUrl(man.hero)+')';
+        slot.style.backgroundSize='cover'; slot.style.backgroundPosition='center 28%'; }
     }
     if(man.logo){
       const l=document.querySelector('.logo');
@@ -5209,6 +5711,87 @@ function featureEnabled(id){ const f=featureOf(id); return !!f&&(!f.experimental
 function navFeatures(){ return FEATURES.filter(f=>featureEnabled(f.id)); }
 let curPage='dash';
 
+/* ── page heroes — same design language on every route ── */
+function renderPageHeroes(){
+  for(const f of FEATURES){
+    if(f.id==='dash') continue;
+    const page=$('page-'+f.id); if(!page) continue;
+    if(page.querySelector('.page-hero')) continue;
+    const el=document.createElement('section');
+    el.className='page-hero';
+    el.innerHTML='<div class="hero-art" aria-hidden="true">'+nxScene('voyage',{seed:100+FEATURES.indexOf(f)*13,
+        sun:{x:0.82,y:0.3,r:92,tone:'#eaf6ff'},horizon:0.72,figure:false})+ '</div>'
+      +'<div class="hero-veil" aria-hidden="true"></div>'
+      +'<div class="ph-in"><span class="ph-ic">'+nxIcon(f.id,22)+'</span>'
+      +'<div><h2>'+esc(f.label)+'</h2><p>'+esc(f.note||'')+'</p></div>'
+      +'<div class="ph-actions" id="phActions-'+f.id+'"></div></div>';
+    page.insertBefore(el,page.firstChild);
+  }
+}
+/* ── shell artwork + brand surfaces ── */
+function renderShellArt(){
+  const hero=$('heroArt');
+  if(hero) hero.innerHTML=nxOceanScene({w:1600,h:470,seed:19,horizon:0.70,
+    sun:{x:0.78,y:0.30,r:88,tone:'#ffe9c9'},figureScale:1.1,style:'sunset'});
+  const rail=$('railArt');
+  if(rail){
+    rail.innerHTML=nxOceanScene({w:440,h:560,seed:97,horizon:0.64,sun:{x:0.7,y:0.3,r:46,tone:'#e7f4ff'},
+      figureScale:0.9,style:'night'});
+  }
+  const crest=$('crCrest'); if(crest) crest.innerHTML=nxCrest(1);
+  const av=$('crAvatar');
+  if(av){ av.style.width='42px'; av.style.height='42px'; av.style.borderRadius='50%'; av.style.overflow='hidden'; av.innerHTML=nxAvatar(); }
+  const sat=$('stripSaturn'); if(sat) sat.innerHTML=nxSaturn();
+  renderStripBrand();
+  renderCreatorLinks();
+}
+function renderStripBrand(){
+  const tiles=$('stripLogos');
+  if(tiles && !tiles.dataset.done){
+    tiles.dataset.done='1';
+    tiles.innerHTML='<div class="brand-tile luminous">'+nxCrest(0.5)+'</div>'
+      +'<div class="brand-tile mono"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="none" stroke="rgba(255,255,255,.35)"/>'
+      +'<text x="32" y="43" text-anchor="middle" font-size="30" font-family="Cinzel,serif" fill="#eef4ff">N</text></svg></div>'
+      +'<div class="brand-tile silver"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#e9eef6"/>'
+      +'<text x="32" y="44" text-anchor="middle" font-size="32" font-family="Cinzel,serif" fill="#0b1a2e">N</text></svg></div>'
+      +'<div class="brand-tile art">'+nxScene('voyage',{w:200,h:200,seed:41,horizon:0.66,figureScale:0.8})+'</div>';
+  }
+  const sw=$('stripSwatches');
+  if(sw && !sw.dataset.done){
+    sw.dataset.done='1';
+    sw.innerHTML=['#4ecdf5','#5b86d6','#1d3d63','#e9eef6'].map(c=>'<span class="sw" style="background:'+c+'"></span>').join('');
+  }
+}
+function renderCreatorLinks(){
+  const host=$('crSocials'); if(!host||host.dataset.done) return;
+  host.dataset.done='1';
+  const link='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">';
+  host.innerHTML='<a href="https://github.com/zenosx77/Nexus" target="_blank" rel="noopener noreferrer" title="GitHub repository" aria-label="GitHub repository">'
+    +link+'<path d="M12 2a10 10 0 0 0-3.16 19.5c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.95 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.85-2.34 4.7-4.57 4.95.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></svg></a>'
+    +'<a href="https://github.com/zenosx77/Nexus#readme" target="_blank" rel="noopener noreferrer" title="Documentation" aria-label="Documentation">'
+    +link+'<path d="M6 2h9l5 5v15H6z" opacity=".25"/><path d="M15 2v5h5"/><path d="M9 13h7M9 17h7" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></a>'
+    +'<a href="https://github.com/zenosx77/Nexus/blob/main/README.md" target="_blank" rel="noopener noreferrer" title="Project notes" aria-label="Project notes">'
+    +link+'<circle cx="6" cy="12" r="2.4"/><circle cx="17" cy="6" r="2.4"/><circle cx="17" cy="18" r="2.4"/>'
+    +'<path d="M8.2 11 14.8 7M8.2 13l6.6 4" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></a>';
+}
+/* ── hero live pill: honest engine state, never a fake "online" ── */
+function renderHeroState(){
+  const pill=$('heroLive'), text=$('heroLiveText');
+  if(!pill||!text) return;
+  const engineOn=(($('auto')&&$('auto').checked)||busy||(sx&&(sx.status==='hunting'||sx.status==='waiting')));
+  const wl=watch();
+  const fresh=wl.filter(p=>{ const ck=cache[p]; return ck&&ck.m1&&candleGate(ck.m1).ok; }).length;
+  let cls='idle', label='Engine idle';
+  if(engineOn&&fresh){ cls=''; label='System Online'; }
+  else if(engineOn){ cls='warn'; label='Engine running · feed stale'; }
+  else if(fresh){ cls='warn'; label='Feed live · engines idle'; }
+  else if(nexusRelayState==='Unavailable'){ cls='bad'; label='Relay unreachable'; }
+  pill.className='live-pill '+cls;
+  text.textContent=label;
+  const meta=$('heroMeta');
+  if(meta) meta.textContent=PAIRS.length+' monitored pairs · '+wl.length+' ticked · '+fresh+' fresh · '
+    +(NS?NS():26)+' strategies · 6 agents · 4 channels';
+}
 function buildNav(){
   const railNav=$('sideNav');
   if(railNav){
@@ -5220,8 +5803,8 @@ function buildNav(){
       const head=document.createElement('span'); head.textContent=group; box.appendChild(head);
       for(const f of items){
         const b=document.createElement('button'); b.type='button'; b.className='rail-link'; b.setAttribute('data-page',f.id);
-        const ic=document.createElement('span'); ic.className='ic'; ic.textContent=f.icon;
-        const lb=document.createElement('span'); lb.textContent=f.label;
+        const ic=document.createElement('span'); ic.className='ic'; ic.innerHTML=nxIcon(f.id,15);
+        const lb=document.createElement('span'); lb.className='lb'; lb.textContent=f.label;
         b.append(ic,lb); b.title=f.note||f.label;
         b.addEventListener('click',()=>showPage(f.id));
         box.appendChild(b);
@@ -5234,8 +5817,8 @@ function buildNav(){
     tabs.innerHTML='';
     for(const f of navFeatures()){
       const b=document.createElement('button'); b.type='button'; b.setAttribute('data-page',f.id);
-      const ic=document.createElement('span'); ic.className='ic'; ic.textContent=f.icon;
-      b.append(ic,document.createTextNode(f.label.toUpperCase()));
+      const ic=document.createElement('span'); ic.className='ic'; ic.innerHTML=nxIcon(f.id,13);
+      b.append(ic,document.createTextNode(' '+f.label.toUpperCase()));
       b.addEventListener('click',()=>showPage(f.id));
       tabs.appendChild(b);
     }
@@ -5245,7 +5828,7 @@ function buildNav(){
     mob.innerHTML='';
     for(const f of navFeatures().filter(x=>x.mobile).slice(0,6)){
       const b=document.createElement('button'); b.type='button'; b.setAttribute('data-page',f.id);
-      const ic=document.createElement('span'); ic.className='ic'; ic.textContent=f.icon;
+      const ic=document.createElement('span'); ic.className='ic'; ic.innerHTML=nxIcon(f.id,18);
       const lb=document.createElement('span'); lb.textContent=f.label;
       b.append(ic,lb); b.addEventListener('click',()=>showPage(f.id));
       mob.appendChild(b);
@@ -5271,7 +5854,8 @@ function showPage(k){
   onPageShown(k);
 }
 function onPageShown(k){
-  if(k==='dash'){ renderDashSummary(); renderDashStats(); renderDashSignals(); renderDashHealth(); }
+  if(k==='dash'){ renderDashSummary(); renderDashStats(); renderDashSignals(); renderDashHealth();
+    renderDashChart(); renderDashFeatures(); renderDashMarket(); }
   else if(k==='sig'){ renderSigTable(); }
   else if(k==='markets'){ renderMarketExplorer(); renderPairAnalysis(); }
   else if(k==='res'){ renderPerfCharts(); renderPairBreakdown(); renderTfBreakdown(); }
@@ -5289,89 +5873,272 @@ function onPageShown(k){
    ═══════════════════════════════════════════════════════════════════ */
 /* Original vector scenes — authored for NEXUS, tinted by the active theme
    through the --scene-* tokens so they never reduce text contrast. */
+/* ═══════════════════════════════════════════════════════════════════
+   ARTWORK — original, code-authored vector scenes (no third-party art).
+   A single parametric ocean-adventure renderer feeds the page backdrop,
+   the hero banner, the nav-rail vignette, the creator panel and the page
+   heroes, so the whole product shares one cinematic atmosphere.
+   Every scene is tinted by --scene-* tokens, so text contrast is never
+   traded away for decoration.
+   ═══════════════════════════════════════════════════════════════════ */
+function nxRand(seed){ /* deterministic PRNG — the artwork is stable across reloads */
+  let a=seed>>>0;
+  return function(){ a+=0x6d2b79f5; let t=a; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61);
+    return ((t^t>>>14)>>>0)/4294967296; };
+}
+function nxCloudBank(rand,count,y0,y1,scale,tone,topId,sideId){
+  /* layered cloud deck: bright crown, mid body, dark underside */
+  let out='';
+  for(let i=0;i<count;i++){
+    const cx=(rand()*1.3-0.15)*1600, cy=y0+rand()*(y1-y0);
+    const s=(0.6+rand()*0.9)*scale;
+    const puffs=3+Math.floor(rand()*4);
+    let body='',dark='';
+    for(let p=0;p<puffs;p++){
+      const px=cx+(p-puffs/2)*((36+rand()*30)*s)+(rand()-0.5)*16;
+      const py=cy+(rand()-0.5)*10*s;
+      const rx=(26+rand()*34)*s, ry=(9+rand()*11)*s;
+      body+='<ellipse cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" rx="'+rx.toFixed(1)+'" ry="'+ry.toFixed(1)+'" fill="url(#'+topId+')"/>';
+      dark+='<ellipse cx="'+(px+2).toFixed(1)+'" cy="'+(py+ry*0.55).toFixed(1)+'" rx="'+(rx*0.94).toFixed(1)+'" ry="'+(ry*0.72).toFixed(1)+'" fill="url(#'+sideId+')"/>';
+    }
+    out+='<g opacity="'+(0.45+rand()*0.5).toFixed(2)+'">'+dark+body+'</g>';
+  }
+  return out.replace(/opacity="([\d.]+)"/g,(m,v)=>'opacity="'+(Number(v)*tone).toFixed(2)+'"');
+}
+function nxShip(x,y,scale,tint){
+  const k=scale;
+  return '<g transform="translate('+x.toFixed(0)+' '+y.toFixed(0)+') scale('+k+')" fill="'+tint+'">'
+    +'<path d="M-96 0 H96 L68 30 H-68 Z"/>'
+    +'<path d="M-26 0 V-86 L-88 0 Z" opacity=".92"/>'
+    +'<path d="M-2 0 V-104 L64 0 Z" opacity=".8"/>'
+    +'<rect x="-9" y="-108" width="5" height="108"/>'
+    +'<path d="M22 -94 V-52 L54 -94 Z" opacity=".72"/>'
+    +'<rect x="47" y="-98" width="3" height="34"/>'
+    +'<g opacity=".5" stroke="'+tint+'" stroke-width="2.2" fill="none">'
+    +'<path d="M-138 40 q38 10 76 0 q38 -10 76 0"/><path d="M-28 52 q42 10 84 0"/></g>'
+    +'</g>';
+}
+function nxFigure(x,y,scale,tint,rim){
+  /* silhouetted adventurer with a wide-brim straw hat, seen from behind */
+  const k=scale;
+  return '<g transform="translate('+x.toFixed(0)+' '+y.toFixed(0)+') scale('+k+')">'
+    +'<g fill="'+tint+'">'
+    +'<ellipse cx="0" cy="-116" rx="46" ry="12"/>'                              /* brim */
+    +'<path d="M-27 -128 q5 -31 27 -31 q22 0 27 31 z"/>'                        /* crown */
+    +'<path d="M-31 -28 q-6 -48 11 -61 h40 q17 13 11 61 q-18 11 -31 11 q-17 0 -31 -11 z"/>' /* coat */
+    +'<path d="M-36 -110 q-14 20 -12 47 l13 7 q-5 -29 5 -45 z"/>'               /* arms */
+    +'<path d="M36 -110 q14 20 12 47 l-13 7 q5 -29 -5 -45 z"/>'
+    +'<rect x="-18" y="-16" width="11" height="16" rx="4"/><rect x="7" y="-16" width="11" height="16" rx="4"/>'
+    +'<path d="M-30 -18 q-3 -7 3 -10 h54 q6 3 3 10 z"/>'
+    +'</g>'
+    +'<g fill="none" stroke="'+rim+'" stroke-width="2.6" opacity=".45">'
+    +'<path d="M-27 -136 q7 -26 27 -26 q20 0 27 26"/><path d="M-31 -32 q-4 -43 11 -55"/>'
+    +'</g></g>';
+}
+function nxRays(x,y,len,count,spread,id){
+  let out='';
+  for(let i=0;i<count;i++){
+    const a=-spread/2+spread*(i/(count-1));
+    out+='<polygon points="0,0 '+(-22)+','+(-len)+' '+(22)+','+(-len)+'" fill="url(#'+id+')"/>';
+  }
+  return '<g transform="translate('+x.toFixed(0)+' '+y.toFixed(0)+')" opacity=".55">'+out+'</g>';
+}
+function nxOceanScene(o){
+  o=o||{};
+  const uid='nxs'+(nxSceneSeq++);
+  const W=o.w||1600, H=o.h||900, hor=o.horizon==null?0.62:o.horizon;
+  const sun=o.sun||{x:0.72,y:0.42,r:110,tone:'#eaf6ff'};
+  const rand=nxRand(o.seed||7);
+  const id={sky:uid+'sky',sea:uid+'sea',glow:uid+'glow',cTop:uid+'ct',cSide:uid+'cs',ray:uid+'ray',water:uid+'w',warm:uid+'wm'};
+  const hy=H*hor;
+  const style=o.style||'night';
+  const dawn=style==='dawn', sunset=style==='sunset';
+  const defs='<defs>'
+    +'<linearGradient id="'+id.sky+'" x1="0" y1="0" x2="0.12" y2="1">'
+    +'<stop offset="0" stop-color="#03070f"/>'
+    +'<stop offset=".34" stop-color="var(--scene-sky-1)"/>'
+    +'<stop offset=".72" stop-color="var(--scene-sky-2)"/>'
+    +'<stop offset="1" stop-color="'+(sunset?'#c98f6a':dawn?'#3a6f93':'#1d4a72')+'"/></linearGradient>'
+    +'<linearGradient id="'+id.sea+'" x1="0" y1="0" x2="0" y2="1">'
+    +'<stop offset="0" stop-color="'+(sunset?'#6fa0ab':dawn?'#3f6f88':'#3c6c8c')+'"/>'
+    +'<stop offset=".22" stop-color="var(--scene-sea-1)"/>'
+    +'<stop offset="1" stop-color="var(--scene-sea-2)"/></linearGradient>'
+    +'<linearGradient id="'+id.warm+'" x1="0" y1="0" x2="0" y2="1">'
+    +'<stop offset="0" stop-color="var(--scene-warm)" stop-opacity="0"/>'
+    +'<stop offset=".55" stop-color="var(--scene-warm)" stop-opacity="'+(sunset?'.68':dawn?'.5':'.34')+'"/>'
+    +'<stop offset="1" stop-color="#ffb98a" stop-opacity="'+(sunset?'.4':'.22')+'"/></linearGradient>'
+    +'<linearGradient id="'+id.cTop+'" x1="0" y1="0" x2="0.1" y2="1">'
+    +'<stop offset="0" stop-color="#ffffff" stop-opacity=".92"/>'
+    +'<stop offset=".55" stop-color="#d8e8fa" stop-opacity=".78"/>'
+    +'<stop offset="1" stop-color="var(--scene-cloud)"/></linearGradient>'
+    +'<linearGradient id="'+id.cSide+'" x1="0" y1="0" x2="0" y2="1">'
+    +'<stop offset="0" stop-color="#2b5478" stop-opacity=".85"/>'
+    +'<stop offset="1" stop-color="#0d2038" stop-opacity=".95"/></linearGradient>'
+    +'<radialGradient id="'+id.glow+'" cx="50%" cy="50%">'
+    +'<stop offset="0" stop-color="'+sun.tone+'" stop-opacity=".7"/>'
+    +'<stop offset=".4" stop-color="var(--scene-glow)" stop-opacity=".26"/>'
+    +'<stop offset="1" stop-color="var(--scene-glow)" stop-opacity="0"/></radialGradient>'
+    +'<linearGradient id="'+id.ray+'" x1="0" y1="1" x2="0" y2="0">'
+    +'<stop offset="0" stop-color="'+sun.tone+'" stop-opacity=".22"/>'
+    +'<stop offset="1" stop-color="'+sun.tone+'" stop-opacity="0"/></linearGradient>'
+    +'<linearGradient id="'+id.water+'" x1="0" y1="0" x2="0" y2="1">'
+    +'<stop offset="0" stop-color="#e6f5ff" stop-opacity=".5"/>'
+    +'<stop offset=".55" stop-color="#bfe4ff" stop-opacity=".14"/>'
+    +'<stop offset="1" stop-color="#bfe4ff" stop-opacity="0"/></linearGradient>'
+    +'</defs>';
+  const sx=W*sun.x, sy=H*sun.y;
+  let art='<rect width="'+W+'" height="'+H+'" fill="url(#'+id.sky+')"/>';
+  /* light shafts, then the sun halo and disc */
+  art+=nxRays(sx,sy,H*0.92,7,112,id.ray);
+  art+='<circle cx="'+sx.toFixed(0)+'" cy="'+sy.toFixed(0)+'" r="'+(sun.r*3.4).toFixed(0)+'" fill="url(#'+id.glow+')"/>';
+  art+='<circle cx="'+sx.toFixed(0)+'" cy="'+sy.toFixed(0)+'" r="'+sun.r+'" fill="'+sun.tone+'" opacity=".95"/>';
+  art+='<circle cx="'+sx.toFixed(0)+'" cy="'+sy.toFixed(0)+'" r="'+(sun.r*1.34).toFixed(0)+'" fill="none" stroke="'+sun.tone+'" stroke-width="1.4" opacity=".3"/>';
+  /* warm horizon band */
+  art+='<rect x="0" y="'+(hy-H*0.34).toFixed(0)+'" width="'+W+'" height="'+(H*0.34).toFixed(0)+'" fill="url(#'+id.warm+')"/>';
+  /* high wisps then the main deck */
+  art+='<g>'+nxCloudBank(rand,6,H*0.06,H*0.22,0.62,0.42,id.cTop,id.cSide)+'</g>';
+  art+='<g>'+nxCloudBank(rand,8,H*0.18,H*0.44,1.0,0.68,id.cTop,id.cSide)+'</g>';
+  /* sea */
+  art+='<rect y="'+hy.toFixed(0)+'" width="'+W+'" height="'+(H-hy).toFixed(0)+'" fill="url(#'+id.sea+')"/>';
+  art+='<rect y="'+(hy-1.5).toFixed(1)+'" width="'+W+'" height="2.6" fill="#dff2ff" opacity=".5"/>';
+  /* sun column on the water */
+  art+='<path d="M'+(sx-W*0.05).toFixed(0)+' '+hy.toFixed(0)+' L'+(sx+W*0.05).toFixed(0)+' '+hy.toFixed(0)
+    +' L'+(sx+W*0.16).toFixed(0)+' '+H+' L'+(sx-W*0.16).toFixed(0)+' '+H+' Z" fill="url(#'+id.water+')" opacity=".8"/>';
+  /* swells */
+  let waves='<g fill="none" stroke-linecap="round">';
+  for(let r=1;r<=9;r++){
+    const y=hy+(H-hy)*Math.pow(r/10,1.15), op=(0.34-r*0.028).toFixed(3), sw=(2.2-r*0.14).toFixed(2);
+    let d='M-60 '+y.toFixed(1), x=-60;
+    while(x<W+60){
+      const seg=70+rand()*110;
+      d+=' q'+(seg/2).toFixed(0)+' '+((rand()*18-9)*(0.45+r*0.14)).toFixed(1)+' '+seg.toFixed(0)+' 0';
+      x+=seg;
+    }
+    waves+='<path d="'+d+'" stroke="rgba(214,238,255,'+op+')" stroke-width="'+sw+'"/>';
+  }
+  waves+='</g>';
+  art+=waves;
+  /* mid-level clouds hanging over the horizon (depth) */
+  art+='<g>'+nxCloudBank(rand,4,H*0.5,H*0.62,1.4,0.5,id.cTop,id.cSide)+'</g>';
+  /* distant sail */
+  if(o.ship!==false) art+=nxShip(W*0.66,hy+2,0.5,'#04101f');
+  /* foreground cliff + adventurer */
+  if(o.foreground!==false){
+    const cliff=hy+(H-hy)*0.36;
+    art+='<path d="M-30 '+H+' L-30 '+cliff.toFixed(0)+' q'+(W*0.14).toFixed(0)+' -30 '+(W*0.27).toFixed(0)+' 10 '
+      +'q'+(W*0.09).toFixed(0)+' 22 '+(W*0.17).toFixed(0)+' 6 L'+(W*0.47).toFixed(0)+' '+H+' Z" fill="#02070f"/>'
+      +'<path d="M-30 '+cliff.toFixed(0)+' q'+(W*0.14).toFixed(0)+' -30 '+(W*0.27).toFixed(0)+' 10" fill="none" stroke="var(--scene-glow)" stroke-width="2.4" opacity=".45"/>';
+    art+=nxFigure(W*0.5,H*(o.figureY||0.995),(o.figureScale||1)*0.62,'#01050c','var(--scene-glow)');
+    art+='<g fill="#e3f2ff" opacity=".45">'
+      +'<circle cx="'+(W*0.32).toFixed(0)+'" cy="'+(H*0.6).toFixed(0)+'" r="2.4"/><circle cx="'+(W*0.355).toFixed(0)+'" cy="'+(H*0.65).toFixed(0)+'" r="1.8"/>'
+      +'<circle cx="'+(W*0.29).toFixed(0)+'" cy="'+(H*0.68).toFixed(0)+'" r="1.5"/></g>';
+    art+='<g fill="none" stroke="#e8f4ff" stroke-width="2.2" opacity=".45">'
+      +'<path d="M'+(W*0.19).toFixed(0)+' '+(H*0.16).toFixed(0)+' q9 -7 18 0 q9 7 18 0"/>'
+      +'<path d="M'+(W*0.24).toFixed(0)+' '+(H*0.21).toFixed(0)+' q7 -6 14 0 q7 6 14 0"/></g>';
+  }
+  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid slice" aria-hidden="true">'+defs+art+'</svg>';
+}
+let nxSceneSeq=1;
+/* named presets — same renderer, different crop, light and mood */
+const NX_SCENES={
+  voyage:  {seed:11,sun:{x:0.70,y:0.40,r:124,tone:'#eef7ff'},horizon:0.63,style:'night'},
+  dawn:    {seed:23,sun:{x:0.26,y:0.36,r:150,tone:'#ffeeb8'},horizon:0.66,style:'dawn'},
+  horizon: {seed:37,sun:{x:0.5,y:0.34,r:104,tone:'#dceeff'},horizon:0.58,style:'night',ship:false,foreground:false,figureScale:0},
+  fleet:   {seed:53,sun:{x:0.16,y:0.30,r:96,tone:'#e6f2ff'},horizon:0.60,style:'night'},
+  crest:   {seed:71,sun:{x:0.62,y:0.30,r:118,tone:'#f2f9ff'},horizon:0.68,style:'night'}
+};
+function nxScene(key,over){ const base=NX_SCENES[key]||NX_SCENES.voyage; const o=Object.assign({},base,over||{}); return nxOceanScene(o); }
+function nxRailArt(){ /* tall crop for the nav-rail vignette */
+  return nxOceanScene({w:520,h:900,seed:97,horizon:0.52,sun:{x:0.78,y:0.25,r:78,tone:'#eef7ff'},figureScale:1.25,
+    style:'night'}).replace('preserveAspectRatio="xMidYMid slice"','preserveAspectRatio="xMidYMid slice"');
+}
+function nxCrest(scale){
+  const g=scale||1;
+  return '<svg viewBox="0 0 200 200" width="'+Math.round(200*g)+'" height="'+Math.round(200*g)+'" aria-hidden="true">'
+    +'<defs><radialGradient id="nxCrestGlow" cx="50%" cy="46%"><stop offset="0" stop-color="#9fe6ff" stop-opacity=".55"/>'
+    +'<stop offset="1" stop-color="#9fe6ff" stop-opacity="0"/></radialGradient>'
+    +'<linearGradient id="nxCrestInk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8f6ff"/>'
+    +'<stop offset="1" stop-color="#7fb6e8"/></linearGradient></defs>'
+    +'<circle cx="100" cy="100" r="92" fill="url(#nxCrestGlow)"/>'
+    +'<circle cx="100" cy="100" r="70" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.6"/>'
+    +'<circle cx="100" cy="100" r="62" fill="rgba(255,255,255,.05)" stroke="rgba(160,215,255,.45)" stroke-width="1"/>'
+    +'<g stroke="url(#nxCrestInk)" stroke-width="6" stroke-linecap="round" fill="none">'
+    +'<path d="M74 132 V96 L126 68 V104"/></g>'
+    +'<g fill="url(#nxCrestInk)"><rect x="70" y="112" width="9" height="22" rx="3"/>'
+    +'<rect x="94" y="96" width="9" height="38" rx="3"/><rect x="122" y="76" width="9" height="30" rx="3"/></g>'
+    +'<g fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity=".92">'
+    +'<path d="M62 118 L92 100 L112 108 L142 80"/><path d="M132 80 h10 v10"/></g>'
+    +'</svg>';
+}
+function nxSaturn(){
+  return '<svg viewBox="0 0 120 120" aria-hidden="true">'
+    +'<defs><linearGradient id="nxSatBody" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fc4e8"/>'
+    +'<stop offset="1" stop-color="#4a6f9c"/></linearGradient></defs>'
+    +'<circle cx="60" cy="58" r="24" fill="url(#nxSatBody)" opacity=".9"/>'
+    +'<ellipse cx="60" cy="60" rx="48" ry="13" fill="none" stroke="rgba(200,225,255,.72)" stroke-width="3" transform="rotate(-18 60 60)"/>'
+    +'<ellipse cx="60" cy="60" rx="40" ry="10" fill="none" stroke="rgba(200,225,255,.35)" stroke-width="1.4" transform="rotate(-18 60 60)"/>'
+    +'</svg>';
+}
+function nxAvatar(){
+  return '<svg viewBox="0 0 80 80" aria-hidden="true">'
+    +'<defs><linearGradient id="nxAvBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1d3d63"/>'
+    +'<stop offset="1" stop-color="#0b1a2e"/></linearGradient></defs>'
+    +'<circle cx="40" cy="40" r="38" fill="url(#nxAvBg)" stroke="rgba(160,215,255,.4)"/>'
+    +'<circle cx="40" cy="31" r="13" fill="#cfe2f6"/>'
+    +'<path d="M16 68 q6 -20 24 -20 q18 0 24 20 z" fill="#cfe2f6"/></svg>';
+}
+/* line-art navigation icons (registry-driven) */
+const NX_ICONS={
+  overview:'<path d="M3 11.2 12 3.5l9 7.7"/><path d="M5.5 10.4V20h13v-9.6"/>',
+  signals:'<path d="M3 12h4l2.5-6 4 13 2.5-7h5"/>',
+  markets:'<path d="M4 19h16"/><path d="M6.5 19V9"/><path d="M11.5 19V5.5"/><path d="M16.5 19v-6.5"/>',
+  session:'<circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="3.2"/><path d="M12 3.6V1.6M12 22.4v-2M3.6 12H1.6M22.4 12h-2"/>',
+  vip:'<path d="M4 8.5 8 12l4-6 4 6 4-3.5-1.6 10H5.6z"/>',
+  prem:'<rect x="3.6" y="5" width="16.8" height="14" rx="2.4"/><path d="M7.4 9.4v5.2M11.2 9.4v5.2M15 9.4v5.2"/>',
+  bot:'<rect x="4" y="7.6" width="16" height="11.6" rx="3"/><circle cx="9" cy="13.4" r="1.3"/><circle cx="15" cy="13.4" r="1.3"/><path d="M12 4v3.6M7 19.2V21M17 19.2V21"/>',
+  telegram:'<path d="M21 5 3.8 11.4l5 1.8 1.8 5z"/><path d="M21 5 10.6 18.2"/>',
+  performance:'<path d="M4 17 9 11l3.6 3L20 6"/><path d="M15 6h5v5"/>',
+  brain:'<path d="M9 5.5A3.5 3.5 0 0 0 5.5 9v1.2A3.4 3.4 0 0 0 4 13.4c0 1.4.8 2.6 2 3.2A3.4 3.4 0 0 0 9.4 20H12V7.4a2 2 0 0 0-3-1.9z"/>'
+    +'<path d="M15 5.5A3.5 3.5 0 0 1 18.5 9v1.2A3.4 3.4 0 0 1 20 13.4c0 1.4-.8 2.6-2 3.2A3.4 3.4 0 0 1 14.6 20H12"/>',
+  data:'<ellipse cx="12" cy="6.4" rx="7.4" ry="3"/><path d="M4.6 6.4v11.2c0 1.7 3.3 3 7.4 3s7.4-1.3 7.4-3V6.4"/><path d="M4.6 12c0 1.7 3.3 3 7.4 3s7.4-1.3 7.4-3"/>',
+  cloud:'<path d="M7.5 18.5h10a4 4 0 0 0 .5-7.9 5.6 5.6 0 0 0-10.7-1.2A4.2 4.2 0 0 0 7.5 18.5z"/>',
+  health:'<path d="M3.5 12.6H8l1.8-4.4 3 8.4 1.8-4h5.9"/><circle cx="12" cy="12" r="9"/>',
+  settings:'<circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2.2M12 18.3v2.2M4.9 7.8l1.9 1.1M17.2 15.1l1.9 1.1M4.9 16.2l1.9-1.1M17.2 8.9l1.9-1.1"/>',
+  brand:'<path d="M12 3.4 14.6 9l6 .8-4.4 4.2 1.1 5.9L12 17.1 6.7 19.9l1.1-5.9L3.4 9.8l6-.8z"/>',
+  clock:'<circle cx="12" cy="12" r="8.6"/><path d="M12 7.4v5.2l3.4 2"/>',
+  shield:'<path d="M12 3.4 5.4 6v6c0 4.3 2.8 7.4 6.6 8.6 3.8-1.2 6.6-4.3 6.6-8.6V6z"/>',
+  bolt:'<path d="M13.4 3 6 13.4h4.6L10 21l7.4-10.6h-4.6z"/>',
+  users:'<circle cx="9" cy="9" r="3.2"/><path d="M3.6 19c0-3 2.4-5.2 5.4-5.2S14.4 16 14.4 19"/><path d="M15.6 6.6a3 3 0 0 1 0 5.6M17 19c0-2.2-.8-3.6-2-4.6"/>'
+};
+function nxIcon(key,size){
+  const d=NX_ICONS[key]||NX_ICONS.overview;
+  const s=size||16;
+  return '<svg viewBox="0 0 24 24" width="'+s+'" height="'+s+'" fill="none" stroke="currentColor" stroke-width="1.6" '
+    +'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+d+'</svg>';
+}
+/* circular currency marks — code-drawn, no third-party flag assets */
+const NX_FLAGS={
+  USD:'<rect width="24" height="24" fill="#2b4b8f"/><g fill="#ffffff"><rect y="3" width="24" height="2.6"/><rect y="9" width="24" height="2.6"/><rect y="15" width="24" height="2.6"/><rect y="21" width="24" height="2.6"/></g><rect width="11" height="11" fill="#1b3568"/>',
+  EUR:'<rect width="24" height="24" fill="#26408b"/><g fill="#ffd34d"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="6.4" r="1.1"/><circle cx="12" cy="17.6" r="1.1"/><circle cx="6.6" cy="12" r="1.1"/><circle cx="17.4" cy="12" r="1.1"/><circle cx="8.2" cy="8.2" r="1.1"/><circle cx="15.8" cy="8.2" r="1.1"/><circle cx="8.2" cy="15.8" r="1.1"/><circle cx="15.8" cy="15.8" r="1.1"/></g>',
+  GBP:'<rect width="24" height="24" fill="#1f3a75"/><g fill="#ffffff"><path d="M9.6 4h4.8v4.6h4.4v4.8h-4.4V24H9.6V13.4H5.2V8.6h4.4z"/></g><g fill="#e8455f" opacity=".92"><path d="M11 4h2v16h-2z"/><path d="M5.2 10.6h13.6v2H5.2z"/></g>',
+  JPY:'<rect width="24" height="24" fill="#f6f7f9"/><circle cx="12" cy="12" r="5.4" fill="#d63a4a"/><g stroke="#1f3350" stroke-width="1.2" opacity=".35"><path d="M0 12h24M12 0v24"/></g>',
+  AUD:'<rect width="24" height="24" fill="#1c3f8f"/><g fill="#ffffff"><circle cx="7.4" cy="16.6" r="1.5"/><circle cx="11.4" cy="17.8" r="1.2"/><circle cx="7" cy="20.4" r="1.1"/><circle cx="17.6" cy="7" r="1.4"/><circle cx="20" cy="11.4" r="1.1"/><circle cx="15.6" cy="12.6" r="1"/><circle cx="19" cy="16" r="1"/></g>',
+  CAD:'<rect width="24" height="5.6" fill="#d8342f"/><rect y="17.4" width="24" height="6.6" fill="#d8342f"/><rect y="5.6" width="24" height="11.8" fill="#f7f8fa"/><path d="M12 7.8l1.3 3 1.8-.6-1 2.6 2.4.5-2 1.7.8 2.4-3.3-.8V20l-.6-3-3.3.8.8-2.4-2-1.7 2.4-.5-1-2.6 1.8.6z" fill="#d8342f"/>',
+  CHF:'<rect width="24" height="24" fill="#d8342f"/><g fill="#ffffff"><rect x="10.2" y="5.4" width="3.6" height="13.2" rx="1"/><rect x="5.4" y="10.2" width="13.2" height="3.6" rx="1"/></g>',
+  NZD:'<rect width="24" height="24" fill="#1c3f8f"/><g fill="#ffffff"><circle cx="16.6" cy="8" r="1.4"/><circle cx="19.4" cy="12.4" r="1.1"/><circle cx="15.4" cy="14.4" r="1"/><circle cx="18.6" cy="17" r="1"/><path d="M4 4h9v4H8v4H4z" opacity=".85"/></g>'
+};
+function nxFlag(pair){
+  const base=String(pair||'').split('/')[0].toUpperCase();
+  const body=NX_FLAGS[base]||'<rect width="24" height="24" fill="#2d4a7a"/>';
+  return '<span class="flag" aria-hidden="true"><svg viewBox="0 0 24 24">'+body+'</svg></span>';
+}
 const NX_WALLS={
-  harbour:{name:'Moonlit harbour',
-    svg:`<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-<defs>
-<linearGradient id="nxSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--scene-sky-1)"/><stop offset="1" stop-color="var(--scene-sky-2)"/></linearGradient>
-<linearGradient id="nxSea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--scene-sea-1)"/><stop offset="1" stop-color="var(--scene-sea-2)"/></linearGradient>
-<radialGradient id="nxMoon" cx="50%" cy="50%"><stop offset="0" stop-color="var(--scene-moon)" stop-opacity=".95"/><stop offset="1" stop-color="var(--scene-moon)" stop-opacity="0"/></radialGradient>
-</defs>
-<rect width="1600" height="900" fill="url(#nxSky)"/>
-<circle cx="1210" cy="235" r="190" fill="url(#nxMoon)"/>
-<circle cx="1210" cy="235" r="58" fill="var(--scene-moon)" opacity=".82"/>
-<g fill="var(--scene-cloud)" opacity=".22">
-<ellipse cx="330" cy="190" rx="220" ry="34"/><ellipse cx="470" cy="232" rx="160" ry="24"/>
-<ellipse cx="1050" cy="140" rx="180" ry="26"/><ellipse cx="880" cy="300" rx="150" ry="20"/>
-</g>
-<rect y="560" width="1600" height="340" fill="url(#nxSea)"/>
-<g stroke="var(--scene-glow)" stroke-width="3" opacity=".38" fill="none">
-<path d="M1075 330 H1345"/><path d="M1120 370 H1300"/><path d="M1150 410 H1270"/>
-</g>
-<g fill="var(--scene-ship)">
-<path d="M300 604 H700 L640 664 H360 Z"/>
-<path d="M470 604 V430 L286 604 Z" opacity=".92"/>
-<path d="M498 604 V384 L706 604 Z" opacity=".78"/>
-<rect x="486" y="360" width="10" height="248"/>
-<path d="M330 690 q70 16 140 0 q70 -16 140 0 q70 16 140 0" fill="none" stroke="var(--scene-glow)" stroke-width="3" opacity=".3"/>
-<path d="M1120 742 q86 18 172 0 q86 -18 172 0 q60 12 120 2" fill="none" stroke="var(--scene-glow)" stroke-width="3" opacity=".22"/>
-</g>
-<g fill="var(--scene-ship)" opacity=".55">
-<path d="M980 566 H1120 L1092 596 H1008 Z"/><rect x="1044" y="500" width="6" height="66"/>
-<path d="M1050 512 L1108 566 H1050 Z"/>
-</g>
-<rect y="560" width="1600" height="3" fill="var(--scene-glow)" opacity=".3"/>
-</svg>`},
-  horizon:{name:'Deep horizon',
-    svg:`<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-<defs><linearGradient id="nxSky2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--scene-sky-1)"/><stop offset="1" stop-color="var(--scene-sea-1)"/></linearGradient>
-<radialGradient id="nxHalo" cx="50%" cy="50%"><stop offset="0" stop-color="var(--scene-glow)" stop-opacity=".55"/><stop offset="1" stop-color="var(--scene-glow)" stop-opacity="0"/></radialGradient></defs>
-<rect width="1600" height="900" fill="url(#nxSky2)"/>
-<circle cx="800" cy="600" r="420" fill="url(#nxHalo)"/>
-<g stroke="var(--scene-glow)" stroke-width="2" opacity=".5"><path d="M0 600 H1600"/></g>
-<g fill="none" stroke="var(--scene-glow)" stroke-width="2.5">
-<path d="M120 540 q120 -40 240 0 t240 0" opacity=".16"/><path d="M620 500 q140 -46 280 0 t280 0" opacity=".13"/>
-<path d="M960 660 q130 -36 260 0 t260 0" opacity=".12"/><path d="M60 760 q160 -44 320 0 t320 0 t320 0" opacity=".1"/>
-</g>
-<g fill="var(--scene-ship)" opacity=".45"><path d="M1180 588 H1330 L1300 620 H1212 Z"/><rect x="1246" y="510" width="6" height="78"/></g>
-</svg>`},
-  fleet:{name:'Distant fleet',
-    svg:`<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-<defs><linearGradient id="nxSky3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--scene-sky-2)"/><stop offset="1" stop-color="var(--scene-sky-1)"/></linearGradient></defs>
-<rect width="1600" height="900" fill="url(#nxSky3)"/>
-<circle cx="360" cy="180" r="70" fill="var(--scene-moon)" opacity=".7"/>
-<g fill="none" stroke="var(--scene-glow)" stroke-width="2" opacity=".22">
-<path d="M200 300 q240 90 480 40 t480 30 t440 -30"/><path d="M120 420 q260 100 520 40 t520 40"/><path d="M60 560 q280 110 560 40 t560 40"/>
-</g>
-<g fill="var(--scene-ship)" opacity=".8">
-<path d="M240 700 H520 L470 748 H288 Z"/><path d="M330 700 V566 L214 700 Z"/><path d="M352 700 V540 L486 700 Z" opacity=".85"/>
-<rect x="344" y="522" width="7" height="180"/>
-<path d="M700 760 H900 L866 796 H734 Z" opacity=".7"/>
-<path d="M1120 726 H1400 L1350 772 H1168 Z" opacity=".62"/><path d="M1210 726 V600 L1094 726 Z" opacity=".6"/>
-</g>
-<rect y="806" width="1600" height="94" fill="var(--scene-sea-2)" opacity=".5"/>
-</svg>`},
-  chart:{name:'Signal current',
-    svg:`<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-<defs><linearGradient id="nxSky4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--scene-sky-1)"/><stop offset="1" stop-color="var(--scene-sea-2)"/></linearGradient></defs>
-<rect width="1600" height="900" fill="url(#nxSky4)"/>
-<g stroke="var(--scene-glow)" opacity=".14" stroke-width="1.5">
-<path d="M0 250 H1600"/><path d="M0 400 H1600"/><path d="M0 550 H1600"/><path d="M0 700 H1600"/>
-<path d="M300 0 V900"/><path d="M700 0 V900"/><path d="M1100 0 V900"/><path d="M1450 0 V900"/>
-</g>
-<g fill="var(--scene-glow)" opacity=".3">
-<rect x="330" y="560" width="26" height="150" rx="6"/><rect x="420" y="500" width="26" height="210" rx="6"/>
-<rect x="510" y="420" width="26" height="240" rx="6"/><rect x="600" y="470" width="26" height="160" rx="6"/>
-<rect x="690" y="330" width="26" height="260" rx="6"/><rect x="780" y="260" width="26" height="240" rx="6"/>
-<rect x="870" y="300" width="26" height="180" rx="6"/><rect x="960" y="200" width="26" height="230" rx="6"/>
-<rect x="1050" y="150" width="26" height="210" rx="6"/>
-</g>
-<path d="M340 620 L520 430 L700 400 L880 300 L1060 190 L1240 120" fill="none" stroke="var(--scene-moon)" stroke-width="4" opacity=".45" stroke-linejoin="round"/>
-<circle cx="1240" cy="120" r="8" fill="var(--scene-moon)" opacity=".6"/>
-</svg>`},
+  harbour:{name:'Midnight voyage',svg:nxScene('voyage')},
+  horizon:{name:'Deep horizon',svg:nxScene('horizon')},
+  fleet:{name:'Distant fleet',svg:nxScene('fleet')},
+  chart:{name:'Signal current',svg:nxScene('dawn')},
   none:{name:'None (plain backdrop)',svg:''}
 };
-
 const NX_BRAND_KEY='nx_brand';
 const DEF_BRAND={wordmark:'NEXUS',tagline:'Predict. Learn. Grow.',accent:'#3ad2ff',
   glass:100,wallpaper:'harbour',artwork:42,theme:'dark',motion:'auto',badge:true,favicon:false,
@@ -5593,7 +6360,12 @@ function applyBrandFavicon(){
    DASHBOARD WIDGETS — add, remove, reorder. Layout is local state and
    the cards themselves are the app's real components.
    ═══════════════════════════════════════════════════════════════════ */
-const DEF_WIDGETS=['status','summary','pairs','signals','stats','health','activity','regime'];
+const DEF_WIDGETS=['summary','chart','signals','features','market','stats','health','status','pairs','regime','activity'];
+/* every card keeps its home band, so re-ordering in the drawer can never
+   scramble the reference composition (rows stay rows) */
+const WIDGET_HOME={summary:'row-summary',chart:'row-chart',signals:'row-chart',features:'row-features',
+  market:'row-lower',stats:'row-lower',health:'row-lower',
+  status:'row-extra',pairs:'row-extra',regime:'row-extra',activity:'row-extra'};
 let widgetOrder=loadJSON('nx_widgets',null);
 if(!Array.isArray(widgetOrder)) widgetOrder=DEF_WIDGETS.slice();
 widgetOrder=widgetOrder.filter(k=>DEF_WIDGETS.includes(k));
@@ -5604,16 +6376,16 @@ function saveWidgets(){ store.set('nx_widgets',JSON.stringify(widgetOrder)); sto
 function widgetHost(){ return $('page-dash'); }
 function applyWidgetLayout(){
   const host=widgetHost(); if(!host) return;
-  const nodes=[];
+  const bands=new Map();
   for(const key of widgetOrder){
     const el=host.querySelector('.nx-widget[data-widget="'+key+'"]');
     if(!el) continue;
     el.hidden=widgetHidden.includes(key);
-    nodes.push(el);
+    const target=(WIDGET_HOME[key]&&$(WIDGET_HOME[key]))||el.parentElement||host;
+    if(!bands.has(target)) bands.set(target,[]);
+    bands.get(target).push(el);
   }
-  for(const el of nodes) host.appendChild(el);
-  const clock=$('clock')||document.querySelector('.clock');
-  if(clock&&clock.parentElement===host) host.appendChild(clock);
+  for(const [target,nodes] of bands) for(const el of nodes) target.appendChild(el);
   renderWidgetList();
 }
 function renderWidgetList(){
@@ -5684,6 +6456,16 @@ function chartCandles(bars,opts){
     const top=y(Math.max(b.o,b.c)), bot=y(Math.min(b.o,b.c));
     body+='<rect class="'+cls+'" x="'+(x-bw/2).toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(1,bot-top).toFixed(1)+'" rx="1"/>';
   });
+  let lastLine='';
+  if(opts.lastLine){
+    const lastRow=rows[rows.length-1], ly=y(lastRow.c);
+    const tagY=Math.min(H-pad-6,Math.max(pad+8,ly));
+    lastLine='<line x1="'+pad+'" y1="'+ly.toFixed(1)+'" x2="'+(W-pad+40)+'" y2="'+ly.toFixed(1)
+      +'" stroke="var(--nx-accent)" stroke-width="1" stroke-dasharray="4 5" opacity=".75"/>'
+      +'<rect x="'+(W-pad+2)+'" y="'+(tagY-9)+'" width="54" height="18" rx="5" fill="rgba(10,26,44,.86)" stroke="rgba(90,200,255,.5)"/>'
+      +'<text x="'+(W-pad+29)+'" y="'+(tagY+3)+'" text-anchor="middle" fill="var(--nx-accent)" font-size="9.5" font-weight="700">'
+      +lastRow.c.toFixed(opts.digits==null?5:opts.digits)+'</text>';
+  }
   let marks='';
   if(Array.isArray(opts.marks)){
     const idxOf=ts=>rows.findIndex(r=>r.ts===ts);
@@ -5698,7 +6480,7 @@ function chartCandles(bars,opts){
   const t0=new Date(lo0.ts).toISOString().slice(11,16), t1=new Date(last.ts).toISOString().slice(11,16);
   return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="Candlestick chart">'
     +'<defs><linearGradient id="nxGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--nx-accent)"/><stop offset="1" stop-color="var(--nx-accent-2)"/></linearGradient></defs>'
-    +grid+body+marks
+    +grid+lastLine+body+marks
     +'<text class="cx" x="'+pad+'" y="'+(H-5)+'">'+t0+' UTC</text>'
     +'<text class="cx" x="'+(W-pad-46)+'" y="'+(H-5)+'">'+t1+' UTC</text>'
     +'</svg>';
@@ -5891,36 +6673,138 @@ function liveSignalCount(){
   return openSigs.filter(s=>!s.settled).length;
 }
 function renderDashSummary(){
-  const host=$('dashSummary'); if(!host) return;
+  const host=$('sec-dash-summary'); if(!host) return;
   const wl=watch();
   const freshCount=wl.filter(p=>{ const ck=cache[p]; return ck&&ck.m1&&candleGate(ck.m1).ok; }).length;
   const gate=candleGate((cache[wl[0]]||{}).m1||[]);
-  const lvl=budgetLevel();
-  const items=[
-    {k:'Pairs watched',v:wl.length,s:'of '+PAIRS.length+' available'},
-    {k:'Candles fresh',v:freshCount+(wl.length?'/'+wl.length:''),tone:freshCount?'good':'warn',s:gate.ok?'feed verified':'awaiting fresh candles'},
-    {k:'Open signals',v:liveSignalCount(),s:'awaiting settlement'},
-    {k:'API budget',v:budget.calls+'/'+perDayCap(),tone:lvl>=2?'bad':lvl===1?'warn':'good',s:budget.min.length+'/'+perMinCap()+' this minute'},
-    {k:'Relay',v:nexusRelayState==='Connected'?'connected':nexusRelayState==='Configuration Required'?'not configured':nexusRelayState.toLowerCase(),
-      tone:nexusRelayState==='Connected'?'good':'warn',s:nexusRelayHealth?'health check responded':'no health response yet'},
-    {k:'Cloud mirror',v:sbReady()?'configured':'offline',tone:sbReady()?'good':'',s:sbReady()?String(sbCfg.url||'').replace(/^https:\/\//,''):'set it on the CLOUD page'}
+  /* real counters only: signal log length, settled win rate, and the paper ledger */
+  const W=stat.M1.w+stat.M3.w, L=stat.M1.l+stat.M3.l;
+  const dec=W+L;
+  const wr=dec?Math.round(W/dec*100):null;
+  const rows=settledTrades();
+  const pl=rows.reduce((a,r)=>a+(Number(r.pl)||0),0);
+  const plBase=Number(paper.startBalance)||0;
+  const plPct=plBase?+(pl/(plBase/100)).toFixed(1):0;
+  const last7=rows.filter(r=>r.t>=Date.now()-7*864e5);
+  const pl7=last7.reduce((a,r)=>a+(Number(r.pl)||0),0);
+  const cards=[
+    {ic:'signals',lb:'Total Signals',vl:String(sigLog.length),tone:'accent',
+      dl:sigLog.length?(liveSignalCount()+' pending · '+dec+' settled'):'none recorded yet',dir:0},
+    {ic:'performance',lb:'Win Rate',vl:wr==null?'—':wr+'%',tone:wr==null?'':'good',
+      dl:dec?(W+'W · '+L+'L'):'no decisive verdicts yet',dir:wr==null?0:(wr>=50?1:-1)},
+    {ic:'markets',lb:'Total Profit/Loss',vl:(pl>=0?'+':'')+pl.toFixed(2),tone:rows.length?(pl>=0?'good':'bad'):'',
+      dl:rows.length?((plPct>=0?'+':'')+plPct+'% of start · paper ledger'):'paper ledger is empty',dir:pl===0?0:(pl>0?1:-1)},
+    {ic:'data',lb:'Active Pairs',vl:String(wl.length),tone:wl.length?'':'warn',
+      dl:'of '+PAIRS.length+' monitored · '+(wl.length?(freshCount+'/'+wl.length+' fresh'):'none ticked'),dir:0}
   ];
-  host.innerHTML=kpiHtml(items);
+  host.innerHTML=cards.map(c=>'<article class="stat-card '+(c.tone||'')+'">'
+    +'<span class="ic">'+nxIcon(c.ic,20)+'</span>'
+    +'<div class="bd"><div class="lb">'+esc(c.lb)+'</div><div class="vl">'+esc(c.vl)+'</div>'
+    +'<div class="dl">'+(c.dir?(c.dir>0?'<span class="up">▲</span>':'<span class="dn">▼</span>'):'')
+    +esc(c.dl)+'</div></div></article>').join('');
   const note=$('dashSummaryNote');
   if(note) note.textContent='Live counters are filled from the engine\u2019s own state — nothing here is estimated.';
+  void gate; void pl7;
 }
 function sigLineOf(rec){
-  return rec.tf+';'+PAIRCODE(rec.pair)+'•'+rec.time+';'+rec.dir+(rec.grade?' ·'+rec.grade:'');
+  return rec.tf+';'+PAIRCODE(rec.pair)+'\u2022'+rec.time+';'+rec.dir+(rec.grade?' \u00b7'+rec.grade:'');
+}
+function sigBadgeOf(rec){
+  const st=sigLogStatus(rec);
+  const meta=SIG_STATUS[st]||SIG_STATUS.unavailable;
+  const cls=st==='win'?'buy':st==='loss'?'sell':st==='push'?'push':'open';
+  const label=rec.dir==='CALL'?'BUY':rec.dir==='PUT'?'SELL':'—';
+  return '<span class="sbadge '+cls+'" title="'+esc(meta.label)+'">'+label+'</span>';
+}
+function sigMoveOf(rec){
+  /* percentage move of the settled candle when the verdict is known; the
+     decision candle is used while a verdict is still pending */
+  const ck=cache[rec.pair];
+  const series=ck?(rec.tf==='M3'?ck.m3:ck.m1):null;
+  if(!series||!series.length) return null;
+  const bar=series.find(b=>b.ts===rec.targetT)||series[series.length-1];
+  if(!bar||!bar.o) return null;
+  const pct=(Number(bar.c)-Number(bar.o))/Number(bar.o)*100;
+  return isFinite(pct)?pct:null;
 }
 function renderDashSignals(){
   const host=$('dashSignals'); if(!host) return;
-  if(!sigLog.length){ host.innerHTML='<div class="empty-note">No signals yet — run a scan on the SIGNALS page or enable AUTO-MODE.</div>'; return; }
-  host.innerHTML=sigLog.slice(0,6).map(rec=>{
-    const st=sigLogStatus(rec), meta=SIG_STATUS[st]||SIG_STATUS.unavailable;
-    return '<div class="nx-row"><span class="grow"><span class="t1">'+esc(sigLineOf(rec))+'</span>'
-      +'<span class="t2">created '+esc(new Date(rec.created).toISOString().slice(11,16))+' UTC · target '+esc(new Date(rec.targetT).toISOString().slice(11,16))+' UTC</span></span>'
-      +'<span class="chip '+meta.chip+'" style="font-size:9px">'+meta.tick+' '+esc(meta.label)+'</span></div>';
-  }).join('');
+  if(!sigLog.length){
+    host.innerHTML='<div class="empty-note">No signals yet — run a scan on the SIGNALS page or enable AUTO-MODE.</div>';
+    return;
+  }
+  host.innerHTML='<div class="sig-list">'+sigLog.slice(0,6).map(rec=>{
+    const mv=sigMoveOf(rec);
+    const cls=mv==null?'flat':(mv>0?'up':'dn');
+    return '<div class="sig-item">'+nxFlag(rec.pair)
+      +'<span class="pair"><b>'+esc(rec.pair)+'</b></span>'
+      +sigBadgeOf(rec)
+      +'<span class="tm">'+esc(new Date(rec.created).toISOString().slice(11,16))+'</span>'
+      +'<span class="dv '+cls+'">'+(mv==null?'—':((mv>=0?'+':'')+mv.toFixed(2)+'%'))+'</span></div>';
+  }).join('')+'</div>';
+}
+let dashRangeDays=7;
+function settledTradesInRange(days){
+  const rows=settledTrades();
+  return days?rows.filter(r=>r.t>=Date.now()-days*864e5):rows;
+}
+function renderDashPerf(){
+  const donut=$('dashPerfDonut'), spark=$('dashPerfSpark');
+  const rows=settledTradesInRange(dashRangeDays);
+  const W=stat.M1.w+stat.M3.w, L=stat.M1.l+stat.M3.l, P=stat.M1.p+stat.M3.p;
+  const dec=W+L;
+  const wr=dec?Math.round(W/dec*100):0;
+  if(donut){
+    if(dec||P){
+      const r=54, sw=13, c=2*Math.PI*r;
+      const winFrac=dec?W/dec:0;
+      donut.innerHTML='<div class="ring"><svg viewBox="0 0 140 140" role="img" aria-label="Win rate '+wr+'%">'
+        +'<circle cx="70" cy="70" r="'+r+'" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="'+sw+'"/>'
+        +'<circle cx="70" cy="70" r="'+r+'" fill="none" stroke="var(--nx-win)" stroke-width="'+sw+'" stroke-linecap="round"'
+        +' stroke-dasharray="'+(c*winFrac).toFixed(2)+' '+(c-c*winFrac).toFixed(2)+'" transform="rotate(-90 70 70)"/>'
+        +'<circle cx="70" cy="70" r="'+r+'" fill="none" stroke="var(--nx-loss)" stroke-width="'+sw+'" stroke-linecap="round"'
+        +' stroke-dasharray="'+(c*(1-winFrac)).toFixed(2)+' '+(c-c*(1-winFrac)).toFixed(2)+'" transform="rotate('+(-90+360*winFrac).toFixed(2)+' 70 70)"/>'
+        +'</svg><div class="ctr"><b>'+wr+'%</b><span>accuracy</span></div></div>'
+        +'<div class="perf-legend">'
+        +'<div class="r"><i style="background:var(--nx-win)"></i>Wins<b>'+W+'</b></div>'
+        +'<div class="r"><i style="background:var(--nx-loss)"></i>Losses<b>'+L+'</b></div>'
+        +'<div class="r"><i style="background:var(--nx-push)"></i>Pushes<b>'+P+'</b></div>'
+        +'<div class="r"><i style="background:var(--nx-accent)"></i>Settled<b>'+(dec+P)+'</b></div>'
+        +'</div>';
+    }else{
+      const r0=54, c0=2*Math.PI*r0;
+      donut.innerHTML='<div class="ring"><svg viewBox="0 0 140 140" role="img" aria-label="No settled verdicts yet">'
+        +'<circle cx="70" cy="70" r="'+r0+'" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="13" stroke-dasharray="'+c0.toFixed(1)+' '+c0.toFixed(1)+'"/>'
+        +'</svg><div class="ctr"><b>—</b><span>accuracy</span></div></div>'
+        +'<div class="perf-legend"><div class="r" style="color:var(--nx-ink-3)">Accuracy appears after the first verdicts settle.</div>'
+        +'<div class="r" style="opacity:.75">Pending signals are never counted as wins.</div></div>';
+    }
+  }
+  if(spark){
+    if(rows.length<2){
+      spark.innerHTML='<div class="mini" style="text-align:left">Profit/Loss curve needs at least two settled paper trades in this window.</div>';
+    }else{
+      const byDay={};
+      rows.slice().sort((a,b)=>a.t-b.t).forEach(r=>{
+        const d=new Date(r.t).toISOString().slice(5,10);
+        byDay[d]=(byDay[d]||0)+(Number(r.pl)||0);
+      });
+      const days=Object.keys(byDay), vals=days.map(d=>byDay[d]);
+      let run=0; const cum=vals.map(v=>{ run=+ (run+v).toFixed(2); return run; });
+      const W2=320,H2=78, lo=Math.min(0,...cum), hi=Math.max(0,...cum), span=(hi-lo)||1;
+      const step=W2/Math.max(1,cum.length-1);
+      const y=v=>H2-6-(H2-14)*((v-lo)/span);
+      let d='';
+      cum.forEach((v,i)=>{ d+=(i?' L':'M')+(i*step).toFixed(1)+' '+y(v).toFixed(1); });
+      const total=cum[cum.length-1];
+      spark.innerHTML='<svg viewBox="0 0 '+W2+' '+H2+'" preserveAspectRatio="none" role="img" aria-label="Cumulative paper profit and loss">'
+        +'<defs><linearGradient id="dashPl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--nx-accent)" stop-opacity=".34"/>'
+        +'<stop offset="1" stop-color="var(--nx-accent)" stop-opacity="0"/></linearGradient></defs>'
+        +'<path d="'+d+' L'+W2+' '+H2+' L0 '+H2+' Z" fill="url(#dashPl)" stroke="none"/>'
+        +'<path d="'+d+'" fill="none" stroke="var(--nx-accent)" stroke-width="2" stroke-linejoin="round"/></svg>'
+        +'<div class="lab"><span>'+esc(days[0])+'</span><span>cumulative paper P/L '+(total>=0?'+':'')+total.toFixed(2)+'</span><span>'+esc(days[days.length-1])+'</span></div>';
+    }
+  }
 }
 function renderDashStats(){
   const host=$('dashStats'); if(!host) return;
@@ -5936,16 +6820,146 @@ function renderDashStats(){
     {k:'Loss streak',v:streak,tone:streak>=3?'bad':streak?'warn':'',s:'circuit breaker at 3'}
   ]);
   const note=$('dashStatsNote');
-  if(note) note.textContent=dec||P?'Settled outcomes only — pending verdicts are excluded.'+' Paper/simulated results, not a real account.':'No settled outcomes yet — statistics appear after the first signals close.';
+  if(note) note.textContent=dec||P?'Settled outcomes only — pending verdicts are excluded. Paper/simulated results, not a real account.':'No settled outcomes yet — statistics appear after the first signals close.';
+  renderDashPerf();
 }
 function renderDashHealth(){
   const host=$('dashHealth'); if(!host) return;
   const states=collectHealthStates();
-  host.innerHTML=states.slice(0,6).map(s=>{
-    const tone=s.state==='ok'?'ok':(s.state==='warn'?'warn':'bad');
-    return '<div class="nx-row"><span class="grow"><span class="t1">'+esc(s.name)+'</span><span class="t2">'+esc(s.detail)+'</span></span>'
-      +'<span class="chip '+tone+'" style="font-size:9px">'+esc(s.label)+'</span></div>';
-  }).join('');
+  const bad=states.filter(s=>s.state==='bad').length, warn=states.filter(s=>s.state==='warn').length;
+  const head=bad?'<div class="health-banner bad"><i></i>'+bad+' subsystem(s) unreachable — details on the System Health page</div>'
+    :warn?'<div class="health-banner warn"><i></i>'+warn+' subsystem(s) awaiting configuration or first data</div>'
+    :'<div class="health-banner"><i></i>All systems operational</div>';
+  const icons={ 'API relay':'cloud','Relay session':'shield','Database (Supabase)':'data','Market data feed':'markets',
+    'Settlement':'clock','Engines':'bot','Worker':'clock','Telegram':'telegram','Training':'brain','Delivery':'users' };
+  host.innerHTML=head+states.slice(0,6).map(st=>{
+    const tone=st.state==='ok'?'ok':(st.state==='warn'?'warn':'bad');
+    return '<div class="health-row"><span class="nm">'+nxIcon(icons[st.name]||'health',14)+esc(st.name)+'</span>'
+      +'<span class="st '+tone+'" title="'+esc(st.detail)+'"><i></i>'+esc(st.label)+'</span></div>';
+  }).join('')
+  +'<div class="health-foot">'
+  +'<div class="c"><span>LAST CHECK</span><b>'+esc(healthCheckedAt?new Date(healthCheckedAt).toISOString().slice(5,16).replace('T',' ')+' UTC':'—')+'</b></div>'
+  +'<div class="c"><span>MONITORED</span><b>'+states.length+' subsystems</b></div>'
+  +'</div>';
+}
+/* ── overview · price chart (real cached candles, same feed the engines read) ── */
+let ovTf=store.get('nx_ovTf')==='M3'?'M3':'M1';
+let ovPair=store.get('nx_ovPair')||'';
+function ovPairList(){ const wl=watch(); return wl.length?wl:PAIRCODE(PAIRS[0])?PAIRS:[]; }
+function ovActivePair(){
+  const list=ovPairList();
+  if(ovPair&&list.includes(ovPair)) return ovPair;
+  return list[0]||PAIRS[0];
+}
+function setOvTf(tf){ ovTf=tf==='M3'?'M3':'M1'; store.set('nx_ovTf',ovTf); renderDashChart(); }
+function setOvPair(pair){ ovPair=pair; store.set('nx_ovPair',pair); renderDashChart(); }
+function renderDashChart(){
+  const head=$('dashChartHead'), host=$('dashChart'), legend=$('dashChartLegend');
+  if(!head||!host) return;
+  const list=ovPairList();
+  const pair=ovActivePair();
+  const ck=cache[pair];
+  const series=ck?(ovTf==='M3'?ck.m3:ck.m1):null;
+  const last=series&&series.length?series[series.length-1]:null;
+  const prev=series&&series.length>1?series[series.length-2]:null;
+  const digits=/JPY/.test(pair)?3:5;
+  const chg=last&&prev&&prev.c?((last.c-prev.c)/prev.c*100):null;
+  head.innerHTML='<div class="pair">'+nxFlag(pair)
+    +'<div><div class="nm">'+esc(pair)+' <span class="tf">· '+esc(ovTf)+'</span></div>'
+    +'<div class="px">'+(last?esc(fmtPx(pair,last.c)):'—')
+    +(chg==null?'':'<span class="chg '+(chg>=0?'up':'dn')+'">'+(chg>=0?'+':'')+chg.toFixed(3)+' ('+(chg>=0?'+':'')+chg.toFixed(2)+'%)</span>')+'</div>'
+    +'<div class="legend">'+(last?('candle close '+esc(new Date(last.ts).toISOString().slice(11,16))+' UTC'):'no cached candles')+'</div></div></div>'
+    +'<div class="rt" style="margin-left:auto">'
+    +'<select id="dashChartPair" aria-label="Chart pair" style="width:auto;margin:0;padding:6px 8px;font-size:11px">'
+    +list.map(p=>'<option value="'+esc(p)+'"'+(p===pair?' selected':'')+'>'+esc(p)+'</option>').join('')
+    +'</select>'
+    +'<div class="seg-pills">'+['M1','M3'].map(tf=>'<button type="button" data-tf="'+tf+'" class="'+(tf===ovTf?'on':'')+'" onclick="setOvTf(\''+tf+'\')">'+tf+'</button>').join('')+'</div>'
+    +'<button class="more" type="button" onclick="showPage(\'markets\')">Full market →</button>'
+    +'</div>';
+  const sel=$('dashChartPair');
+  if(sel) sel.addEventListener('change',e=>setOvPair(e.target.value));
+  if(!series||series.length<3){
+    host.innerHTML='<div class="empty-note">No cached '+esc(ovTf)+' candles for '+esc(pair)+' yet.<br><b>Open MARKETS</b> to load candles through the authenticated relay, or run a scan on the SIGNALS page.</div>';
+    if(legend) legend.innerHTML='';
+    return;
+  }
+  const bars=series.slice(-110);
+  const measured=host.clientWidth||0;
+  const width=Math.max(320,Math.min(920,measured||720));
+  host.innerHTML=chartCandles(bars,{digits,width,height:Math.round(width*(width<620?0.5:0.40)),lastLine:true});
+  if(legend){
+    legend.innerHTML='<span><i style="background:var(--nx-win)"></i>rising candle</span>'
+      +'<span><i style="background:var(--nx-loss)"></i>falling candle</span>'
+      +'<span>'+bars.length+' × '+esc(ovTf)+' · '+esc(PAIRCODE(pair))+'</span>';
+  }
+}
+
+/* ── overview · module shortcut cards (real state per module) ── */
+function renderDashFeatures(){
+  const host=$('sec-dash-features'); if(!host) return;
+  const wl=watch();
+  const fresh=wl.filter(p=>{ const ck=cache[p]; return ck&&ck.m1&&candleGate(ck.m1).ok; }).length;
+  const relayOk=nexusRelayState==='Connected';
+  const sessionOk=!!(nexusSessionInfo&&nexusApiSession);
+  const cloudOk=!!sbReady();
+  const d1=deep&&deep.M1, d3=deep&&deep.M3;
+  const modelOn=!!(d1||d3);
+  const dec=(stat.M1.w+stat.M3.w)+(stat.M1.l+stat.M3.l);
+  const tgOn=!!(tg.send&&tgReady&&tgReady());
+  const cards=[
+    {ic:'cloud',title:'Cloud & Data',l1:'Supabase · Ingestion',l2:'Data Management',st:cloudOk?(relayOk?'Connected':'Database set'):'Not configured',
+      tone:cloudOk&&relayOk?'':(cloudOk?'warn':'idle'),page:'cloud'},
+    {ic:'telegram',title:'Telegram',l1:'Channels · Messages',l2:'Formats · Stickers',st:tgOn?'Active':(tgReady&&tgReady()?'Configured':'Idle'),
+      tone:tgOn?'':(tgReady&&tgReady()?'warn':'idle'),page:'tg'},
+    {ic:'brain',title:'AI Learning',l1:'26 Strategies · 6 Agents',l2:'Model Training',st:modelOn?'Trained':'Ready / idle',
+      tone:modelOn?'':'warn',page:'brain'},
+    {ic:'performance',title:'Performance',l1:'Win Rate · ROI · Stats',l2:'Settlement',st:dec?('Win rate '+(dec?Math.round((stat.M1.w+stat.M3.w)/dec*100):0)+'%'):(fresh?'Updating':'No verdicts yet'),
+      tone:dec?'':(fresh?'warn':'idle'),page:'res'}
+  ];
+  host.innerHTML=cards.map(c=>'<button type="button" class="feat-card" onclick="showPage(\''+c.page+'\')">'
+    +'<span class="ic">'+nxIcon(c.ic,21)+'</span><h3>'+esc(c.title)+'</h3>'
+    +'<p>'+esc(c.l1)+'<br>'+esc(c.l2)+'</p>'
+    +'<span class="st '+(c.tone||'')+'"><i></i>'+esc(c.st)+'</span></button>').join('');
+  void sessionOk;
+}
+
+/* ── overview · market overview panel (real monitored pairs only) ── */
+const OV_CLASSES=['Forex','Crypto','Indices','Commodities'];
+let ovClass='Forex';
+function setOvClass(name){ ovClass=name; renderDashMarket(); }
+function renderDashMarket(){
+  const tabs=$('dashMarketTabs'), host=$('dashMarketRows');
+  if(tabs) tabs.innerHTML=OV_CLASSES.map(c=>'<button type="button" class="'+(c===ovClass?'on':'')+'" onclick="setOvClass(\''+c+'\')">'+c+'</button>').join('');
+  if(!host) return;
+  if(ovClass!=='Forex'){
+    host.innerHTML='<div class="mkt-empty">No '+esc(ovClass.toLowerCase())+' feed is configured — NEXUS monitors '+PAIRS.length+' liquid FX pairs only.<br>Nothing is simulated here.</div>';
+    return;
+  }
+  const wl=watch();
+  if(!wl.length){ host.innerHTML='<div class="mkt-empty">No pairs ticked yet — pick them on the SIGNALS page.</div>'; return; }
+  /* ticked pairs first, then the remaining monitored pairs with their real state */
+  const ordered=wl.concat(PAIRS.filter(p=>!wl.includes(p)));
+  const rows=ordered.map(p=>{
+    const ck=cache[p];
+    const series=ck&&ck.m1&&ck.m1.length?ck.m1:null;
+    const last=series?series[series.length-1]:null;
+    const prev=series&&series.length>1?series[series.length-2]:null;
+    const chg=last&&prev&&prev.c?((last.c-prev.c)/prev.c*100):null;
+    const rec=sigLog.find(s=>s.pair===p);
+    const gate=series?candleGate(series):{ok:false};
+    return {pair:p,price:last?fmtPx(p,last.c):null,chg,rec,gate,ticked:wl.includes(p)};
+  });
+  const shown=rows.slice(0,6);
+  host.innerHTML='<table class="mkt-table compact"><thead><tr><th>Pair</th><th>Price</th><th>Chg</th><th>Feed</th><th>Sig</th></tr></thead><tbody>'
+    +shown.map(r=>'<tr><td><span class="pcell">'+nxFlag(r.pair)+'<b>'+esc(r.pair)+'</b></span></td>'
+      +'<td class="num '+(r.price?'':'na')+'">'+(r.price==null?'—':esc(r.price))+'</td>'
+      +'<td class="num '+(r.chg==null?'na':(r.chg>=0?'up':'dn'))+'">'+(r.chg==null?'—':((r.chg>=0?'+':'')+r.chg.toFixed(3)+'%'))+'</td>'
+      +'<td>'+(r.ticked?(r.gate.ok?'<span class="chip ok">fresh</span>':'<span class="chip warn">stale</span>')
+        :'<span class="chip">off</span>')+'</td>'
+      +'<td>'+(r.rec?sigBadgeOf(r.rec):(r.ticked?'<span class="sbadge open">watch</span>':'<span class="sbadge open" style="opacity:.45">—</span>'))+'</td></tr>').join('')
+    +'</tbody></table>'
+    +(rows.length>shown.length?'<div class="mini left" style="margin-top:8px">'+(rows.length-shown.length)+' more monitored pair(s) — open MARKETS for the full explorer.</div>':'');
+  void rows.length;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -6063,7 +7077,7 @@ function renderMarketChart(){
   const measured=host.clientWidth||0;
   const width=Math.max(300,Math.min(1080,measured||820));
   const compact=width<620;
-  host.innerHTML=chartCandles(bars,{digits,marks,width,height:Math.round(width*(compact?0.52:0.38))});
+  host.innerHTML=chartCandles(bars,{digits,marks,lastLine:true,width,height:Math.round(width*(compact?0.52:0.38))});
   if(legend){
     legend.innerHTML='<span><i style="background:var(--nx-win)"></i>rising candle</span>'
       +'<span><i style="background:var(--nx-loss)"></i>falling candle</span>'
@@ -6480,38 +7494,70 @@ function initModuleWiring(){
   initMarketControls();
   initSettingsWiring();
   initBrandWiring();
-  const rail=$('railHealth');
-  if(rail){
-    rail.innerHTML='<div class="nx-inline" style="gap:6px">'
-      +'<span class="pulse idle" id="railPulse" aria-hidden="true"></span><span id="railRelay">relay: —</span></div>'
-      +'<div id="railFeed">feed: awaiting data</div>'
-      +'<div class="rail-credit" id="railCredit">budget: —</div>';
-  }
 }
 function renderRailStatus(){
-  const relay=$('railRelay'); if(relay) relay.textContent='relay: '+nexusRelayState.toLowerCase();
-  const rp=$('railPulse');
-  if(rp) rp.className='pulse '+((($('auto')&&$('auto').checked)||busy||(sx&&sx.status==='hunting')||(sx&&sx.status==='waiting'))?'':'idle');
-  const feed=$('railFeed');
-  if(feed){
+  const rail=$('railHealth');
+  if(rail){
     const wl=watch();
     const fresh=wl.filter(p=>{ const ck=cache[p]; return ck&&ck.m1&&candleGate(ck.m1).ok; }).length;
-    feed.textContent=wl.length?('feed: '+fresh+'/'+wl.length+' fresh'):'feed: no pairs ticked';
+    const lvl=budgetLevel();
+    rail.innerHTML='<span>relay: <b style="color:var(--nx-ink-2)">'+esc(nexusRelayState.toLowerCase())+'</b></span>'
+      +'<span>'+(wl.length?('feed: '+fresh+'/'+wl.length+' fresh'):'feed: no pairs ticked')+'</span>'
+      +'<span>budget: <b style="color:var(--nx-ink-2)">'+budget.calls+'/'+perDayCap()+'</b> today · '+budget.min.length+'/'+perMinCap()+' this minute'
+      +(lvl?' <span class="chip '+(lvl>=2?'bad':'warn')+'" style="font-size:8.5px;padding:1px 6px">'+(lvl>=2?'capped':'tight')+'</span>':'')+'</span>';
   }
-  const credit=$('railCredit');
-  if(credit) credit.innerHTML='budget: <b>'+budget.calls+'/'+perDayCap()+'</b> today · <b>'+budget.min.length+'/'+perMinCap()+'</b> this minute';
+  const rp=$('railPulse');
+  if(rp) rp.className='pulse '+((($('auto')&&$('auto').checked)||busy||(sx&&sx.status==='hunting')||(sx&&sx.status==='waiting'))?'':'idle');
+  /* creator rail · live engine state (real values only) */
+  const host=$('crState');
+  if(host){
+    const wl=watch();
+    const settled=stat.M1.w+stat.M1.l+stat.M1.p+stat.M3.w+stat.M3.l+stat.M3.p;
+    const dec=(stat.M1.w+stat.M3.w)+(stat.M1.l+stat.M3.l);
+    const wr=dec?Math.round((stat.M1.w+stat.M3.w)/dec*100):null;
+    const engineOn=(($('auto')&&$('auto').checked)||busy||(sx&&(sx.status==='hunting'||sx.status==='waiting')));
+    host.innerHTML='<div class="r"><span>Engine</span><b>'+(engineOn?'running':'idle')+'</b></div>'
+      +'<div class="r"><span>Pairs ticked</span><b>'+wl.length+' / '+PAIRS.length+'</b></div>'
+      +'<div class="r"><span>Settled verdicts</span><b>'+settled+'</b></div>'
+      +'<div class="r"><span>Win rate</span><b>'+(wr==null?'—':wr+'%')+'</b></div>'
+      +'<div class="r"><span>Relay</span><b>'+esc(nexusRelayState)+'</b></div>';
+  }
+  renderCreatorDots();
+}
+/* creator rail · cumulative P/L dot trail from settled paper trades only */
+function renderCreatorDots(){
+  const host=$('crDots'); if(!host) return;
+  const rows=settledTrades();
+  const W=280,H=54;
+  if(!rows.length){
+    host.innerHTML='<div class="mini" style="text-align:left">Cumulative paper P/L appears here after the first settled verdict.</div>';
+    return;
+  }
+  const pts=[]; let run=0;
+  rows.slice().sort((a,b)=>a.t-b.t).forEach(r=>{ run+=Number(r.pl)||0; pts.push(run); });
+  const hi=Math.max(...pts,0), lo=Math.min(...pts,0), span=(hi-lo)||1;
+  const step=W/Math.max(1,pts.length-1);
+  const y=v=>H-4-(H-8)*((v-lo)/span);
+  let d='';
+  pts.forEach((v,i)=>{ d+=(i?' L':'M')+(i*step).toFixed(1)+' '+y(v).toFixed(1); });
+  const up=pts[pts.length-1]>=0;
+  host.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-label="Cumulative paper P/L">'
+    +'<line x1="0" y1="'+y(0).toFixed(1)+'" x2="'+W+'" y2="'+y(0).toFixed(1)+'" stroke="rgba(255,255,255,.16)" stroke-dasharray="3 4"/>'
+    +'<path d="'+d+'" fill="none" stroke="'+(up?'var(--nx-win)':'var(--nx-loss)')+'" stroke-width="1.8" stroke-linejoin="round"/></svg>';
 }
 function renderDashboardSuite(){
   try{
     renderDashSummary(); renderDashStats(); renderDashSignals(); renderDashHealth();
-    renderSigTable(); renderModelVersions(); renderSettings(); renderRailStatus();
+    renderDashChart(); renderDashFeatures(); renderDashMarket();
+    renderSigTable(); renderModelVersions(); renderSettings(); renderRailStatus(); renderHeroState();
     renderPerfCharts(); renderPairBreakdown(); renderTfBreakdown();
     renderMarketExplorer(); renderMarketChart(); renderPairAnalysis();
     renderBrandStudio(); syncSettingsInputs(); renderHealth();
   }catch(e){ pushNote('sys','UI panel init warning: '+String(e.message||e).slice(0,120)); }
 }
-function afterSettlement(){ renderPerfCharts(); renderPairBreakdown(); renderTfBreakdown(); }
+function afterSettlement(){ renderPerfCharts(); renderPairBreakdown(); renderTfBreakdown(); renderDashPerf(); renderDashSummary(); }
 function refreshMarketViews(){
+  if($('dashChart')) renderDashChart();
   if(curPage==='markets'){ renderMarketExplorer(); renderMarketChart(); renderPairAnalysis(); }
   else if(curPage==='sig'){ renderSigTable(); }
 }
@@ -6931,6 +7977,35 @@ function commandOpen(){ const p=$('commandPalette'),s=$('commandSearch'); if(!p|
   p.classList.add('on'); document.body.style.overflow='hidden'; s.value=''; commandIndex=0; renderCommandList(''); setTimeout(()=>s.focus(),0); }
 function commandClose(){ const p=$('commandPalette'); if(p)p.classList.remove('on'); document.body.style.overflow=''; }
 function runCommand(i){ const a=commandMatches[i]; if(!a)return; commandClose(); a.run(); uiToast(a.icon+' '+a.label); }
+function renderDashRangePills(){
+  const host=$('dashRangePills'); if(!host) return;
+  host.querySelectorAll('button[data-range]').forEach(b=>{
+    b.classList.toggle('on',Number(b.getAttribute('data-range'))===dashRangeDays);
+    b.onclick=()=>{ dashRangeDays=Number(b.getAttribute('data-range'))||7; renderDashRangePills(); renderDashStats(); };
+  });
+}
+function layoutCreatorRail(){
+  const rail=$('creatorRail'); if(!rail) return;
+  const wide=window.innerWidth>=1440;
+  const host=document.querySelector('.app-shell');
+  const wrap=$('appWrap');
+  if(!host||!wrap) return;
+  if(wide){
+    rail.classList.remove('in-workspace');
+    host.appendChild(rail);
+    return;
+  }
+  const marker=$('creatorSlot');
+  rail.classList.add('in-workspace');
+  if(marker) wrap.insertBefore(rail,marker);
+  else wrap.appendChild(rail);
+}
+function initOverviewWiring(){
+  const search=$('heroSearch');
+  if(search) search.addEventListener('click',()=>{ if(typeof commandOpen==='function') commandOpen(); });
+  layoutCreatorRail();
+  window.addEventListener('resize',()=>{ layoutCreatorRail(); if(curPage==='dash') renderDashChart(); });
+}
 function initProductPolish(){
   const net=$('netStatus'), top=$('toTop'), pal=$('commandPalette'), search=$('commandSearch'), opener=$('cmdOpen');
   const network=()=>{ if(!net)return; const on=navigator.onLine!==false; net.textContent=on?'● ONLINE':'● OFFLINE'; net.classList.toggle('offline',!on); if(!on)uiToast('Network offline — local data and saved settings remain available',3500); };
@@ -6951,7 +8026,8 @@ function initProductPolish(){
   const scan=$('btnRun'); if(scan&&window.MutationObserver){ new MutationObserver(()=>document.body.classList.toggle('ui-busy',scan.disabled)).observe(scan,{attributes:true,attributeFilter:['disabled']}); }
 }
 
-applyTheme(); applyWallpaper(); buildNav(); applyWidgetLayout(); initModuleWiring();
+applyTheme(); applyWallpaper(); renderShellArt(); renderPageHeroes(); buildNav(); applyWidgetLayout(); initModuleWiring();
+renderDashRangePills(); initOverviewWiring();
 showPage(store.get('nx_page')||'dash');
 renderKeyInputs();
 syncSettings();
@@ -6974,7 +8050,9 @@ sbInit();
 initProductPolish();
 renderDashboardSuite();
 setInterval(()=>{ livePairsRender(); renderTopLive(); },5000);
-setInterval(()=>{ renderRailStatus(); if(curPage==='dash') renderDashSummary(); lastHeartbeat=Date.now(); },5000);
+setInterval(()=>{ renderRailStatus(); renderHeroState();
+  if(curPage==='dash'){ renderDashSummary(); renderDashChart(); renderDashMarket(); renderDashFeatures(); renderHeroState(); }
+  lastHeartbeat=Date.now(); },5000);
 setInterval(()=>{ if(curPage==='health') renderHealth(); },15000);       /* pair grid ages refresh without hogging the main tick */
 setInterval(()=>{ if(sbReady()&&curPage==='cloud'&&document.visibilityState!=='hidden'){ sbLoadFresh(); sbLoadDeliv(); } },60000);
 setStatus('wait','NEXUS ready — Predict. Learn. Grow. · 10 pairs · 26 strategies · 4 channels (PUBLIC · VIP · LIST · MAIN) · paper-first. Flip the streams on the TELEGRAM page.');

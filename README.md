@@ -1,6 +1,6 @@
-# NEXUS Glass v5.2 · Meridian
+# NEXUS Glass v5.3 · Meridian
 
-> **Brand:** NEXUS — Predict. Learn. Grow. · Created by Vinayyyy. The visual redesign is presentation-layer only: prediction, settlement, training, quota and delivery behaviour are unchanged.
+> **Brand:** NEXUS — Predict. Learn. Grow. · Created by Vinayyyy. The **Voyage interface** (cinematic ocean glass, three-column shell, hero banner, creator panel and branding strip) is presentation-layer only: prediction, settlement, training, quota and delivery behaviour are unchanged. See [docs/VOYAGE_UI.md](docs/VOYAGE_UI.md).
 >
 > **Supabase Edge hosting:** see the [Edge relay runbook](docs/SUPABASE_EDGE_RELAY.md) for the prepared GitHub Pages + Supabase option, shared 0009 quota prerequisites, secrets, verification and rollback. Not deployed.
 
@@ -93,6 +93,8 @@ Simulated performance shown anywhere is a signal-quality metric, never realized 
 - `index.html` — browser UI (feature registry, Liquid Glass design system, engine views), engines, local strategy state, and authenticated relay client
 - `docs/MODULES.md` — every module: purpose, route, API dependency, configuration, permissions, extension points
 - `docs/REDESIGN.md` — pre-redesign audit, feature-preservation checklist, API→UI map, verification results
+- `docs/VOYAGE_UI.md` — reference-matched Voyage interface: composition map, components, artwork generator, verification
+- `assets/fonts/` — self-hosted Inter (variable) + Cinzel with both OFL licences (shipped in the public artifact)
 - `server/src/api.js` — authenticated HTTP relay; Twelve Data/Telegram secrets stay server-side
 - `server/src/` — worker, provider budget, Telegram transport, ingestion/evaluation/risk/alerts
 - `server/.env.example` — server-only settings template
