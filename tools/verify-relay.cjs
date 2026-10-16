@@ -43,7 +43,9 @@ async function verify(env = process.env, fetcher = fetch) {
   const key = env.SUPABASE_ANON_KEY;
   assertAnonKey(key);
   const results = [];
-  const check = (ok) => { if (!ok) throw new Error('Check failed'); };
+  const diagnostics = [];
+  Object.defineProperty(results, 'diagnostics', { value: diagnostics });
+  const check = (ok, detail = 'check failed') => { if (!ok) throw new Error(detail); };
   async function request(url, options = {}) {
     const response = await fetcher(url, { ...options, redirect: 'error', signal: AbortSignal.timeout(20_000) });
     let body = null;
@@ -52,7 +54,11 @@ async function verify(env = process.env, fetcher = fetch) {
   }
   async function step(name, action) {
     try { await action(); results.push({ name, status: 'PASS' }); return true; }
-    catch { results.push({ name, status: 'FAIL' }); return false; }
+    catch (err) {
+      results.push({ name, status: 'FAIL' });
+      diagnostics.push(`${name}: ${String(err?.message || 'failed').slice(0, 140)}`);
+      return false;
+    }
   }
   function skip(name) { results.push({ name, status: 'SKIP' }); }
   function relayHeaders(token) {
@@ -60,24 +66,24 @@ async function verify(env = process.env, fetcher = fetch) {
   }
   await step('Health and exact production CORS', async () => {
     const { response, body } = await request(`${API}/health`, { headers: relayHeaders() });
-    check(response.status === 200 && body?.ok === true && body.service === 'nexus-api');
-    check(response.headers.get('access-control-allow-origin') === ORIGIN);
+    check(response.status === 200 && body?.ok === true && body.service === 'nexus-api', `status=${response.status} msg=${body?.message || body?.error || ''}`);
+    check(response.headers.get('access-control-allow-origin') === ORIGIN, `cors=${response.headers.get('access-control-allow-origin') || 'none'}`);
   });
   await step('Browser preflight', async () => {
     const { response } = await request(`${API}/session`, { method: 'OPTIONS', headers: {
       origin: ORIGIN, 'access-control-request-method': 'GET', 'access-control-request-headers': 'authorization,content-type',
     } });
-    check(response.status === 204 && response.headers.get('access-control-allow-origin') === ORIGIN);
+    check(response.status === 204 && response.headers.get('access-control-allow-origin') === ORIGIN, `status=${response.status} cors=${response.headers.get('access-control-allow-origin') || 'none'}`);
   });
   for (const [name, token] of [['Missing bearer rejected by application', ''], ['Invalid bearer rejected by application', 'invalid-nexus-test-token']]) {
     await step(name, async () => {
       const { response, body } = await request(`${API}/session`, { headers: relayHeaders(token) });
-      check(response.status === 401 && body?.error === 'A valid NEXUS session is required');
+      check(response.status === 401 && body?.error === 'A valid NEXUS session is required', `status=${response.status} err=${body?.error || body?.message || ''}`);
     });
   }
   await step('Disallowed origin rejected', async () => {
     const { response } = await request(`${API}/session`, { headers: { origin: 'https://nexus-test.invalid' } });
-    check(response.status === 403 && !response.headers.has('access-control-allow-origin'));
+    check(response.status === 403 && !response.headers.has('access-control-allow-origin'), `status=${response.status}`);
   });
   const readPaths = ['currency_pairs?select=code&limit=1', 'model_versions?select=id&limit=1',
     'risk_snapshots?select=scope&limit=1', 'v_market_freshness?select=pair&limit=1',
@@ -85,8 +91,8 @@ async function verify(env = process.env, fetcher = fetch) {
   await step('Public Cloud Sync database reads (no writes)', async () => {
     for (const path of readPaths) {
       const { response, body } = await request(`${BASE}/rest/v1/${path}`, { headers: { apikey: key, authorization: `Bearer ${key}` } });
-      check(response.status === 200 && Array.isArray(body));
-      if (path.startsWith('currency_pairs')) check(body.length > 0 && typeof body[0].code === 'string');
+      check(response.status === 200 && Array.isArray(body), `path=${path} status=${response.status}`);
+      if (path.startsWith('currency_pairs')) check(body.length > 0 && typeof body[0].code === 'string', 'currency_pairs empty');
     }
   });
   let token;
@@ -96,7 +102,7 @@ async function verify(env = process.env, fetcher = fetch) {
     // Retain a token even for a malformed reply so logout is still attempted.
     token = body?.access_token;
     userId = body?.user?.id;
-    check(response.status === 200 && typeof token === 'string' && typeof userId === 'string' && body?.user?.is_anonymous === true);
+    check(response.status === 200 && typeof token === 'string' && typeof userId === 'string' && body?.user?.is_anonymous === true, `status=${response.status} code=${body?.error_code || body?.code || ''} msg=${body?.msg || body?.message || ''}`);
   });
   try {
     const sessionOk = signedIn && await step('Actual authenticated GET /api/v1/session', async () => {
@@ -154,6 +160,9 @@ if (require.main === module) {
     if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Production relay verification\n\n\`\`\`text\n${report}\n\`\`\`\n`);
     const hasFailed = results.some(r => r.status === 'FAIL');
     if (process.env.GITHUB_ACTIONS === 'true') {
+      if (results.diagnostics?.length) {
+        console.log(`::notice title=NEXUS Relay Diagnostics::${results.diagnostics.join(' | ').replaceAll('%', '%25').replaceAll('\r', '').replaceAll('\n', ' ')}`);
+      }
       console[hasFailed ? 'error' : 'log'](`::${hasFailed ? 'error' : 'notice'} title=NEXUS Relay Verification::${inline}`);
     }
     if (hasFailed) process.exitCode = 1;

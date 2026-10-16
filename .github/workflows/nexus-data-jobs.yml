@@ -1,5 +1,11 @@
 name: NEXUS data jobs
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/nexus-data-jobs.yml'
+      - 'server/src/jobs.js'
+      - 'tools/with-supabase-env.cjs'
   schedule:
     - cron: '7,37 * * * *'
   workflow_dispatch:
@@ -52,7 +58,8 @@ jobs:
             case "$MODE" in
               preflight-only) ;;
               ingest-only) node tools/with-supabase-env.cjs node server/src/index.js job-ingest ;;
-              outcomes-only)
+              outcomes-only|"")
+                node tools/with-supabase-env.cjs node server/src/index.js job-ingest
                 node tools/with-supabase-env.cjs node server/src/index.js job-outcomes
                 node tools/with-supabase-env.cjs node server/src/index.js job-maintenance
                 ;;

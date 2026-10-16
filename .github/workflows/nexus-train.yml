@@ -1,5 +1,11 @@
 name: NEXUS shadow training
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/nexus-train.yml'
+      - 'trainer/train.py'
+      - 'tools/with-supabase-env.cjs'
   schedule:
     - cron: '17 3 * * 0'
   workflow_dispatch:

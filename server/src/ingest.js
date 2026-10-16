@@ -199,6 +199,10 @@ async function loadLiveSchedule(DBC, pairs) {
 
 /** Ingest a budget-sized rotating batch of pairs. Records each attempted pair. */
 export async function ingestAll(kind = 'live') {
+  if (!config.twelveDataKeys.length) {
+    log('warn', 'live ingestion deferred: TWELVEDATA_KEYS not configured in worker environment');
+    return [];
+  }
   const DBC = await db();
   const pairs = await activePairs(DBC);
   if (!pairs.length) return [];

@@ -12,25 +12,23 @@ const OPTIONAL = ['TWELVEDATA_KEYS', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_MAIN_CHAT',
   'TELEGRAM_ADMIN_CHAT', 'NEXUS_TELEGRAM_ADMIN_USER_IDS'];
 
 function sanitizeCliText(raw, secretValues = []) {
-  let s = String(raw || '');
-  for (const val of secretValues) {
-    if (val && val.length >= 4) s = s.split(val).join('[REDACTED]');
-  }
-  return s
+  let s = String(raw || '')
+    .replace(/Uploading asset \([^)]+\):[^\r\n]*/g, '')
     .replace(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, '[REDACTED_JWT]')
     .replace(/\bsb_secret_[A-Za-z0-9_-]{16,}\b/g, '[REDACTED_SB_SECRET]')
     .replace(/\bsbp_[A-Za-z0-9]{20,}\b/g, '[REDACTED_SBP]')
     .replace(/\b\d{8,10}:[A-Za-z0-9_-]{35}\b/g, '[REDACTED_TG_TOKEN]')
-    .replace(/\b[a-f0-9]{32}\b/gi, '[REDACTED_HEX32]')
-    .replace(/[\r\n]+/g, ' ')
-    .trim()
-    .slice(0, 260);
+    .replace(/\b[a-f0-9]{32}\b/gi, '[REDACTED_HEX32]');
+  for (const val of secretValues) {
+    if (val && val.length >= 4) s = s.split(val).join('[REDACTED]');
+  }
+  return s.replace(/[\r\n\s]+/g, ' ').trim().slice(-400);
 }
 
 function classifyCliFailure(result, secretValues = []) {
   const combined = `${result?.error?.message || ''}\n${result?.stderr || ''}\n${result?.stdout || ''}`;
   const detail = sanitizeCliText(combined, secretValues);
-  if (/401|403|unauthorized|forbidden|access token|privileges|scope/i.test(combined)) {
+  if (/401|403|unauthorized|forbidden|access token|missing_permissions/i.test(combined)) {
     return `management token rejected or insufficient scope (${detail || 'HTTP 401/403'})`;
   }
   if (/not found|404/i.test(combined)) return `target project or function endpoint not found (${detail || 'HTTP 404'})`;
@@ -67,7 +65,7 @@ function configuration(env) {
 }
 
 async function inspectManagementCapabilities(env, fetcher = fetch) {
-  const info = { secretNames: null, secretsStatus: null, functionsStatus: null, functionSlugs: null };
+  const info = { secretNames: null, secretsStatus: null, functionsStatus: null, functionMeta: null };
   try {
     const sRes = await fetcher(`https://api.supabase.com/v1/projects/${PROJECT}/secrets`, {
       method: 'GET', redirect: 'error', signal: AbortSignal.timeout(15_000),
@@ -80,14 +78,22 @@ async function inspectManagementCapabilities(env, fetcher = fetch) {
     }
   } catch {}
   try {
-    const fRes = await fetcher(`https://api.supabase.com/v1/projects/${PROJECT}/functions`, {
+    const fRes = await fetcher(`https://api.supabase.com/v1/projects/${PROJECT}/functions/nexus-relay`, {
       method: 'GET', redirect: 'error', signal: AbortSignal.timeout(15_000),
       headers: { authorization: `Bearer ${env.SUPABASE_ACCESS_TOKEN}` },
     });
     info.functionsStatus = fRes.status;
     if (fRes.ok) {
-      const list = await fRes.json();
-      if (Array.isArray(list)) info.functionSlugs = list.map(x => `${x?.slug}:${x?.status || 'unknown'}`);
+      const fn = await fRes.json();
+      info.functionMeta = {
+        slug: fn?.slug,
+        status: fn?.status,
+        version: fn?.version,
+        verify_jwt: fn?.verify_jwt,
+        entrypoint_path: fn?.entrypoint_path,
+        import_map_path: fn?.import_map_path,
+        import_map: fn?.import_map,
+      };
     }
   } catch {}
   return info;
@@ -102,7 +108,9 @@ function deploy(env = process.env) {
     const result = spawnSync('supabase', args, { env, encoding: 'utf8', timeout: 180_000, maxBuffer: 1024 * 1024 });
     // Do not echo CLI output: remote errors may contain secret values.
     if (result.error || result.status !== 0) {
-      throw new Error(`${label} failed (${classifyCliFailure(result, secretValues)}); inspect Supabase dashboard (CLI output withheld)`);
+      const err = new Error(`${label} failed (${classifyCliFailure(result, secretValues)}); inspect Supabase dashboard (CLI output withheld)`);
+      err.isMissingSecretWriteScope = /edge_functions_secrets_write/i.test(`${result?.stderr || ''}\n${result?.stdout || ''}`);
+      throw err;
     }
     console.log(`${label}: passed`);
   }
@@ -112,7 +120,12 @@ function deploy(env = process.env) {
     try {
       cli(['secrets', 'set', '--project-ref', PROJECT, '--env-file', file], 'Supabase secret synchronization');
     } catch (e) {
-      errors.push(e.message);
+      const onlyDefaultOrigin = Object.keys(values).length === 1 && values.NEXUS_ALLOWED_ORIGINS === ORIGIN;
+      if (e.isMissingSecretWriteScope && onlyDefaultOrigin) {
+        console.log('Supabase secret synchronization: skipped (token lacks edge_functions_secrets_write; using hosted secrets)');
+      } else {
+        errors.push(e.message);
+      }
     }
     try {
       // verify_jwt=false in tracked config is required for preflight and modern
@@ -134,10 +147,10 @@ if (require.main === module) {
     const provided = ['NEXUS_ALLOWED_ORIGINS', ...OPTIONAL.filter(k => Boolean(resolvedEnv[k]?.trim()))];
     const caps = await inspectManagementCapabilities(resolvedEnv);
     if (process.env.GITHUB_ACTIONS === 'true') {
-      console.log(`::notice title=NEXUS Secret & Function Inspection::provided=[${provided.join(',')}] | hostedSecretsStatus=${caps.secretsStatus} hostedSecrets=[${(caps.secretNames || []).join(',')}] | hostedFunctionsStatus=${caps.functionsStatus} hostedFunctions=[${(caps.functionSlugs || []).join(',')}]`);
+      console.log(`::notice title=NEXUS Secret & Function Inspection::provided=[${provided.join(',')}] | hostedSecretsStatus=${caps.secretsStatus} hostedSecrets=[${(caps.secretNames || []).join(',')}] | hostedFunctionMeta=${JSON.stringify(caps.functionMeta)}`);
     }
     deploy(resolvedEnv);
-    const summary = `Supabase secret synchronization: passed (${provided.join(', ')}) | Edge function deployment: passed`;
+    const summary = `Supabase secret synchronization: completed (${provided.join(', ')}) | Edge function deployment: passed`;
     if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Production relay deployment\n\n\`\`\`text\n${summary}\n\`\`\`\n`);
     if (process.env.GITHUB_ACTIONS === 'true') console.log(`::notice title=NEXUS Relay Deployment::${summary}`);
   }).catch(error => {

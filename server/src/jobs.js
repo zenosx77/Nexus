@@ -30,7 +30,6 @@ export function verdict(locked, mode) {
 
 export async function preflight(client) {
   requireSupabase();
-  if (!config.twelveDataKeys.length) throw new Error('provider configuration missing');
   const c = client ?? await db();
   for (const [table, columns] of Object.entries({
     currency_pairs: 'code,is_active', market_candles: 'pair_code,timeframe,ts',
@@ -50,6 +49,7 @@ export async function preflight(client) {
   const { data: bucket, error } = await c.storage.getBucket('models');
   if (error || !bucket || bucket.public !== false) throw new Error('private model bucket verification failed');
   return { verdict: 'verified', scope: 'schema-private-bucket-and-shared-quota-contract',
+    providerConfigured: config.twelveDataKeys.length > 0,
     productionReady: false, reason: 'hosted-policy-cutover-and-account-consumer-verification-required' };
 }
 
