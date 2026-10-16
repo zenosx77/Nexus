@@ -31,8 +31,6 @@ const INSPECTION_SQL = `select jsonb_build_object(
     then exists(select 1 from public.twelvedata_account_budget where account = 'twelvedata') else false end,
   'account_rpc_present', to_regprocedure('public.reserve_twelvedata_account_credit(text,integer,integer,text,integer)') is not null,
   'status_rpc_present', to_regprocedure('public.twelvedata_quota_status()') is not null,
-  'quota_status', case when to_regprocedure('public.twelvedata_quota_status()') is not null
-    then public.twelvedata_quota_status() else null end,
   'svc_mutate_account', case when to_regclass('public.twelvedata_account_budget') is not null
     then has_table_privilege('service_role','public.twelvedata_account_budget','INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') else null end,
   'svc_mutate_worker', case when to_regclass('public.twelvedata_credit_budget') is not null

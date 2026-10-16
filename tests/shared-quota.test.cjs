@@ -38,4 +38,14 @@ test('shared quota migration 0009 in disposable PostgreSQL (PGlite)',async t=>{
       assert.equal(result.verdict,'verified');assert.equal(result.productionReady,false);
     }finally{Object.assign(config,old);}
   });
+  await t.test('management API read-only role (supabase_read_only_user) passes 0008 and 0009 verifiers without RPC EXECUTE',async()=>{
+    await pg.exec('create role supabase_read_only_user bypassrls; grant pg_read_all_data to supabase_read_only_user;');
+    try {
+      await pg.exec('set role supabase_read_only_user;');
+      await pg.exec(fs.readFileSync('supabase/verify/0008_read_only.sql','utf8'));
+      await pg.exec(fs.readFileSync('supabase/verify/0009_read_only.sql','utf8'));
+    } finally {
+      await pg.exec('reset role;');
+    }
+  });
 });
