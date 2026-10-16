@@ -1,6 +1,25 @@
-# Application-level Auth validates every protected request with auth.getUser.
-# Gateway JWT verification must be off for public health and browser preflight,
-# and to support Supabase Auth signing keys without a legacy JWT-secret check.
+project_id = "nexus"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[auth]
+enabled = true
+enable_signup = true
+enable_anonymous_sign_ins = true
+
+[storage]
+enabled = true
+
 [functions.nexus-relay]
 verify_jwt = false
 entrypoint = "./functions/nexus-relay/index.ts"
+import_map = "./functions/nexus-relay/deno.json"

@@ -57,6 +57,9 @@ export async function telegramSend(chatId, text, opts = {}) {
  * never private chat IDs; resolve those aliases only on the server.
  */
 export async function runTelegramRetries(opts = {}) {
+  if (!config.telegramBotToken && !opts.send) {
+    return { retried: 0, sent: 0, still_failing: 0, deferred: true };
+  }
   const DBC = await (opts.db ?? db)();
   const send = opts.send ?? telegramSend;
   const now = opts.now ?? Date.now();
@@ -111,6 +114,6 @@ export async function runTelegramRetries(opts = {}) {
   return stats;
 }
 
-export function telegramLocked() {
-  return withJobLock('telegram-retry', 300, () => runTelegramRetries());
+export function telegramLocked(opts = {}) {
+  return opts.db ? runTelegramRetries(opts) : withJobLock('telegram-retry', 300, () => runTelegramRetries(opts));
 }

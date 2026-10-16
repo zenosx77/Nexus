@@ -17,7 +17,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   data:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.NEXUS_SCHEDULE_ENABLED == 'true')
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.NEXUS_SCHEDULE_ENABLED == 'true' || vars.NEXUS_SCHEDULE_ENABLED != 'false')
+    environment: supabase-production
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -32,6 +33,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           TWELVEDATA_KEYS: ${{ secrets.TWELVEDATA_KEYS }}
           INGEST_PAIRS: ${{ vars.INGEST_PAIRS }}
           MODE: ${{ inputs.mode }}
@@ -41,16 +43,20 @@ jobs:
           LOG_LEVEL: error
         run: |
           set -euo pipefail
-          node server/src/index.js preflight
+          node tools/with-supabase-env.cjs node server/src/index.js preflight
           if [ "$EVENT" = schedule ]; then
-            node server/src/index.js job-ingest
-            node server/src/index.js job-outcomes
+            node tools/with-supabase-env.cjs node server/src/index.js job-ingest
+            node tools/with-supabase-env.cjs node server/src/index.js job-outcomes
+            node tools/with-supabase-env.cjs node server/src/index.js job-maintenance
           else
             case "$MODE" in
               preflight-only) ;;
-              ingest-only) node server/src/index.js job-ingest ;;
-              outcomes-only) node server/src/index.js job-outcomes ;;
-              backfill-only) node server/src/index.js job-backfill ;;
+              ingest-only) node tools/with-supabase-env.cjs node server/src/index.js job-ingest ;;
+              outcomes-only)
+                node tools/with-supabase-env.cjs node server/src/index.js job-outcomes
+                node tools/with-supabase-env.cjs node server/src/index.js job-maintenance
+                ;;
+              backfill-only) node tools/with-supabase-env.cjs node server/src/index.js job-backfill ;;
               *) exit 2 ;;
             esac
           fi

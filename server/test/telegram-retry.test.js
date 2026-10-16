@@ -40,3 +40,17 @@ test('persistence failure stops the pass instead of falsely reporting success or
   await assert.rejects(runTelegramRetries(f), /persistence failed/);
   assert.equal(f.sends.length, 1);
 });
+test('unconfigured bot token defers retry pass without marking queued rows skipped', async () => {
+  const { config } = await import('../src/config.js');
+  const prev = config.telegramBotToken;
+  config.telegramBotToken = '';
+  try {
+    const f = fixture([row('queued')]);
+    const stats = await runTelegramRetries({ db: f.db, now });
+    assert.deepEqual(stats, { retried: 0, sent: 0, still_failing: 0, deferred: true });
+    assert.equal(f.updates.length, 0);
+  } finally {
+    config.telegramBotToken = prev;
+  }
+});
+

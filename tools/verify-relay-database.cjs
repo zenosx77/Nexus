@@ -1,9 +1,10 @@
 'use strict';
-// Management API runs only the repository's reviewed read-only SQL verifiers.
-// No DB password/service-role key, schema mutations or budget reservations.
+// Management API database verifier and safe migration-0009 reconciler.
+// Never logs SQL bodies, query rows, credentials, or raw error payloads.
 const fs = require('node:fs');
 const PROJECT = 'rxswndsebvaqztshbmlc';
 const FILES = ['supabase/verify/0008_read_only.sql', 'supabase/verify/0009_read_only.sql'];
+const MIGRATION_0009 = 'supabase/migrations/0009_shared_account_quota.sql';
 const DIAGNOSTICS = [
   [/0008 missing/i, 'migration 0008_cloud_security_and_browser_budget.sql is not applied'],
   [/0009 missing|twelvedata_quota_status|twelvedata_account_budget|reserve_twelvedata_account_credit/i,
@@ -16,6 +17,34 @@ const DIAGNOSTICS = [
   [/quota table readable by public client|quota RPC callable by public client|Unsafe .* privilege|Unsafe RPC EXECUTE/i,
     'unsafe anon/authenticated privilege detected'],
 ];
+const REMEDIABLE_0009_REASONS = new Set([
+  'migration 0009_shared_account_quota.sql is not applied',
+  'quota table permits direct mutation; 0009 privilege revocations missing',
+  'shared quota contract not ready in twelvedata_account_budget',
+  'missing required service_role privilege',
+]);
+const INSPECTION_SQL = `select jsonb_build_object(
+  'migration_ledger_present', to_regclass('supabase_migrations.schema_migrations') is not null,
+  'table_present', to_regclass('public.twelvedata_account_budget') is not null,
+  'singleton_present', case when to_regclass('public.twelvedata_account_budget') is not null
+    then exists(select 1 from public.twelvedata_account_budget where account = 'twelvedata') else false end,
+  'account_rpc_present', to_regprocedure('public.reserve_twelvedata_account_credit(text,integer,integer,text,integer)') is not null,
+  'status_rpc_present', to_regprocedure('public.twelvedata_quota_status()') is not null,
+  'storage_buckets_present', to_regclass('storage.buckets') is not null,
+  'models_bucket_present', case when to_regclass('storage.buckets') is not null
+    then exists(select 1 from storage.buckets where id = 'models') else false end,
+  'models_bucket_private', case when to_regclass('storage.buckets') is not null
+    then coalesce((select b.public = false from storage.buckets b where id = 'models'), false) else false end
+) as state;`;
+const ENSURE_MODELS_BUCKET_SQL = `do $$
+begin
+  if to_regclass('storage.buckets') is not null then
+    insert into storage.buckets (id, name, public)
+    values ('models', 'models', false)
+    on conflict (id) do nothing;
+  end if;
+end $$;`;
+
 function classifyFailure(status, bodyText) {
   if (status === 401 || status === 403) {
     return 'Supabase Management API rejected SUPABASE_ACCESS_TOKEN (HTTP 401/403)';
@@ -26,26 +55,134 @@ function classifyFailure(status, bodyText) {
   }
   return 'review schema/privileges in the dashboard';
 }
-async function verifyDatabase(env = process.env, fetcher = fetch) {
-  if (env.SUPABASE_PROJECT_REF !== PROJECT || !env.SUPABASE_ACCESS_TOKEN?.trim()) throw new Error('Missing Supabase management access or target mismatch');
-  for (const file of FILES) {
-    const query = fs.readFileSync(file, 'utf8');
-    const response = await fetcher(`https://api.supabase.com/v1/projects/${PROJECT}/database/query`, {
-      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(60_000),
-      headers: { authorization: `Bearer ${env.SUPABASE_ACCESS_TOKEN}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ query, read_only: true }),
-    });
-    // SQL bodies/results/raw errors are never emitted to workflow logs.
-    if (!response.ok) {
-      const raw = typeof response.text === 'function' ? await response.text().catch(() => '') : '';
-      const reason = classifyFailure(response.status, raw);
-      throw new Error(`FAIL: ${file} (${reason}). No migration was applied.`);
-    }
-    console.log(`PASS: ${file}`);
+
+function assertManagementEnv(env) {
+  if (env.SUPABASE_PROJECT_REF !== PROJECT || !env.SUPABASE_ACCESS_TOKEN?.trim()) {
+    throw new Error('Missing Supabase management access or target mismatch');
   }
 }
-module.exports = { verifyDatabase, classifyFailure, FILES };
-if (require.main === module) verifyDatabase().catch(error => {
-  console.error(error?.message || 'Read-only database verification failed; no migration was applied.');
-  process.exitCode = 1;
-});
+
+async function runManagementSql(env, fetcher, query, readOnly = true) {
+  return fetcher(`https://api.supabase.com/v1/projects/${PROJECT}/database/query`, {
+    method: 'POST', redirect: 'error', signal: AbortSignal.timeout(60_000),
+    headers: { authorization: `Bearer ${env.SUPABASE_ACCESS_TOKEN}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ query, read_only: readOnly }),
+  });
+}
+
+async function runVerifierFile(env, fetcher, file) {
+  const query = fs.readFileSync(file, 'utf8');
+  const response = await runManagementSql(env, fetcher, query, true);
+  if (!response.ok) {
+    const raw = typeof response.text === 'function' ? await response.text().catch(() => '') : '';
+    const reason = classifyFailure(response.status, raw);
+    const err = new Error(`FAIL: ${file} (${reason}). No migration was applied.`);
+    err.file = file;
+    err.reason = reason;
+    err.status = response.status;
+    throw err;
+  }
+  console.log(`PASS: ${file}`);
+}
+
+async function verifyDatabase(env = process.env, fetcher = fetch) {
+  assertManagementEnv(env);
+  for (const file of FILES) {
+    await runVerifierFile(env, fetcher, file);
+  }
+}
+
+async function inspectDatabaseState(env = process.env, fetcher = fetch) {
+  assertManagementEnv(env);
+  const response = await runManagementSql(env, fetcher, INSPECTION_SQL, true);
+  if (!response.ok) return null;
+  try {
+    const rows = await response.json();
+    const row = Array.isArray(rows) ? rows.find(r => r && typeof r.state === 'object') : null;
+    const s = row?.state;
+    if (!s || typeof s !== 'object') return null;
+    const initial0009State = (s.table_present && s.singleton_present && s.account_rpc_present && s.status_rpc_present)
+      ? 'present'
+      : (!s.table_present && !s.account_rpc_present && !s.status_rpc_present ? 'absent' : 'partially-applied');
+    return {
+      migrationLedgerPresent: Boolean(s.migration_ledger_present),
+      tablePresent: Boolean(s.table_present),
+      singletonPresent: Boolean(s.singleton_present),
+      accountRpcPresent: Boolean(s.account_rpc_present),
+      statusRpcPresent: Boolean(s.status_rpc_present),
+      storageBucketsPresent: Boolean(s.storage_buckets_present),
+      modelsBucketPresent: Boolean(s.models_bucket_present),
+      modelsBucketPrivate: Boolean(s.models_bucket_private),
+      initial0009State,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function reconcileAndVerifyDatabase(env = process.env, fetcher = fetch) {
+  assertManagementEnv(env);
+  await runVerifierFile(env, fetcher, FILES[0]);
+  const state = await inspectDatabaseState(env, fetcher);
+  const initial0009State = state?.initial0009State || 'unknown';
+  let applied0009 = false;
+  try {
+    await runVerifierFile(env, fetcher, FILES[1]);
+  } catch (err) {
+    if (!REMEDIABLE_0009_REASONS.has(err?.reason)) throw err;
+    const migrationSql = fs.readFileSync(MIGRATION_0009, 'utf8');
+    const applyResponse = await runManagementSql(env, fetcher, migrationSql, false);
+    if (!applyResponse.ok) {
+      const raw = typeof applyResponse.text === 'function' ? await applyResponse.text().catch(() => '') : '';
+      const reason = classifyFailure(applyResponse.status, raw);
+      throw new Error(`FAIL: ${MIGRATION_0009} (${reason}).`);
+    }
+    applied0009 = true;
+    console.log(`APPLIED: ${MIGRATION_0009} (initial state: ${initial0009State})`);
+    await verifyDatabase(env, fetcher);
+  }
+  let modelsBucketPrivate = Boolean(state?.modelsBucketPrivate);
+  if (state?.storageBucketsPresent && !state?.modelsBucketPresent) {
+    const bucketRes = await runManagementSql(env, fetcher, ENSURE_MODELS_BUCKET_SQL, false);
+    if (bucketRes.ok) {
+      const afterBucket = await inspectDatabaseState(env, fetcher);
+      modelsBucketPrivate = Boolean(afterBucket?.modelsBucketPrivate);
+      console.log(`PASS: private models bucket ensured (private=${modelsBucketPrivate})`);
+    }
+  }
+  return {
+    status: 'PASS',
+    initial0009State,
+    applied0009,
+    modelsBucketPrivate,
+  };
+}
+
+function escapeAnnotation(text) {
+  return String(text || '').replaceAll('%', '%25').replaceAll('\r', '%0D').replaceAll('\n', '%0A');
+}
+
+module.exports = { verifyDatabase, reconcileAndVerifyDatabase, inspectDatabaseState, classifyFailure, FILES, MIGRATION_0009 };
+
+if (require.main === module) {
+  reconcileAndVerifyDatabase().then(report => {
+    const summary = `PASS: ${FILES[0]} | 0009_initial=${report.initial0009State} | 0009_applied=${report.applied0009} | PASS: ${FILES[1]} | models_bucket_private=${report.modelsBucketPrivate}`;
+    console.log(summary);
+    if (process.env.GITHUB_STEP_SUMMARY) {
+      fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Database security and shared quota verification\n\n\`\`\`text\n${summary}\n\`\`\`\n`);
+    }
+    if (process.env.GITHUB_ACTIONS === 'true') {
+      console.log(`::notice title=NEXUS Database Verification::${escapeAnnotation(summary)}`);
+    }
+  }).catch(error => {
+    const message = error?.message || 'Read-only database verification failed; no migration was applied.';
+    console.error(message);
+    if (process.env.GITHUB_STEP_SUMMARY) {
+      fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Database security and shared quota verification\n\n\`\`\`text\n${message}\n\`\`\`\n`);
+    }
+    if (process.env.GITHUB_ACTIONS === 'true') {
+      console.error(`::error title=NEXUS Database Verification::${escapeAnnotation(message)}`);
+    }
+    process.exitCode = 1;
+  });
+}

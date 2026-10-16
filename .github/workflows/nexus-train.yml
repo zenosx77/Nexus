@@ -10,7 +10,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   train:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.NEXUS_SCHEDULE_ENABLED == 'true')
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.NEXUS_SCHEDULE_ENABLED == 'true' || vars.NEXUS_SCHEDULE_ENABLED != 'false')
+    environment: supabase-production
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -29,8 +30,9 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          if python3 trainer/train.py run; then
+          if node tools/with-supabase-env.cjs python3 trainer/train.py run; then
             echo 'Shadow training completed; no active model promotion. See simulated metrics in the step log.' >> "$GITHUB_STEP_SUMMARY"
           else
             code=$?

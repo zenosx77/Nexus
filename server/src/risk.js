@@ -141,6 +141,6 @@ export async function latestSnapshots() {
   return out;
 }
 
-export function riskLocked() {
-  return withJobLock('risk', 300, () => runRiskSnapshots());
+export function riskLocked(opts = {}) {
+  return opts.db ? runRiskSnapshots(opts) : withJobLock('risk', 300, () => runRiskSnapshots(opts));
 }

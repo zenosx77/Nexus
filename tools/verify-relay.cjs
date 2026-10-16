@@ -15,6 +15,28 @@ function assertAnonKey(key) {
   try { payload = JSON.parse(Buffer.from(String(key).split('.')[1], 'base64url').toString()); } catch { /* reject below */ }
   if (payload?.role !== 'anon' || payload?.ref !== PROJECT) throw new Error("Use this project's legacy public anon JWT, never a private key");
 }
+async function resolveAnonKey(env = process.env, fetcher = fetch) {
+  if (env.SUPABASE_ANON_KEY?.trim()) return env;
+  if (env.SUPABASE_PROJECT_REF !== PROJECT || !env.SUPABASE_ACCESS_TOKEN?.trim()) return env;
+  try {
+    const res = await fetcher(`https://api.supabase.com/v1/projects/${PROJECT}/api-keys`, {
+      method: 'GET', redirect: 'error', signal: AbortSignal.timeout(20_000),
+      headers: { authorization: `Bearer ${env.SUPABASE_ACCESS_TOKEN}` },
+    });
+    if (!res.ok) return env;
+    const keys = await res.json();
+    if (!Array.isArray(keys)) return env;
+    const anon = keys.find(k => {
+      if (typeof k?.api_key !== 'string') return false;
+      try { assertAnonKey(k.api_key); return true; } catch { return false; }
+    });
+    if (!anon) return env;
+    if (env.GITHUB_ACTIONS === 'true') console.log(`::add-mask::${anon.api_key}`);
+    return { ...env, SUPABASE_ANON_KEY: anon.api_key };
+  } catch {
+    return env;
+  }
+}
 async function verify(env = process.env, fetcher = fetch) {
   if (env.SUPABASE_PROJECT_REF !== PROJECT || env.NEXUS_ALLOWED_ORIGINS !== ORIGIN) throw new Error('Production target/origin mismatch');
   if (!env.SUPABASE_ANON_KEY?.trim()) throw new Error('Missing SUPABASE_ANON_KEY');
@@ -123,12 +145,22 @@ async function verify(env = process.env, fetcher = fetch) {
   }
   return results;
 }
-module.exports = { verify, assertAnonKey };
+module.exports = { verify, assertAnonKey, resolveAnonKey, PROJECT, BASE, API, ORIGIN };
 if (require.main === module) {
-  verify().then(results => {
+  resolveAnonKey(process.env).then(resolvedEnv => verify(resolvedEnv)).then(results => {
     const report = results.map(r => `${r.status}: ${r.name}`).join('\n');
+    const inline = results.map(r => `${r.status}: ${r.name}`).join(' | ');
     console.log(report);
     if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Production relay verification\n\n\`\`\`text\n${report}\n\`\`\`\n`);
-    if (results.some(r => r.status === 'FAIL')) process.exitCode = 1;
-  }).catch(() => { console.error('Verification configuration invalid; check required project, origin and anon key settings.'); process.exitCode = 1; });
+    const hasFailed = results.some(r => r.status === 'FAIL');
+    if (process.env.GITHUB_ACTIONS === 'true') {
+      console[hasFailed ? 'error' : 'log'](`::${hasFailed ? 'error' : 'notice'} title=NEXUS Relay Verification::${inline}`);
+    }
+    if (hasFailed) process.exitCode = 1;
+  }).catch(() => {
+    const msg = 'Verification configuration invalid; check required project, origin and anon key settings.';
+    console.error(msg);
+    if (process.env.GITHUB_ACTIONS === 'true') console.error(`::error title=NEXUS Relay Verification::${msg}`);
+    process.exitCode = 1;
+  });
 }

@@ -66,3 +66,25 @@ test('preflight requires shared quota capability and private bucket without spen
     assert.ok(calls.every(name=>name==='twelvedata_quota_status'));
   }finally{Object.assign(config,old);}
 });
+
+test('runMaintenanceJob executes risk, alerts, telegram retries, and housekeeping without paid credits', async()=>{
+  const {runMaintenanceJob}=await import('../src/jobs.js');
+  const old={supabaseUrl:config.supabaseUrl,supabaseServiceKey:config.supabaseServiceKey};
+  Object.assign(config,{supabaseUrl:'https://offline.example.test',supabaseServiceKey:'offline-service-fixture'});
+  const order=[];
+  try{
+    const res=await runMaintenanceJob({
+      riskLocked:async()=>{order.push('risk');return {ran:true,result:{rows:12}};},
+      runAlertChecks:async()=>{order.push('alerts');return {fired:['win_rate_degraded']};},
+      telegramLocked:async()=>{order.push('telegram');return {ran:true,result:{retried:0,sent:0,still_failing:0,deferred:true}};},
+      housekeepingLocked:async()=>{order.push('housekeeping');return {ran:true,result:{riskPruned:2}};},
+    });
+    assert.deepEqual(order,['risk','alerts','telegram','housekeeping']);
+    assert.equal(res.verdict,'verified');
+    assert.equal(res.riskRows,12);
+    assert.equal(res.alertsFired,1);
+    assert.equal(res.telegramDeferred,true);
+    assert.equal(res.housekeepingRan,true);
+  }finally{Object.assign(config,old);}
+});
+
