@@ -76,6 +76,6 @@ export async function runHousekeeping(opts = {}) {
   return out;
 }
 
-export function housekeepingLocked() {
-  return withJobLock('housekeeping', 1800, () => runHousekeeping());
+export function housekeepingLocked(opts = {}) {
+  return opts.db ? runHousekeeping(opts) : withJobLock('housekeeping', 1800, () => runHousekeeping(opts));
 }

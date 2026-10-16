@@ -562,16 +562,21 @@ def cmd_run():
     records = fetch_dataset(since_days=int(os.environ.get("TRAIN_SINCE_DAYS", "180")))
     n = len(records)
     now = datetime.now(timezone.utc).isoformat()
+    deployed_row = get_deployed_model()
+    dep_w = deployed_weights(deployed_row)
     if n < 50:
-        print(f"only {n} evaluated production predictions — need more history before training")
-        return 1
+        print(json.dumps({
+            "decision": "deferred",
+            "reason": f"only {n} evaluated production predictions — need >= 50 before training",
+            "sample_size": n,
+            "deployed_model": deployed_row["id"] if deployed_row else None,
+            "auto_promote": bool(settings.get("auto_promote", False)),
+        }, indent=2))
+        return 0
 
     train_pool, holdout = chronological_split(records)
     train_pool = purge_overlapping_labels(train_pool, holdout)
     folds = walk_forward_folds(len(train_pool))
-
-    deployed_row = get_deployed_model()
-    dep_w = deployed_weights(deployed_row)
     if deployed_row:
         prior_end = (deployed_row.get("artifact_payload", {}).get("dataset") or {}).get("window_end")
         if not prior_end or prior_end >= records[0]["target_open_ts"]:

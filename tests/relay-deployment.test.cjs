@@ -3,8 +3,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { configuration } = require('../tools/deploy-relay.cjs');
-const { verify } = require('../tools/verify-relay.cjs');
-const { verifyDatabase, FILES } = require('../tools/verify-relay-database.cjs');
+const { verify, resolveAnonKey } = require('../tools/verify-relay.cjs');
+const { verifyDatabase, reconcileAndVerifyDatabase, FILES } = require('../tools/verify-relay-database.cjs');
+const { resolveWorkerEnv } = require('../tools/with-supabase-env.cjs');
 const env = { SUPABASE_PROJECT_REF: 'rxswndsebvaqztshbmlc', NEXUS_ALLOWED_ORIGINS: 'https://zenosx77.github.io',
   SUPABASE_ACCESS_TOKEN: 'synthetic-management-token', SUPABASE_ANON_KEY: ['synthetic', Buffer.from(JSON.stringify({ role: 'anon', ref: 'rxswndsebvaqztshbmlc' })).toString('base64url'), 'synthetic'].join('.') };
 function transport(options = {}) {
@@ -148,3 +149,68 @@ test('relay workflow is pinned, main-only, gated, environment-scoped and verifie
   assert.ok(source.indexOf('run: node tools/verify-relay-database.cjs') < source.indexOf('run: node tools/deploy-relay.cjs'));
   assert.ok(source.indexOf('run: node tools/deploy-relay.cjs') < source.indexOf('run: node tools/verify-relay.cjs'));
 });
+test('reconcileAndVerifyDatabase safely applies 0009 only after 0008 passes and re-verifies read-only checks', async () => {
+  const queries = [];
+  let applied = false;
+  let bucketCreated = false;
+  const report = await reconcileAndVerifyDatabase(env, async (_url, init) => {
+    const body = JSON.parse(init.body);
+    queries.push({ readOnly: body.read_only, sql: body.query });
+    if (body.read_only && body.query.includes('migration_ledger_present')) {
+      return new Response(JSON.stringify([{
+        state: {
+          migration_ledger_present: true,
+          table_present: applied,
+          singleton_present: applied,
+          account_rpc_present: applied,
+          status_rpc_present: applied,
+          storage_buckets_present: true,
+          models_bucket_present: bucketCreated,
+          models_bucket_private: bucketCreated,
+        },
+      }]), { status: 200 });
+    }
+    if (!body.read_only && /create table if not exists public\.twelvedata_account_budget/i.test(body.query)) {
+      applied = true;
+      return new Response('[]', { status: 200 });
+    }
+    if (!body.read_only && body.query.includes("values ('models', 'models', false)")) {
+      bucketCreated = true;
+      return new Response('[]', { status: 200 });
+    }
+    if (body.read_only && body.query.includes('0009 missing') && !applied) {
+      return new Response('{"message":"ERROR: 0009 missing: shared account quota migration 0009_shared_account_quota.sql is not applied"}', { status: 400 });
+    }
+    return new Response('[]', { status: 200 });
+  });
+  assert.equal(report.status, 'PASS');
+  assert.equal(report.initial0009State, 'absent');
+  assert.equal(report.applied0009, true);
+  assert.equal(report.modelsBucketPrivate, true);
+  assert.equal(queries.filter(q => !q.readOnly).length, 2);
+
+  // Never applies 0009 when 0008 fails or when an unsafe privilege is detected
+  let mutated = false;
+  await assert.rejects(
+    reconcileAndVerifyDatabase(env, async (_url, init) => {
+      const body = JSON.parse(init.body);
+      if (!body.read_only) mutated = true;
+      return new Response('{"message":"ERROR: Unsafe anon privilege on public.predictions"}', { status: 400 });
+    }),
+    /unsafe anon\/authenticated privilege detected/,
+  );
+  assert.equal(mutated, false);
+});
+test('resolveAnonKey and resolveWorkerEnv derive project keys safely from management API when unset', async () => {
+  const serviceJwt = ['synthetic', Buffer.from(JSON.stringify({ role: 'service_role', ref: 'rxswndsebvaqztshbmlc' })).toString('base64url'), 'synthetic'].join('.');
+  const fakeFetcher = async () => new Response(JSON.stringify([
+    { name: 'anon', api_key: env.SUPABASE_ANON_KEY },
+    { name: 'service_role', api_key: serviceJwt },
+  ]), { status: 200 });
+  const resolvedAnon = await resolveAnonKey({ SUPABASE_PROJECT_REF: env.SUPABASE_PROJECT_REF, SUPABASE_ACCESS_TOKEN: env.SUPABASE_ACCESS_TOKEN }, fakeFetcher);
+  assert.equal(resolvedAnon.SUPABASE_ANON_KEY, env.SUPABASE_ANON_KEY);
+  const resolvedWorker = await resolveWorkerEnv({ SUPABASE_PROJECT_REF: env.SUPABASE_PROJECT_REF, SUPABASE_ACCESS_TOKEN: env.SUPABASE_ACCESS_TOKEN }, fakeFetcher);
+  assert.equal(resolvedWorker.SUPABASE_URL, 'https://rxswndsebvaqztshbmlc.supabase.co');
+  assert.equal(resolvedWorker.SUPABASE_SERVICE_ROLE_KEY, serviceJwt);
+});
+

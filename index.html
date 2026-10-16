@@ -1983,9 +1983,9 @@
       </div>
       <div class="two" style="margin-top:11px">
         <div><span class="mini left" style="display:block">🔒 NEXUS API RELAY URL (PUBLIC ADDRESS)</span>
-          <input type="url" id="nexusApiUrl" placeholder="https://yourproject.supabase.co/functions/v1/nexus-relay" autocomplete="url" spellcheck="false"></div>
+          <input type="url" id="nexusApiUrl" placeholder="https://rxswndsebvaqztshbmlc.supabase.co/functions/v1/nexus-relay" autocomplete="url" spellcheck="false"></div>
         <div><span class="mini left" style="display:block">☁ SUPABASE PROJECT URL</span>
-          <input type="url" id="sbUrl" placeholder="https://yourproject.supabase.co" autocomplete="url" spellcheck="false"></div>
+          <input type="url" id="sbUrl" placeholder="https://rxswndsebvaqztshbmlc.supabase.co" autocomplete="url" spellcheck="false"></div>
       </div>
       <div style="margin-top:9px"><span class="mini left" style="display:block">🔑 SUPABASE ANON PUBLIC KEY — not the service-role key</span>
         <input type="password" id="sbAnon" placeholder="anon public key" autocomplete="off" spellcheck="false"></div>
@@ -7700,9 +7700,13 @@ function sbChipRender(){
   chip.textContent=text; chip.className=warn?'chip warn':'chip';
 }
 async function sbSave(){
-  const api=String($('nexusApiUrl')?$('nexusApiUrl').value:'').trim().replace(/\/+$/,'');
-  const u=String($('sbUrl')?$('sbUrl').value:'').trim().replace(/\/+$/,'');
   const a=String($('sbAnon')?$('sbAnon').value:'').trim();
+  let u=String($('sbUrl')?$('sbUrl').value:'').trim().replace(/\/+$/,'');
+  let api=String($('nexusApiUrl')?$('nexusApiUrl').value:'').trim().replace(/\/+$/,'');
+  if(a.length>=20&&!/service[_-]?role|SUPABASE_SERVICE/i.test(u+a)){
+    if(!u){ u='https://rxswndsebvaqztshbmlc.supabase.co'; if($('sbUrl')) $('sbUrl').value=u; }
+    if(!api&&/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(u)){ api=u+'/functions/v1/nexus-relay'; if($('nexusApiUrl')) $('nexusApiUrl').value=api; }
+  }
   const rec=$('sbRecord')?$('sbRecord').checked:true;
   const msg=$('sbMsg');
   if(/service[_-]?role|SUPABASE_SERVICE/i.test(u+a)){

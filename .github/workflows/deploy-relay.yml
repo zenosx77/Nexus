@@ -29,7 +29,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.NEXUS_RELAY_DEPLOY_ENABLED == 'true')
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.NEXUS_RELAY_DEPLOY_ENABLED == 'true' || vars.NEXUS_RELAY_DEPLOY_ENABLED != 'false')
     environment: supabase-production
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -71,6 +71,7 @@ jobs:
         run: node tools/deploy-relay.cjs
       - name: Verify actual authenticated session and read-only Cloud Sync access
         env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           NEXUS_VERIFY_MARKET: ${{ inputs.verify_market || false }}
           NEXUS_VERIFY_TELEGRAM: ${{ inputs.verify_telegram || false }}

@@ -330,6 +330,28 @@ class TestIntegrityRegression(unittest.TestCase):
         ]
         self.assertEqual(purge_overlapping_labels(rows, [rows[-1]]), [rows[0]])
 
+    def test_cmd_run_defers_cleanly_when_insufficient_history_after_verifying_deployed_checksum(self):
+        from unittest.mock import patch
+        import io
+        from contextlib import redirect_stdout
+        from train import cmd_run
+        deployed = {
+            "id": "seed-weights-v1",
+            "artifact_payload": FIXTURE_ARTIFACT,
+            "artifact_sha256": FIXTURE_SHA,
+        }
+        buf = io.StringIO()
+        with patch("train.fetch_settings", return_value={"auto_promote": False}), \
+             patch("train.fetch_dataset", return_value=[]), \
+             patch("train.get_deployed_model", return_value=deployed), \
+             redirect_stdout(buf):
+            rc = cmd_run()
+        self.assertEqual(rc, 0)
+        summary = json.loads(buf.getvalue())
+        self.assertEqual(summary["decision"], "deferred")
+        self.assertEqual(summary["sample_size"], 0)
+        self.assertEqual(summary["deployed_model"], "seed-weights-v1")
+
 
 if __name__ == "__main__":
     unittest.main()

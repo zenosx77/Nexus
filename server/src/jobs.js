@@ -4,6 +4,10 @@ import { db } from './db.js';
 import { config, requireSupabase } from './config.js';
 import { runIngest, backfillLocked } from './ingest.js';
 import { evaluateLocked } from './evaluate.js';
+import { riskLocked } from './risk.js';
+import { runAlertChecks } from './alerts.js';
+import { telegramLocked } from './telegram.js';
+import { housekeepingLocked } from './housekeeping.js';
 import { sharedQuotaContract } from './credit-budget.js';
 import { limitJobCredits } from './twelvedata.js';
 
@@ -49,10 +53,29 @@ export async function preflight(client) {
     productionReady: false, reason: 'hosted-policy-cutover-and-account-consumer-verification-required' };
 }
 
+export async function runMaintenanceJob(deps = {}) {
+  requireSupabase();
+  const risk = await (deps.riskLocked ?? riskLocked)();
+  const alerts = await (deps.runAlertChecks ?? runAlertChecks)();
+  const telegram = await (deps.telegramLocked ?? telegramLocked)();
+  const housekeeping = await (deps.housekeepingLocked ?? housekeepingLocked)();
+  return {
+    verdict: 'verified',
+    reason: 'maintenance-cycle-complete',
+    riskRan: Boolean(risk?.ran ?? true),
+    riskRows: Number(risk?.result?.rows ?? risk?.rows ?? 0),
+    alertsFired: Array.isArray(alerts?.fired) ? alerts.fired.length : 0,
+    telegramRetried: Number(telegram?.result?.retried ?? telegram?.retried ?? 0),
+    telegramDeferred: Boolean(telegram?.result?.deferred ?? telegram?.deferred),
+    housekeepingRan: Boolean(housekeeping?.ran ?? true),
+  };
+}
+
 export async function runJob(mode) {
   let result;
   try {
     if (mode === 'preflight') result = await preflight();
+    else if (mode === 'job-maintenance') result = await runMaintenanceJob();
     else {
       limitJobCredits(6); // includes failed requests and key failover, not just successful pairs
       const fn = { 'job-ingest': runIngest, 'job-outcomes': evaluateLocked, 'job-backfill': backfillLocked }[mode];

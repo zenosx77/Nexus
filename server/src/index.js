@@ -107,7 +107,7 @@ async function settingsSync() {
 const command = process.argv[2] || 'loop';
 const commands = {
   loop, once,
-  ...Object.fromEntries(['preflight','job-ingest','job-outcomes','job-backfill'].map(name => [name, () => runJob(name)])),
+  ...Object.fromEntries(['preflight','job-ingest','job-outcomes','job-backfill','job-maintenance'].map(name => [name, () => runJob(name)])),
   ingest: () => runIngest('live'),
   backfill: () => backfillLocked(),
   evaluate: () => evaluateLocked(),
