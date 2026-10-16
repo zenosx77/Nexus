@@ -62,11 +62,24 @@ function assertManagementEnv(env) {
   }
 }
 
+function sanitizeDiagnostic(status, raw) {
+  const safe = String(raw || '')
+    .replace(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, '[REDACTED_JWT]')
+    .replace(/\bsb_secret_[A-Za-z0-9_-]{16,}\b/g, '[REDACTED_SB_SECRET]')
+    .replace(/\bsbp_[A-Za-z0-9]{20,}\b/g, '[REDACTED_SBP]')
+    .replace(/\b\d{8,10}:[A-Za-z0-9_-]{35}\b/g, '[REDACTED_TG_TOKEN]')
+    .replace(/\b[a-f0-9]{32}\b/gi, '[REDACTED_HEX32]')
+    .replace(/[\r\n]+/g, ' ')
+    .slice(0, 300);
+  return `HTTP ${status}: ${safe || 'empty response'}`;
+}
+
 async function runManagementSql(env, fetcher, query, readOnly = true) {
+  const payload = readOnly ? { query, read_only: true } : { query, read_only: false };
   return fetcher(`https://api.supabase.com/v1/projects/${PROJECT}/database/query`, {
     method: 'POST', redirect: 'error', signal: AbortSignal.timeout(60_000),
     headers: { authorization: `Bearer ${env.SUPABASE_ACCESS_TOKEN}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ query, read_only: readOnly }),
+    body: JSON.stringify(payload),
   });
 }
 
@@ -124,18 +137,25 @@ async function reconcileAndVerifyDatabase(env = process.env, fetcher = fetch) {
   assertManagementEnv(env);
   await runVerifierFile(env, fetcher, FILES[0]);
   const state = await inspectDatabaseState(env, fetcher);
+  if (env.GITHUB_ACTIONS === 'true' && state) {
+    console.log(`::notice title=NEXUS DB Inspection::${escapeAnnotation(JSON.stringify(state))}`);
+  }
   const initial0009State = state?.initial0009State || 'unknown';
   let applied0009 = false;
   try {
     await runVerifierFile(env, fetcher, FILES[1]);
   } catch (err) {
+    if (env.GITHUB_ACTIONS === 'true') {
+      console.log(`::notice title=NEXUS 0009 Initial Check::${escapeAnnotation(`${err?.reason || 'failed'} (HTTP ${err?.status ?? 'unknown'})`)}`);
+    }
     if (!REMEDIABLE_0009_REASONS.has(err?.reason)) throw err;
     const migrationSql = fs.readFileSync(MIGRATION_0009, 'utf8');
     const applyResponse = await runManagementSql(env, fetcher, migrationSql, false);
     if (!applyResponse.ok) {
       const raw = typeof applyResponse.text === 'function' ? await applyResponse.text().catch(() => '') : '';
       const reason = classifyFailure(applyResponse.status, raw);
-      throw new Error(`FAIL: ${MIGRATION_0009} (${reason}).`);
+      const detail = sanitizeDiagnostic(applyResponse.status, raw);
+      throw new Error(`FAIL: ${MIGRATION_0009} (${reason} | ${detail}).`);
     }
     applied0009 = true;
     console.log(`APPLIED: ${MIGRATION_0009} (initial state: ${initial0009State})`);
