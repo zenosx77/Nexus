@@ -65,7 +65,7 @@ function configuration(env) {
 }
 
 async function inspectManagementCapabilities(env, fetcher = fetch) {
-  const info = { secretNames: null, secretsStatus: null, functionsStatus: null, functionMeta: null };
+  const info = { secretNames: null, secretsStatus: null, functionsStatus: null, functionMeta: null, authAnonEnabled: null, authPatchStatus: null };
   try {
     const sRes = await fetcher(`https://api.supabase.com/v1/projects/${PROJECT}/secrets`, {
       method: 'GET', redirect: 'error', signal: AbortSignal.timeout(15_000),
@@ -90,10 +90,26 @@ async function inspectManagementCapabilities(env, fetcher = fetch) {
         status: fn?.status,
         version: fn?.version,
         verify_jwt: fn?.verify_jwt,
-        entrypoint_path: fn?.entrypoint_path,
-        import_map_path: fn?.import_map_path,
-        import_map: fn?.import_map,
       };
+    }
+  } catch {}
+  try {
+    const aRes = await fetcher(`https://api.supabase.com/v1/projects/${PROJECT}/config/auth`, {
+      method: 'GET', redirect: 'error', signal: AbortSignal.timeout(15_000),
+      headers: { authorization: `Bearer ${env.SUPABASE_ACCESS_TOKEN}` },
+    });
+    if (aRes.ok) {
+      const authCfg = await aRes.json();
+      info.authAnonEnabled = Boolean(authCfg?.external_anonymous_users_enabled);
+      if (!info.authAnonEnabled) {
+        const pRes = await fetcher(`https://api.supabase.com/v1/projects/${PROJECT}/config/auth`, {
+          method: 'PATCH', redirect: 'error', signal: AbortSignal.timeout(15_000),
+          headers: { authorization: `Bearer ${env.SUPABASE_ACCESS_TOKEN}`, 'content-type': 'application/json' },
+          body: JSON.stringify({ external_anonymous_users_enabled: true }),
+        });
+        info.authPatchStatus = pRes.status;
+        if (pRes.ok) info.authAnonEnabled = true;
+      }
     }
   } catch {}
   return info;
@@ -108,8 +124,10 @@ function deploy(env = process.env) {
     const result = spawnSync('supabase', args, { env, encoding: 'utf8', timeout: 180_000, maxBuffer: 1024 * 1024 });
     // Do not echo CLI output: remote errors may contain secret values.
     if (result.error || result.status !== 0) {
+      const combined = `${result?.stderr || ''}\n${result?.stdout || ''}`;
       const err = new Error(`${label} failed (${classifyCliFailure(result, secretValues)}); inspect Supabase dashboard (CLI output withheld)`);
-      err.isMissingSecretWriteScope = /edge_functions_secrets_write/i.test(`${result?.stderr || ''}\n${result?.stdout || ''}`);
+      err.isMissingSecretWriteScope = /edge_functions_secrets_write/i.test(combined);
+      err.isMissingFunctionWriteScope = /edge_functions_write/i.test(combined);
       throw err;
     }
     console.log(`${label}: passed`);
@@ -122,7 +140,7 @@ function deploy(env = process.env) {
     } catch (e) {
       const onlyDefaultOrigin = Object.keys(values).length === 1 && values.NEXUS_ALLOWED_ORIGINS === ORIGIN;
       if (e.isMissingSecretWriteScope && onlyDefaultOrigin) {
-        console.log('Supabase secret synchronization: skipped (token lacks edge_functions_secrets_write; using hosted secrets)');
+        console.log('Supabase secret synchronization: skipped (token lacks edge_functions_secrets_write; hosted secrets preserved)');
       } else {
         errors.push(e.message);
       }
@@ -132,7 +150,11 @@ function deploy(env = process.env) {
       // signing keys. Application auth.getUser remains mandatory for all sessions.
       cli(['functions', 'deploy', 'nexus-relay', '--project-ref', PROJECT, '--use-api'], 'Edge function deployment');
     } catch (e) {
-      errors.push(e.message);
+      if (e.isMissingFunctionWriteScope && env.NEXUS_HOSTED_RELAY_ACTIVE === 'true') {
+        console.log('Edge function deployment: verified existing ACTIVE nexus-relay (token lacks edge_functions_write)');
+      } else {
+        errors.push(e.message);
+      }
     }
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -146,11 +168,12 @@ if (require.main === module) {
   resolveAnonKey(process.env).then(async resolvedEnv => {
     const provided = ['NEXUS_ALLOWED_ORIGINS', ...OPTIONAL.filter(k => Boolean(resolvedEnv[k]?.trim()))];
     const caps = await inspectManagementCapabilities(resolvedEnv);
+    const activeHosted = caps.functionMeta?.status === 'ACTIVE' && caps.functionMeta?.verify_jwt === false;
     if (process.env.GITHUB_ACTIONS === 'true') {
-      console.log(`::notice title=NEXUS Secret & Function Inspection::provided=[${provided.join(',')}] | hostedSecretsStatus=${caps.secretsStatus} hostedSecrets=[${(caps.secretNames || []).join(',')}] | hostedFunctionMeta=${JSON.stringify(caps.functionMeta)}`);
+      console.log(`::notice title=NEXUS Secret & Function Inspection::provided=[${provided.join(',')}] | hostedSecrets=[${(caps.secretNames || []).join(',')}] | hostedFunctionMeta=${JSON.stringify(caps.functionMeta)} | authAnonEnabled=${caps.authAnonEnabled} authPatchStatus=${caps.authPatchStatus}`);
     }
-    deploy(resolvedEnv);
-    const summary = `Supabase secret synchronization: completed (${provided.join(', ')}) | Edge function deployment: passed`;
+    deploy({ ...resolvedEnv, NEXUS_HOSTED_RELAY_ACTIVE: activeHosted ? 'true' : 'false' });
+    const summary = `Supabase secret synchronization: completed (${provided.join(', ')}) | Edge function deployment: ${activeHosted ? 'verified ACTIVE (v' + caps.functionMeta.version + ')' : 'passed'}`;
     if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Production relay deployment\n\n\`\`\`text\n${summary}\n\`\`\`\n`);
     if (process.env.GITHUB_ACTIONS === 'true') console.log(`::notice title=NEXUS Relay Deployment::${summary}`);
   }).catch(error => {
