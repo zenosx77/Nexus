@@ -128,22 +128,32 @@ The current session's GitHub permission cannot provision or inspect these secret
 use the Settings UI or authorize the appropriate connection permissions. Never
 paste credentials into the conversation.
 
-## Run #3 diagnosis (`38854902770` on `main` at `fe26d3619082e7687ae7d0f534c3c3ae6722c380`)
+## Production verification and migration 0009 resolution (`2026-10-16`)
 
-In workflow run `38854902770`, `tools/verify-relay-database.cjs` printed
-`PASS: supabase/verify/0008_read_only.sql` and then failed on the second file,
-`supabase/verify/0009_read_only.sql`:
+Live verification on `main` (runs `38863300521`, `38863580728`, `38864211384`, `38864211470`, `38864211511`, `38864600985`, `38864601060`) established the exact production state of project `rxswndsebvaqztshbmlc`:
 
-- **Management API access is valid:** `0008_read_only.sql` executed through
-  `POST /v1/projects/rxswndsebvaqztshbmlc/database/query` and returned HTTP 200.
-- **Migrations `0001`–`0008` are applied, `0009` is not:** `0008_read_only.sql`
-  branches on `to_regclass('public.twelvedata_account_budget') is not null` and
-  passes on a pre-`0009` database, whereas `0009_read_only.sql` requires
-  `public.twelvedata_account_budget`, `public.reserve_twelvedata_account_credit`,
-  `public.twelvedata_quota_status`, and the `0009` direct-mutation revocations.
-- **Fix applied:** `supabase/verify/0009_read_only.sql` now checks for the `0009`
-  table/functions at the start of its `do $$` block before querying them, and
-  `tools/verify-relay-database.cjs` reports the exact failing verifier file and
-  fixed allowlisted diagnostic category (without echoing raw SQL results or secrets).
-  Apply `supabase/migrations/0009_shared_account_quota.sql` in the Supabase SQL
-  Editor for `rxswndsebvaqztshbmlc`, then re-run **Deploy and verify NEXUS relay**.
+1. **Migration `0009_shared_account_quota.sql` is applied and verified:**
+   - Read-only inspection confirmed `public.twelvedata_account_budget` (`account='twelvedata'` singleton present), `public.reserve_twelvedata_account_credit(text,integer,integer,text,integer)`, `public.twelvedata_quota_status()`, RLS on all three quota tables, and all `0009` direct-mutation privilege revocations (`svcMutateAccount=false`, `svcMutateWorker=false`, `svcMutateBrowser=false`).
+   - Earlier runs (`38854902770`, `38858968262`) failed in `supabase/verify/0009_read_only.sql` because the Supabase Management API `POST /v1/projects/rxswndsebvaqztshbmlc/database/query` with `read_only: true` executes as `supabase_read_only_user`, which does not hold `EXECUTE` on `service_role`-only functions after `0009` revokes `PUBLIC` (`ERROR: 42501: permission denied for function twelvedata_quota_status`).
+   - `supabase/verify/0009_read_only.sql` now checks `has_function_privilege(current_user, 'public.twelvedata_quota_status()', 'EXECUTE')` before invoking the SQL function and otherwise validates the singleton row and `pg_proc` function definitions directly while still enforcing `service_role` and `anon`/`authenticated` function grants. Both `0008_read_only.sql` and `0009_read_only.sql` pass on production, and `node server/src/index.js preflight` (run `38864211384`) verified the live `twelvedata_quota_status` RPC (`guard_version=1`, `daily_limit=700`, `minute_limit=6`, `rolling_window_seconds=61`, `initialized=true`) as `service_role`.
+2. **Private `models` Storage bucket provisioned and verified:**
+   - `tools/verify-relay-database.cjs` provisioned the private `models` bucket (`id='models'`, `public=false`) via the Storage API, confirmed by both `NEXUS DB Inspection` (`modelsBucketPresent=true, modelsBucketPrivate=true`) and `node server/src/index.js preflight` in run `38864211384`.
+3. **Production `nexus-relay` Edge Function (`v14`, `ACTIVE`, `verify_jwt=false`) and Cloud Sync verified:**
+   - Live checks in run `38864601060` passed:
+     - `PASS: Health and exact production CORS` (`GET /functions/v1/nexus-relay/api/v1/health` -> `200 OK`, `access-control-allow-origin: https://zenosx77.github.io`)
+     - `PASS: Browser preflight` (`OPTIONS /functions/v1/nexus-relay/api/v1/session` -> `204`)
+     - `PASS: Missing bearer rejected by application` (`401`)
+     - `PASS: Invalid bearer rejected by application` (`401`)
+     - `PASS: Disallowed origin rejected` (`403`)
+     - `PASS: Public Cloud Sync database reads (no writes)` (`200 OK` across all 6 tables/views)
+   - Authenticated relay probe using a disposable Auth user in run `38864601060` passed:
+     - `PASS: Authenticated GET /api/v1/session (status=200)`
+     - `PASS: Authenticated database read (status=200)`
+     - `PASS: Sign out verification session (status=204)`
+     - `PASS: Disposable verification user deleted`
+4. **Scheduled data jobs (`38864211384`) and shadow training (`38864211511`) verified on `main`:**
+   - `preflight`, `job-ingest`, `job-outcomes`, and `job-maintenance` (`riskLocked`, `runAlertChecks`, `telegramLocked`, `housekeepingLocked`) succeeded against `rxswndsebvaqztshbmlc`.
+   - `python3 trainer/train.py run` passed its 36 offline unit tests, queried production `system_settings`, `predictions`/`trade_outcomes`, and `model_versions`, and cleanly reported `"decision": "deferred"` (`sample_size: 0 < 50`).
+5. **Remaining operator dashboard settings:**
+   - Enable **Allow anonymous sign-ins** in Supabase Dashboard (`Authentication -> Providers -> Anonymous Sign-Ins`) so `POST /auth/v1/signup` (`{}`) returns `200` instead of `422 anonymous_provider_disabled`.
+   - Configure `TWELVEDATA_KEYS` (and optional `TELEGRAM_*` secrets) in Supabase Edge Function secrets and GitHub environment `supabase-production` to enable live Twelve Data candle ingestion and `/api/v1/usage` key reporting.
