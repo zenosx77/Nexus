@@ -127,3 +127,23 @@ authenticated `/session`, Cloud Sync, Twelve Data and Telegram **remain unverifi
 The current session's GitHub permission cannot provision or inspect these secrets;
 use the Settings UI or authorize the appropriate connection permissions. Never
 paste credentials into the conversation.
+
+## Run #3 diagnosis (`38854902770` on `main` at `fe26d3619082e7687ae7d0f534c3c3ae6722c380`)
+
+In workflow run `38854902770`, `tools/verify-relay-database.cjs` printed
+`PASS: supabase/verify/0008_read_only.sql` and then failed on the second file,
+`supabase/verify/0009_read_only.sql`:
+
+- **Management API access is valid:** `0008_read_only.sql` executed through
+  `POST /v1/projects/rxswndsebvaqztshbmlc/database/query` and returned HTTP 200.
+- **Migrations `0001`–`0008` are applied, `0009` is not:** `0008_read_only.sql`
+  branches on `to_regclass('public.twelvedata_account_budget') is not null` and
+  passes on a pre-`0009` database, whereas `0009_read_only.sql` requires
+  `public.twelvedata_account_budget`, `public.reserve_twelvedata_account_credit`,
+  `public.twelvedata_quota_status`, and the `0009` direct-mutation revocations.
+- **Fix applied:** `supabase/verify/0009_read_only.sql` now checks for the `0009`
+  table/functions at the start of its `do $$` block before querying them, and
+  `tools/verify-relay-database.cjs` reports the exact failing verifier file and
+  fixed allowlisted diagnostic category (without echoing raw SQL results or secrets).
+  Apply `supabase/migrations/0009_shared_account_quota.sql` in the Supabase SQL
+  Editor for `rxswndsebvaqztshbmlc`, then re-run **Deploy and verify NEXUS relay**.

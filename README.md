@@ -48,7 +48,7 @@ The static UI has no bundler/CDN. Serve the repository root over HTTP for local 
 
 **Deployment preparation:** use [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the staging-first hosting, environment, verification and rollback checklist. GitHub Pages alone does not host a backend. The commands below describe runtime modes, not authorization to start a continuous worker.
 
-1. Review `SUPABASE_SETUP.md`; manually apply migrations `0001`–`0008` in order to a safe Supabase project and verify the resulting grants, policies, views, and functions. Create the private `models` Storage bucket only if using those workflows. **The migration files are not evidence that a hosted database has applied them.**
+1. Review `SUPABASE_SETUP.md`; manually apply migrations `0001`–`0009` in order to a safe Supabase project and verify the resulting grants, policies, views, and functions. Create the private `models` Storage bucket only if using those workflows. **The migration files are not evidence that a hosted database has applied them.**
 2. Enable anonymous sign-ins in Supabase Auth for the browser relay.
 3. On the server host, copy `server/.env.example` to `server/.env` and enter the Supabase service-role key, private Twelve Data keys, API origin allowlist, and (if used) Telegram token/destinations. Never put these secrets in the app, a browser file, build output, or chat.
 4. Run the API relay and worker as separate supervised processes:

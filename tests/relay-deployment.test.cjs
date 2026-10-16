@@ -111,7 +111,29 @@ test('database checks use fixed read-only SQL, never log results, fail closed on
     return new Response('[]', { status: 200 });
   });
   assert.equal(calls.length, FILES.length);
-  await assert.rejects(verifyDatabase(env, async () => new Response('{}', { status: 403 })));
+  await assert.rejects(
+    verifyDatabase(env, async () => new Response('{"message":"Forbidden secret-value"}', { status: 403 })),
+    err => {
+      assert.match(err.message, /FAIL: supabase\/verify\/0008_read_only\.sql/);
+      assert.match(err.message, /Supabase Management API rejected SUPABASE_ACCESS_TOKEN/);
+      assert.doesNotMatch(err.message, /secret-value/);
+      return true;
+    },
+  );
+  let step = 0;
+  await assert.rejects(
+    verifyDatabase(env, async () => {
+      step += 1;
+      if (step === 1) return new Response('[]', { status: 200 });
+      return new Response('{"message":"ERROR: 0009 missing: shared account quota migration 0009_shared_account_quota.sql is not applied (sensitive-detail)"}', { status: 400 });
+    }),
+    err => {
+      assert.match(err.message, /FAIL: supabase\/verify\/0009_read_only\.sql/);
+      assert.match(err.message, /migration 0009_shared_account_quota\.sql is not applied/);
+      assert.doesNotMatch(err.message, /sensitive-detail/);
+      return true;
+    },
+  );
 });
 test('relay workflow is pinned, main-only, gated, environment-scoped and verifies before deployment', () => {
   const source = fs.readFileSync('.github/workflows/deploy-relay.yml', 'utf8');
