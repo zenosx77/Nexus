@@ -132,6 +132,46 @@
     --scene-moon:#ffffff; --scene-cloud:#dfeaf8; --scene-glow:#2f8fd0; --scene-ship:#4b6484;
   }
 
+  /* corsair theme — Apple-minimal privateer palette: abyssal navy, aged brass,
+     parchment ink, gold hairlines. One accent, no ornament — the ship reads through colour. */
+  :root[data-theme="corsair"]{
+    color-scheme:dark;
+    --nx-accent:#d9a441;
+    --nx-accent-2:#9b7738;
+    --nx-accent-soft:rgba(217,164,65,.14);
+    --nx-accent-ink:#171104;
+    --nx-accent-ui:#c9973f;
+
+    --nx-bg:#070a11;
+    --nx-bg-2:#0a101b;
+    --nx-bg-3:#101828;
+    --nx-ink:#f2e9d8;
+    --nx-ink-2:#c6bba4;
+    --nx-ink-3:#8d8471;
+
+    --nx-win:#57cf9e;
+    --nx-loss:#ff6f6f;
+    --nx-push:#d8bf8a;
+    --nx-warn:#ffb454;
+
+    --nx-line:rgba(217,164,65,.14);
+    --nx-line-2:rgba(217,164,65,.09);
+    --nx-line-3:rgba(217,164,65,.05);
+
+    --glass-1:rgba(23,30,44,.58);
+    --glass-2:rgba(12,17,28,.42);
+    --glass-brd:rgba(217,164,65,.20);
+    --glass-brd-2:rgba(217,164,65,.09);
+    --glass-shadow:0 20px 46px -28px rgba(0,0,0,.66), 0 2px 10px -5px rgba(0,0,0,.4);
+    --glass-inner:inset 0 1px 0 rgba(242,233,216,.10), inset 0 -1px 0 rgba(0,0,0,.22);
+    --glass-sheen:linear-gradient(180deg,rgba(242,233,216,.07),rgba(242,233,216,0) 42%);
+    --scene-opacity:.24;
+    --scene-sky-1:#0f1826; --scene-sky-2:#0a1220;
+    --scene-sea-1:#0d2135; --scene-sea-2:#061220;
+    --scene-moon:#f0dba8; --scene-cloud:#1a2536; --scene-glow:#c9973f; --scene-ship:#04070d;
+    --scene-warm:rgba(217,164,65,.26);
+  }
+
   /* ── 2 · reset + base ──────────────────────────────────────────── */
   html{ scroll-behavior:smooth; overflow-x:hidden; }
   *{ margin:0; padding:0; box-sizing:border-box; font-family:var(--font); }
@@ -154,6 +194,13 @@
       radial-gradient(880px 560px at 94% 4%, rgba(120,90,220,.16), transparent 60%),
       radial-gradient(1000px 700px at 50% 116%, rgba(0,170,170,.14), transparent 62%),
       linear-gradient(180deg,var(--nx-bg) 0%, var(--nx-bg-2) 58%, var(--nx-bg) 100%);
+  }
+  :root[data-theme="corsair"] body::before{
+    background:
+      radial-gradient(1200px 680px at 10% -10%, rgba(217,164,65,.10), transparent 62%),
+      radial-gradient(900px 620px at 92% 4%, rgba(28,54,92,.30), transparent 60%),
+      radial-gradient(1000px 760px at 50% 116%, rgba(10,60,80,.22), transparent 64%),
+      linear-gradient(180deg,var(--nx-bg) 0%, var(--nx-bg-2) 54%, var(--nx-bg) 100%);
   }
   a{ color:var(--nx-accent); }
   button{ font-family:inherit; }
@@ -179,6 +226,7 @@
   :root[data-theme="light"] .rail-quote em{ color:rgba(60,90,124,.7); }
   :root[data-theme="light"] .rail-foot{ background:linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,.6) 42%, rgba(248,251,254,.85)); }
   :root[data-theme="light"] .rail-link.active{ box-shadow:0 10px 22px -16px rgba(20,70,120,.5), inset 0 1px 0 rgba(255,255,255,.9); }
+  :root[data-theme="corsair"] .rail-link.active{ box-shadow:0 10px 22px -16px rgba(217,164,65,.42), inset 0 1px 0 rgba(242,233,216,.14); }
   :root[data-theme="light"] .cr-hero .word b,
   :root[data-theme="light"] .cr-hero .kanji,
   :root[data-theme="light"] .cr-hero .kanji-sm{ text-shadow:0 2px 14px rgba(255,255,255,.75); color:#0b2745; }
@@ -253,6 +301,7 @@
     mask-image:linear-gradient(180deg,#000,rgba(0,0,0,.28) 38%,transparent 60%);
   }
   :root[data-theme="light"] .glass::before{ background:linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,0) 30%); }
+  :root[data-theme="corsair"] .glass::before{ background:linear-gradient(180deg, rgba(242,233,216,.10), rgba(242,233,216,0) 26%); }
   .glass.flat{ background:var(--glass-2); }
   .glass.tint{ background:var(--glass-sheen), linear-gradient(160deg, rgba(78,205,245,.11), rgba(91,134,214,.07)); }
   .glass.tight{ padding:var(--sp-4); }
@@ -2087,6 +2136,7 @@
           <select id="setTheme" aria-label="Colour theme">
             <option value="dark">Dark · midnight ocean</option>
             <option value="light">Light · silver mist</option>
+            <option value="corsair">Corsair · black flag</option>
             <option value="auto">Auto · follow the system</option>
           </select>
           <span class="mini left" style="display:block;margin-top:6px">ACCENT COLOUR</span>
@@ -6132,11 +6182,59 @@ function nxFlag(pair){
   const body=NX_FLAGS[base]||'<rect width="24" height="24" fill="#2d4a7a"/>';
   return '<span class="flag" aria-hidden="true"><svg viewBox="0 0 24 24">'+body+'</svg></span>';
 }
+function nxSceneCorsair(){ /* privateer chart room: brass moon, faint graticule, compass rose, one far sail */
+  const W=1600,H=900,hy=H*0.66,rand=nxRand(97),uid='nxc'+(nxSceneSeq++);
+  const defs='<defs>'
+    +'<linearGradient id="'+uid+'s" x1="0" y1="0" x2="0.1" y2="1">'
+    +'<stop offset="0" stop-color="#05070d"/><stop offset=".45" stop-color="var(--scene-sky-1)"/>'
+    +'<stop offset="1" stop-color="#12233c"/></linearGradient>'
+    +'<linearGradient id="'+uid+'w" x1="0" y1="0" x2="0" y2="1">'
+    +'<stop offset="0" stop-color="#0e2a41"/><stop offset="1" stop-color="#061220"/></linearGradient>'
+    +'<radialGradient id="'+uid+'g"><stop offset="0" stop-color="#f0dba8" stop-opacity=".5"/>'
+    +'<stop offset="1" stop-color="#c9973f" stop-opacity="0"/></radialGradient>'
+    +'</defs>';
+  let art='<rect width="'+W+'" height="'+H+'" fill="url(#'+uid+'s)"/>';
+  /* brass moon + halo */
+  const mx=W*0.74,my=H*0.26;
+  art+='<circle cx="'+mx+'" cy="'+my+'" r="190" fill="url(#'+uid+'g)"/>'
+    +'<circle cx="'+mx+'" cy="'+my+'" r="56" fill="#f0dba8" opacity=".92"/>'
+    +'<circle cx="'+mx+'" cy="'+my+'" r="70" fill="none" stroke="#f0dba8" stroke-width="1.2" opacity=".3"/>';
+  /* chart graticule — the faint ruled grid of a sea chart */
+  let grid='<g stroke="rgba(217,164,65,.07)" stroke-width="1">';
+  for(let x=0;x<=W;x+=W/12) grid+='<path d="M'+x.toFixed(0)+' 0V'+H+'"/>';
+  for(let y=0;y<=H;y+=H/8) grid+='<path d="M0 '+y.toFixed(0)+'H'+W+'"/>';
+  grid+='</g>';
+  /* eight-point compass rose, low ink */
+  const cx=W*0.18,cy=H*0.24,R=90;
+  const rose='<g transform="translate('+cx+','+cy+')" opacity=".2" fill="#e9d3a0">'
+    +'<path d="M0 -'+R+' L14 -14 L'+R+' 0 L14 14 L0 '+R+' L-14 14 L-'+R+' 0 L-14 -14 Z"/>'
+    +'<path d="M0 -'+(R*0.62)+' L9 -9 L'+(R*0.62)+' 0 L9 9 L0 '+(R*0.62)+' L-9 9 L-'+(R*0.62)+' 0 L-9 -9 Z" transform="rotate(45)" opacity=".8"/>'
+    +'<circle r="'+(R*0.2)+'" fill="none" stroke="#e9d3a0" stroke-width="2"/></g>';
+  art+=grid+rose;
+  /* sea + horizon hairline + moonlight column */
+  art+='<rect y="'+hy.toFixed(0)+'" width="'+W+'" height="'+(H-hy).toFixed(0)+'" fill="url(#'+uid+'w)"/>'
+    +'<rect y="'+(hy-1.5).toFixed(1)+'" width="'+W+'" height="2.4" fill="#d9c08a" opacity=".35"/>'
+    +'<path d="M'+(mx-W*0.04).toFixed(0)+' '+hy.toFixed(0)+' L'+(mx+W*0.04).toFixed(0)+' '+hy.toFixed(0)
+    +' L'+(mx+W*0.13).toFixed(0)+' '+H+' L'+(mx-W*0.13).toFixed(0)+' '+H+' Z" fill="rgba(240,219,168,.10)"/>';
+  /* swells */
+  let waves='<g fill="none" stroke-linecap="round">';
+  for(let r=1;r<=8;r++){
+    const y=hy+(H-hy)*Math.pow(r/9,1.15),op=(0.26-r*0.026).toFixed(3);
+    let d='M-60 '+y.toFixed(1),x=-60;
+    while(x<W+60){ const seg=80+rand()*120; d+=' q'+(seg/2).toFixed(0)+' '+((rand()*16-8)*(0.4+r*0.13)).toFixed(1)+' '+seg.toFixed(0)+' 0'; x+=seg; }
+    waves+='<path d="'+d+'" stroke="rgba(224,205,164,'+op+')" stroke-width="'+(2-r*0.13).toFixed(2)+'"/>';
+  }
+  waves+='</g>';
+  art+=waves;
+  art+=nxShip(W*0.62,hy+1,0.55,'#04070d');
+  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid slice" aria-hidden="true">'+defs+art+'</svg>';
+}
 const NX_WALLS={
   harbour:{name:'Midnight voyage',svg:nxScene('voyage')},
   horizon:{name:'Deep horizon',svg:nxScene('horizon')},
   fleet:{name:'Distant fleet',svg:nxScene('fleet')},
   chart:{name:'Signal current',svg:nxScene('dawn')},
+  corsair:{name:'Corsair chart',svg:nxSceneCorsair()},
   none:{name:'None (plain backdrop)',svg:''}
 };
 const NX_BRAND_KEY='nx_brand';
@@ -6165,7 +6263,17 @@ function motionReduced(){
   if(nxBrand.motion==='on') return false;
   try{ return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; }
 }
-function activeTheme(){ return nxBrand.theme==='auto'?(themePrefersLight()?'light':'dark'):(nxBrand.theme==='light'?'light':'dark'); }
+function activeTheme(){
+  if(nxBrand.theme==='corsair') return 'corsair';
+  return nxBrand.theme==='auto'?(themePrefersLight()?'light':'dark'):(nxBrand.theme==='light'?'light':'dark');
+}
+/* Per-theme default accents. A theme switch migrates only stock accents —
+   a colour the operator chose by hand is never overwritten. */
+const THEME_ACCENTS={dark:'#3ad2ff',light:'#0b7fb8',corsair:'#d9a441'};
+function migrateThemeAccent(theme){
+  const def=THEME_ACCENTS[theme];
+  if(def&&Object.values(THEME_ACCENTS).includes(nxBrand.accent)) nxBrand.accent=def;
+}
 function applyTheme(){
   const root=document.documentElement;
   root.setAttribute('data-theme',activeTheme());
@@ -6203,9 +6311,11 @@ function setBrand(patch,opts){
 }
 function resetBrand(){ nxBrand=Object.assign({},DEF_BRAND); saveBrand(); applyTheme(); applyWallpaper(); syncBrandInputs(); renderBrandStudio(); syncSettingsInputs(); uiToast('✦ Brand defaults restored'); }
 function toggleThemeButton(){
-  const next=activeTheme()==='dark'?'light':'dark';
+  const cycle=['dark','light','corsair'];
+  const next=cycle[(cycle.indexOf(activeTheme())+1)%cycle.length];
+  migrateThemeAccent(next);
   nxBrand.theme=next; saveBrand(); applyTheme(); syncSettingsInputs();
-  uiToast(next==='dark'?'◐ Dark theme':'◑ Light theme');
+  uiToast(next==='dark'?'◐ Dark theme':next==='light'?'◑ Light theme':'⚓ Corsair · black flag');
 }
 function initBrandWiring(){
   const t=$('themeToggle'); if(t) t.addEventListener('click',toggleThemeButton);
@@ -7405,7 +7515,7 @@ function syncSettingsInputs(){
 }
 function initSettingsWiring(){
   const on=(id,ev,fn)=>{ const el=$(id); if(el) el.addEventListener(ev,fn); };
-  on('setTheme','change',e=>{ nxBrand.theme=e.target.value; saveBrand(); applyTheme(); syncBrandInputs(); });
+  on('setTheme','change',e=>{ migrateThemeAccent(e.target.value); nxBrand.theme=e.target.value; saveBrand(); applyTheme(); syncBrandInputs(); });
   on('setAccent','input',e=>{ nxBrand.accent=e.target.value; saveBrand(); applyTheme(); syncBrandInputs(); });
   on('setGlass','input',e=>{ nxBrand.glass=Number(e.target.value); saveBrand(); applyTheme(); syncBrandInputs(); });
   on('setWallpaper','change',e=>{ nxBrand.wallpaper=NX_WALLS_SAFE(e.target.value); saveBrand(); applyWallpaper(); syncBrandInputs(); });

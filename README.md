@@ -10,7 +10,7 @@ A single-file, glassmorphic **multi-pair M1/M3 signal research engine** for bina
 
 ## Product features
 
-- **NEXUS Liquid Glass interface:** a registry-driven, responsive shell (desktop rail, tab bar, mobile bar) with a midnight-ocean token system, translucent layered surfaces, an optional light theme and a solid-background fallback. Every backend integration is preserved — see [docs/REDESIGN.md](docs/REDESIGN.md) for the audit and the feature-preservation checklist.
+- **NEXUS Liquid Glass interface:** a registry-driven, responsive shell (desktop rail, tab bar, mobile bar) with a midnight-ocean token system, translucent layered surfaces, optional light and **Corsair** (Apple-minimal privateer) themes, and a solid-background fallback. Every backend integration is preserved — see [docs/REDESIGN.md](docs/REDESIGN.md) for the audit and the feature-preservation checklist.
 - **26 strategies + 6 agents** across M1/M3, with live/deep/regime weights, risk gates, and paper-trading controls. The browser strategy and signal logic remain unchanged by the cloud relay.
 - **Signal registry:** every emitted signal (live · session · VIP · public · list) is recorded with an explicit state — pending, settled win/loss/push, invalid or unavailable — and is searchable, filterable and auditable.
 - **Markets workspace:** pair explorer, dependency-free candlestick charts with recorded signal markers, and per-pair regime/agent/strategy analysis built only from the engine's own candles.

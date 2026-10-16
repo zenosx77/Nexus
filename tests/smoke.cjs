@@ -1247,6 +1247,23 @@ async function main() {
     assert.equal(doc.documentElement.style.getPropertyValue('--scene-opacity'), '0.3', 'artwork intensity applies');
     assert.match($id('nxScene').innerHTML, /<svg/, 'wallpaper artwork renders inline (no external request)');
     E(`setBrand({theme:'dark',accent:'#3ad2ff',glass:100,wallpaper:'harbour',artwork:42})`);
+    // third theme — corsair (Apple-minimal privateer palette): tokenised, selectable, engine-safe
+    assert.match(html, /:root\[data-theme="corsair"\]/, 'the corsair privateer theme ships');
+    assert.match(html, /<option value="corsair">Corsair · black flag<\/option>/, 'settings offer the corsair theme');
+    assert.match(html, /function nxSceneCorsair\(\)/, 'the corsair chart wallpaper ships as inline SVG');
+    E(`setBrand({theme:'corsair'})`);
+    assert.equal(doc.documentElement.getAttribute('data-theme'), 'corsair', 'theme switches to corsair');
+    assert.equal(E('THEME_ACCENTS.corsair'), '#d9a441', 'corsair carries its stock aged-brass accent');
+    E(`setBrand({accent:'#00a3ff'})`); E(`migrateThemeAccent('corsair')`);
+    assert.equal(E('nxBrand.accent'), '#00a3ff', 'a hand-picked accent survives a theme migration');
+    E(`setBrand({accent:'#3ad2ff'})`); E(`migrateThemeAccent('corsair')`);
+    assert.equal(E('nxBrand.accent'), '#d9a441', 'a stock accent migrates with the theme');
+    E(`setBrand({accent:'#3ad2ff'})`);
+    E(`setBrand({wallpaper:'corsair'})`);
+    assert.match($id('nxScene').innerHTML, /nxc\d+s/, 'corsair wallpaper renders its own gradients inline');
+    assert.equal(JSON.stringify(E('productionGate()')), gateBefore, 'corsair branding cannot alter the production gate');
+    assert.equal(JSON.stringify(E('stat')), statBefore, 'corsair branding cannot alter settled statistics');
+    E(`setBrand({theme:'dark',accent:'#3ad2ff',glass:100,wallpaper:'harbour',artwork:42})`);
     assert.equal(JSON.stringify(E('productionGate()')), gateBefore, 'branding cannot alter the production gate');
     assert.equal(JSON.stringify(E('stat')), statBefore, 'branding cannot alter settled statistics');
     // tagline + creator attribution

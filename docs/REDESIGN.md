@@ -74,7 +74,7 @@
 
 ## 4 · What the redesign added
 
-* **Liquid Glass design system** — tokens (midnight `#04060d`, ocean blue, silver, restrained cyan `#3ad2ff`), layered translucent surfaces with real `backdrop-filter`, fine borders, sheen, inner highlight, soft depth; a fully tokenised **light theme**; a **solid-background fallback** when blur is unavailable.
+* **Liquid Glass design system** — tokens (midnight `#04060d`, ocean blue, silver, restrained cyan `#3ad2ff`), layered translucent surfaces with real `backdrop-filter`, fine borders, sheen, inner highlight, soft depth; a fully tokenised **light theme** and **corsair theme** (aged-brass accent on abyssal navy); a **solid-background fallback** when blur is unavailable.
 * **Original artwork** — inline vector ocean/harbour/horizon/current scenes tinted by theme tokens, used only as an ambient layer with a user-controlled intensity, so contrast is never reduced. No franchise assets, logos or characters.
 * **Registry-driven navigation** — 15 sections in 5 groups, a desktop rail, a tab bar and a mobile bar all generated from `FEATURES`, so a new module is one registry entry.
 * **New modules** — Markets (explorer, candlestick chart, pair analysis), System health (service matrix, staleness, audit), Settings (appearance, notifications, security, configuration catalogue), Branding studio (logo variants, favicon, app icon, loader, wallpaper, creator card).

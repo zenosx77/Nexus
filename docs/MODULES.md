@@ -109,7 +109,7 @@ Every module below states its **purpose**, **route**, **backend dependency**,
 * **Extension** — append a row in `collectHealthStates()`; the matrix, the overview tile and the rail indicator update automatically.
 
 ### 2.14 Settings — `settings` *(new)*
-* **Purpose** — appearance (theme, accent, glass intensity, wallpaper, reduce motion), notifications, security actions, configuration catalogue and data actions.
+* **Purpose** — appearance (theme: midnight ocean · silver mist · corsair · auto; accent, glass intensity, wallpaper, reduce motion), notifications, security actions, configuration catalogue and data actions.
 * **Backend** — none that can be "saved" server-side; the catalogue shows which values are browser-owned, server-owned or computed, so no setting pretends to be authoritative when it is not.
 * **Security actions** — revoke Telegram send access, sign out of the relay session, clear cloud configuration. None of these touch server secrets.
 * **Extension** — new groups are new `<div class="glass" id="sec-set-*">` blocks; the catalogue row list lives in `renderSettings()`.
